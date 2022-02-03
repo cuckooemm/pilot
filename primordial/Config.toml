@@ -1,0 +1,15 @@
+[server]
+addr = "0.0.0.0:8000"
+
+[log]
+level = "Debug"
+path = "logs/mchat.log"
+
+
+[store]
+[store.database]
+derive = "mysql"
+host = "ten2"
+user = "cuckoo"
+password = "cuckooemm"
+db = "cuckoo"
