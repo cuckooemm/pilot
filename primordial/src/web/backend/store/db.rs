@@ -1,4 +1,4 @@
-use std::{sync::Arc, time::Duration};
+use std::time::Duration;
 
 use sea_orm::{ConnectOptions, Database, DatabaseConnection};
 
@@ -6,8 +6,7 @@ use crate::config::StoreConfig;
 
 #[derive(Clone)]
 pub struct StoreStats {
-    pub test: i32,
-    pub db: Arc<DatabaseConnection>,
+    pub db: DatabaseConnection,
 }
 
 impl StoreStats {
@@ -31,9 +30,6 @@ impl StoreStats {
         // 初始化表
         super::prelude::create_table(&db).await;
 
-        StoreStats {
-            test: 12,
-            db: Arc::new(db),
-        }
+        StoreStats { db }
     }
 }

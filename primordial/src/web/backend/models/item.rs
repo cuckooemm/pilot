@@ -28,7 +28,7 @@ impl ActiveModelBehavior for ActiveModel {
         ActiveModelTrait::default()
     }
 
-    fn before_save(self, insert: bool) -> Result<Self, DbErr> {
+    fn before_save(self, _insert: bool) -> Result<Self, DbErr> {
         Ok(self)
     }
 

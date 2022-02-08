@@ -1,14 +1,14 @@
-use std::fmt::{Display, Formatter};
+use chrono::prelude::*;
+use sea_orm::{entity::prelude::*, Set};
+use serde::{Deserialize, Serialize};
 
-use sea_orm::entity::prelude::*;
-
-#[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
+#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Deserialize, Serialize)]
 #[sea_orm(table_name = "application")]
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i32,
     #[sea_orm(indexed)]
-    pub app_id: String,      // app 唯一 ID
+    pub app_id: String, // app 唯一 ID
     pub name: String,        // app name
     pub org_id: i32,         // 组织 ID
     pub org_name: String,    // 组织名
@@ -28,14 +28,24 @@ impl RelationTrait for Relation {
 
 impl ActiveModelBehavior for ActiveModel {
     fn new() -> Self {
-        <Self as ActiveModelTrait>::default()
+        Self {
+            org_id: Set(0),
+            org_name: Set("".to_owned()),
+            owner_name: Set("".to_owned()),
+            owner_email: Set("".to_owned()),
+            created_at: Set(Local::now().timestamp()),
+            updated_at: Set(0),
+            ..ActiveModelTrait::default()
+        }
     }
 
-    fn before_save(self, insert: bool) -> Result<Self, DbErr> {
+    fn before_save(mut self, _insert: bool) -> Result<Self, DbErr> {
+        self.updated_at = Set(Local::now().timestamp());
         Ok(self)
     }
+
     /// Will be triggered after insert / update
-    fn after_save(model: Model, insert: bool) -> Result<Model, DbErr> {
+    fn after_save(model: Model, _insert: bool) -> Result<Model, DbErr> {
         Ok(model)
     }
 

@@ -1,0 +1,15 @@
+Get http://localhost:8000/api/config/
+
+###
+
+POST http://localhost:8000/api/app/create
+Content-Type: application/json
+
+{
+    "name": "new_test_application2"
+}
+
+###
+GET http://localhost:8000/api/app/list
+
+###
