@@ -1,8 +1,9 @@
+use super::orm::DbErr;
+
 use axum::{
     response::{IntoResponse, Response},
     Json,
 };
-use sea_orm::DbErr;
 use serde::Serialize;
 
 #[derive(Debug, Serialize, Default)]
@@ -40,8 +41,8 @@ where
             data,
         }
     }
-    pub fn ok(data: T) -> Self {
-        Self::new(0, "OK".to_string(), Some(data))
+    pub fn ok(data: Option<T>) -> Self {
+        Self::new(0, "OK".to_string(), data)
     }
     pub fn err(code: i32, message: String) -> Self {
         Self::new(code, message, None)
@@ -54,6 +55,19 @@ pub enum APIErrorType {
     NotFound,
     /// 数据库错误
     Database,
+    // 参数错误
+    BadParam(ParamErrType),
+}
+#[derive(Clone)]
+pub enum ParamErrType {
+    // 必填
+    Required,
+    // 长度
+    Len(u16, u16),
+    // 已存在
+    Exist,
+    // 不存在
+    NotExist,
 }
 
 /// API错误
@@ -68,15 +82,40 @@ pub struct APIError {
 
 impl APIError {
     pub fn new() -> Self {
-        APIError {
+        Self {
             error_type: APIErrorType::NotFound,
             message: None,
             cause: None,
         }
     }
+    pub fn new_param_err(param_type: ParamErrType, field: &str) -> Self {
+        Self {
+            error_type: APIErrorType::BadParam(param_type.clone()),
+            message: match param_type {
+                ParamErrType::Required => Some(format!("The {} is required", field)),
+                ParamErrType::Exist => Some(format!("The {} is exist", field)),
+                ParamErrType::NotExist => Some(format!("The {} is not exist", field)),
+                ParamErrType::Len(left, right) => Some(format!(
+                    "The length of {} should be between {} and {}",
+                    field, left, right
+                )),
+            },
+            cause: None,
+        }
+    }
     pub fn new_db_err(db_err: DbErr) -> Self {
+        tracing::error!("databases err: {:?}", db_err);
         let mut api_err = APIError::new();
         api_err.message = match db_err {
+            DbErr::Exec(s) => {
+                if s.contains("1062") && s.contains("Duplicate entry") {
+                    api_err.error_type = APIErrorType::BadParam(ParamErrType::Exist);
+                    Some(String::from("记录已存在"))
+                } else {
+                    api_err.error_type = APIErrorType::Database;
+                    None
+                }
+            }
             DbErr::RecordNotFound(_s) => {
                 api_err.error_type = APIErrorType::NotFound;
                 None
@@ -90,8 +129,8 @@ impl APIError {
     }
 }
 
-impl From<sea_orm::DbErr> for APIError {
-    fn from(err: sea_orm::DbErr) -> Self {
+impl From<DbErr> for APIError {
+    fn from(err: DbErr) -> Self {
         APIError::new_db_err(err)
     }
 }
@@ -99,6 +138,9 @@ impl From<sea_orm::DbErr> for APIError {
 impl IntoResponse for APIError {
     fn into_response(self) -> Response {
         let res: APIResponse<()> = match self.error_type {
+            APIErrorType::BadParam(_) => {
+                APIResponse::err(4000, self.message.unwrap_or("内部服务错误".to_owned()))
+            }
             APIErrorType::Database => {
                 tracing::error!("{}", self.message.unwrap_or("nothing".to_owned()));
                 APIResponse::err(5000, "内部服务错误".to_owned())

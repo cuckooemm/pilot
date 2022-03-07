@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use sea_orm::{ConnectOptions, Database, DatabaseConnection};
+use super::orm::{ConnectOptions, Database, DatabaseConnection};
 
 use crate::config::StoreConfig;
 
@@ -12,7 +12,7 @@ pub struct StoreStats {
 impl StoreStats {
     pub async fn new(conf: StoreConfig) -> Self {
         let addr = format!(
-            "{}://{}:{}@{}/{}",
+            "{}://{}:{}@{}/{}?useUnicode=ture&characterEncoding=UTF-8&serverTimezone=GMT%2B8",
             conf.database.derive,
             conf.database.user,
             conf.database.password,
@@ -20,13 +20,15 @@ impl StoreStats {
             conf.database.db
         );
         let mut opt = ConnectOptions::new(addr);
-        opt.min_connections(3)
+        opt.min_connections(1)
             .connect_timeout(Duration::from_secs(3))
             .idle_timeout(Duration::from_secs(60))
             .sqlx_logging(true);
+        tracing::info!("connection databases {}",&opt.get_url());
         let db = Database::connect(opt)
             .await
             .expect("failed to connection databases");
+        
         // 初始化表
         super::prelude::create_table(&db).await;
 
