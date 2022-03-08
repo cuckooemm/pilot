@@ -1,24 +1,27 @@
 use std::future::ready;
 
+use crate::config::StoreConfig;
+use super::{
+    api::{backend::*,forent::*},
+    store,
+    middleware::metrics,
+    user,
+};
+
 use axum::{
+    extract::Extension,
     handler::Handler,
     http::StatusCode,
     middleware,
     response::Html,
     routing::{get, post},
-    Router, extract::Extension,
-};
-
-use crate::config::StoreConfig;
-
-use super::{
-    backend::{api::*, store},
-    middleware::metrics,
-    user,
+    Router,
 };
 
 pub async fn init_router(conf: StoreConfig) -> Router {
-    let config_group = Router::new().route("/", get(config::get_config));
+    let config_group = Router::new()
+    .route("/desc", get(config::description))
+    .route("/notifaction", get(config::notifaction));
 
     let user_group = Router::new().route("/", get(user::user));
 

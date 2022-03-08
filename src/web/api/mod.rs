@@ -1,18 +1,12 @@
-pub mod app;
-pub mod app_ns;
+pub mod backend;
+pub mod forent;
 pub mod check;
-pub mod cluster;
 pub mod common;
-pub mod config;
-pub mod item;
-pub mod namespace;
-pub mod response;
 
 use entity::sea_orm as orm;
 
-type APIResult<T> = std::result::Result<T, response::APIError>;
-
 use super::store::db::StoreStats;
+use super::extract::json::ReqJson;
 
 use entity::common::{ItemCategory, Premissions, ID};
 

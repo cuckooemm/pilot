@@ -1,7 +1,7 @@
 use super::orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, QuerySelect, Set};
 use super::response::{APIError, APIResponse, ParamErrType};
-use super::StoreStats;
 use super::{check, APIResult, AppNsActive, AppNsColumn, AppNsEntity, AppNsModel, Premissions, ID};
+use super::{ReqJson, StoreStats};
 
 use axum::extract::{Extension, Json, Query};
 use serde::Deserialize;
@@ -14,10 +14,9 @@ pub struct AppNsParam {
 }
 
 pub async fn create(
-    Json(param): Json<AppNsParam>,
+    ReqJson(param): ReqJson<AppNsParam>,
     Extension(store): Extension<StoreStats>,
 ) -> APIResult<Json<APIResponse<AppNsModel>>> {
-    
     let namespace = check::name(param.namespace, "namespace")?;
     let app_id = check::appid_exist(&store.db, param.app_id).await?;
 

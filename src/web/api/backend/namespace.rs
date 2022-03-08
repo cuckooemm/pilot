@@ -1,7 +1,6 @@
-use super::check;
 use super::orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, QuerySelect, Set};
 use super::response::{APIError, APIResponse, ParamErrType};
-use super::StoreStats;
+use super::{check, ReqJson, StoreStats};
 use super::{
     APIResult, ClusterColumn, ClusterEntity, NamespaceActive, NamespaceColumn, NamespaceEntity,
     NamespaceModel, ID,
@@ -18,7 +17,7 @@ pub struct NamespaceParam {
 }
 
 pub async fn create(
-    Json(param): Json<NamespaceParam>,
+    ReqJson(param): ReqJson<NamespaceParam>,
     Extension(store): Extension<StoreStats>,
 ) -> APIResult<Json<APIResponse<NamespaceModel>>> {
     let namespace = check::name(param.namespace, "namespace")?;

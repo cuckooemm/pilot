@@ -1,6 +1,5 @@
 use super::orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, QuerySelect, Set};
-use super::StoreStats;
-use super::{check, ID};
+use super::{check, ReqJson, StoreStats, ID};
 use super::{
     response::{APIError, APIResponse, ParamErrType},
     APIResult,
@@ -21,7 +20,7 @@ pub struct ItemParam {
 }
 
 pub async fn create(
-    Json(param): Json<ItemParam>,
+    ReqJson(param): ReqJson<ItemParam>,
     Extension(store): Extension<StoreStats>,
 ) -> APIResult<Json<APIResponse<ItemModel>>> {
     let key = check::name(param.key, "key")?;

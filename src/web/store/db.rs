@@ -1,7 +1,6 @@
 use std::time::Duration;
 
 use super::orm::{ConnectOptions, Database, DatabaseConnection};
-
 use crate::config::StoreConfig;
 
 #[derive(Clone)]

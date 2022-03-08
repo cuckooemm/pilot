@@ -1,7 +1,7 @@
 use super::orm::{ActiveModelTrait, EntityTrait, Set};
 use super::response::APIResponse;
-use super::StoreStats;
 use super::{check, APIResult, AppActive, AppEntity, AppModel};
+use super::{ReqJson, StoreStats};
 
 use axum::extract::{Extension, Json};
 use serde::Deserialize;
@@ -14,7 +14,7 @@ pub struct AppParam {
 
 // 创建APP
 pub async fn create(
-    Json(param): Json<AppParam>,
+    ReqJson(param): ReqJson<AppParam>,
     Extension(store): Extension<StoreStats>,
 ) -> APIResult<Json<APIResponse<AppModel>>> {
     let app_id = check::app_id(param.app_id)?;

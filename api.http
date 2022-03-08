@@ -1,15 +1,70 @@
-Get http://localhost:8000/api/config/
+Get http://localhost:8000
+###
 
+Get http://localhost:8000/api/config/
 ###
 
 POST http://localhost:8000/api/app/create
 Content-Type: application/json
 
 {
-    "name": "new_test_application2"
+    "app_id": "app12",
+    "name": "app23"
+}
+###
+
+GET http://localhost:8000/api/app/list
+###
+
+POST http://localhost:8000/api/cluster/create
+Content-Type: application/json
+
+{
+    "app_id": "app1",
+    "name": "cluster"
 }
 
 ###
-GET http://localhost:8000/api/app/list
+GET  http://localhost:8000/api/cluster/list?app_id=app1
+###
 
+POST http://localhost:8000/api/app_ns/create
+Content-Type: application/json
+
+{
+    "app_id": "new_test_application2",
+    "namespace": "app_namespaces1"
+}
+###
+
+GET  http://localhost:8000/api/app_ns/list
+###
+
+
+POST http://localhost:8000/api/namespace/create
+Content-Type: application/json
+
+{
+    "app_id": "new_test_application1",
+    "cluster": "new_test_cluster",
+    "namespace": "namespaces1"
+}
+###
+
+GET  http://localhost:8000/api/namespace/list
+###
+
+POST http://localhost:8000/api/item/create
+Content-Type: application/json
+
+{
+    "id": 1,
+    "key": "testjs2",
+    "value": "{\"id\":\"xxx\"\r\n\"name\":\"hahaha\"}",
+    "category": "json",
+    "common": "item functional test"
+}
+###
+
+GET  http://localhost:8000/api/item/list?id=1
 ###

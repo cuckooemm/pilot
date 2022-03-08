@@ -1,4 +1,9 @@
-use axum::{extract::MatchedPath, http::Request, middleware::Next, response::IntoResponse};
+use axum::{
+    extract::MatchedPath,
+    http::{header::HeaderName, Request},
+    middleware::Next,
+    response::IntoResponse,
+};
 use metrics_exporter_prometheus::{Matcher, PrometheusBuilder, PrometheusHandle};
 use tokio::time::Instant;
 
@@ -29,14 +34,26 @@ pub async fn track_metrics<B>(req: Request<B>, next: Next<B>) -> impl IntoRespon
     let response = next.run(req).await;
 
     let latency = start.elapsed().as_secs_f64();
-    let status = response.status().as_u16().to_string();
+    let code: String;
+    let status = response.status().as_u16();
+    if status == 200 {
+        code = if let Some(v) = response
+            .headers()
+            .get(HeaderName::from_static("inner-status-code"))
+        {
+            v.to_str().unwrap_or("500").to_owned()
+        } else {
+            "0".to_owned()
+        };
+    } else {
+        code = status.to_string();
+    }
 
     let labels = [
         ("method", method.to_string()),
         ("path", path),
-        ("status", status),
+        ("code", code),
     ];
-
     metrics::increment_counter!("http_requests_total", &labels);
     metrics::histogram!("http_requests_duration_seconds", latency, &labels);
 

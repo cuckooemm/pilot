@@ -1,6 +1,11 @@
 use super::orm::DbErr;
 
 use axum::{
+    extract::rejection::JsonRejection,
+    http::{
+        header::{self, HeaderName},
+        HeaderMap, HeaderValue, StatusCode,
+    },
     response::{IntoResponse, Response},
     Json,
 };
@@ -57,6 +62,8 @@ pub enum APIErrorType {
     Database,
     // 参数错误
     BadParam(ParamErrType),
+    // 请求体错误
+    BadRequestBody,
 }
 #[derive(Clone)]
 pub enum ParamErrType {
@@ -110,7 +117,7 @@ impl APIError {
             DbErr::Exec(s) => {
                 if s.contains("1062") && s.contains("Duplicate entry") {
                     api_err.error_type = APIErrorType::BadParam(ParamErrType::Exist);
-                    Some(String::from("记录已存在"))
+                    Some("记录已存在".to_owned())
                 } else {
                     api_err.error_type = APIErrorType::Database;
                     None
@@ -127,6 +134,25 @@ impl APIError {
         };
         api_err
     }
+    pub fn new_parse_err(err: JsonRejection) -> Self {
+        tracing::error!("parsing request body err: {}", err);
+        let mut api_err = APIError::new();
+        api_err.message = match err {
+            JsonRejection::InvalidJsonBody(err) => {
+                api_err.error_type = APIErrorType::BadRequestBody;
+                Some(err.to_string())
+            }
+            JsonRejection::MissingJsonContentType(err) => {
+                api_err.error_type = APIErrorType::BadRequestBody;
+                Some(err.to_string())
+            }
+            _ => {
+                api_err.error_type = APIErrorType::BadRequestBody;
+                Some(err.to_string())
+            }
+        };
+        api_err
+    }
 }
 
 impl From<DbErr> for APIError {
@@ -137,16 +163,21 @@ impl From<DbErr> for APIError {
 
 impl IntoResponse for APIError {
     fn into_response(self) -> Response {
-        let res: APIResponse<()> = match self.error_type {
+        let rsp: APIResponse<()> = match self.error_type {
             APIErrorType::BadParam(_) => {
                 APIResponse::err(4000, self.message.unwrap_or("内部服务错误".to_owned()))
             }
-            APIErrorType::Database => {
-                tracing::error!("{}", self.message.unwrap_or("nothing".to_owned()));
-                APIResponse::err(5000, "内部服务错误".to_owned())
+            APIErrorType::BadRequestBody => {
+                APIResponse::err(4000, self.message.unwrap_or("".to_owned()))
             }
+            APIErrorType::Database => APIResponse::err(5000, "内部服务错误".to_owned()),
             APIErrorType::NotFound => APIResponse::err(0, "OK".to_owned()),
         };
-        Json(res).into_response()
+        let mut header = HeaderMap::with_capacity(1);
+        header.insert(
+            HeaderName::from_static("inner-status-code"),
+            HeaderValue::from(rsp.code),
+        );
+        (StatusCode::OK, header, Json(rsp).into_response()).into_response()
     }
 }

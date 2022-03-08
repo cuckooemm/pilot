@@ -1,7 +1,6 @@
 use super::orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, QuerySelect, Set};
 use super::response::{APIError, APIResponse, ParamErrType};
-use super::StoreStats;
-use super::check;
+use super::{check, ReqJson, StoreStats};
 use super::{APIResult, ClusterActive, ClusterColumn, ClusterEntity, ClusterModel, ID};
 
 use axum::extract::{Extension, Json, Query};
@@ -15,7 +14,7 @@ pub struct ClusterParam {
 
 // 创建app集群
 pub async fn create(
-    Json(param): Json<ClusterParam>,
+    ReqJson(param): ReqJson<ClusterParam>,
     Extension(store): Extension<StoreStats>,
 ) -> APIResult<Json<APIResponse<ClusterModel>>> {
     // check param
