@@ -13,3 +13,7 @@ host = "ten2"
 user = "cuckoo"
 password = "cuckooemm"
 db = "cuckoo"
+
+[harsh]
+min_len = 16
+slat = "cuckooemm@gmail.com"

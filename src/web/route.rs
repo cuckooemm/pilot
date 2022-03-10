@@ -34,8 +34,8 @@ pub async fn init_router(conf: StoreConfig) -> Router {
         .route("/list", get(cluster::list));
 
     let app_ns = Router::new()
-        .route("/create", post(app_ns::create))
-        .route("/list", get(app_ns::list));
+        .route("/create", post(app_extend::create))
+        .route("/list", get(app_extend::list));
 
     let namespace = Router::new()
         .route("/create", post(namespace::create))
@@ -62,7 +62,7 @@ pub async fn init_router(conf: StoreConfig) -> Router {
         .fallback(not_found.into_service())
         .nest("/api", api_group)
         .route_layer(middleware::from_fn(metrics::track_metrics))
-        .layer(Extension(store::db::StoreStats::new(conf).await))
+        // .layer(Extension(store::db::StoreStats::new(conf).await))
 }
 
 // basic handler that responds with a static string

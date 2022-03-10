@@ -1,24 +1,24 @@
-use super::common::{Premissions, Status};
-use super::TZ_CN;
-use super::grable_id;
+use super::common::Status;
+use crate::grable_id;
+use crate::utils::get_time_zone;
 
 use chrono::Local;
 use sea_orm::{entity::prelude::*, Set};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Deserialize, Serialize)]
-#[sea_orm(table_name = "app_namespace")]
+#[sea_orm(table_name = "namespace")]
 pub struct Model {
     #[sea_orm(primary_key)]
     #[serde(serialize_with = "grable_id")]
     pub id: i64,
-    #[sea_orm(indexed)]
+    #[sea_orm(indexed, column_type = "String(Some(100))")]
+    pub app_id: String, // app ID
     #[sea_orm(column_type = "String(Some(100))")]
-    pub app_id: String, // app 唯一 ID
+    pub cluster_name: String, // cluster name
     #[sea_orm(column_type = "String(Some(100))")]
-    pub namespace: String, // app  namespace
-    pub premissions: Premissions,         // 权限
-    pub status: Status,                   // 状态
+    pub namespace: String,
+    pub status: Status,
     pub created_at: DateTimeWithTimeZone, // 创建时间
     pub updated_at: DateTimeWithTimeZone, // 更新时间
 }
@@ -34,16 +34,15 @@ impl RelationTrait for Relation {
 impl ActiveModelBehavior for ActiveModel {
     fn new() -> Self {
         Self {
-            premissions: Set(Premissions::Private),
             status: Set(Status::Normal),
-            created_at: Set(Local::now().with_timezone(&TZ_CN)),
-            updated_at: Set(Local::now().with_timezone(&TZ_CN)),
+            created_at: Set(Local::now().with_timezone(get_time_zone())),
+            updated_at: Set(Local::now().with_timezone(get_time_zone())),
             ..ActiveModelTrait::default()
         }
     }
 
     fn before_save(mut self, _insert: bool) -> Result<Self, DbErr> {
-        self.updated_at = Set(Local::now().with_timezone(&TZ_CN));
+        self.updated_at = Set(Local::now().with_timezone(get_time_zone()));
         Ok(self)
     }
 

@@ -391,6 +391,7 @@ dependencies = [
  "chrono",
  "harsh",
  "lazy_static",
+ "once_cell",
  "sea-orm",
  "serde",
 ]

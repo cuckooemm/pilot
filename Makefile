@@ -1,9 +1,8 @@
-.PHONY: cs web
+.PHONY: s c
 
-all: cs
+all: s
 
-cs:
+s:
 	cargo run
-	
-web:
-	cd web/ && trunk serve
+c:
+	cargo check

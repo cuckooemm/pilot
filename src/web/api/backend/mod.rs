@@ -1,20 +1,19 @@
 pub mod app;
-pub mod app_ns;
+pub mod app_extend;
 pub mod cluster;
 pub mod item;
 pub mod namespace;
 
 use super::check;
-use super::super::store::db::StoreStats;
 use super::super::extract::response;
 use super::orm;
 use super::super::APIResult;
 
 use super::ReqJson;
 
-use super::{ItemCategory,Premissions,ID};
-use super::{AppActive,AppColumn,AppEntity,AppModel};
-use super::{ClusterActive,ClusterColumn,ClusterEntity,ClusterModel};
-use super::{AppNsActive,AppNsColumn,AppNsEntity,AppNsModel};
-use super::{NamespaceActive,NamespaceColumn,NamespaceEntity,NamespaceModel};
-use super::{ItemActive,ItemColumn,ItemEntity,ItemModel};
+use entity::{ItemCategory,Premissions,ID};
+use entity::{AppActive,AppColumn,AppEntity,AppModel};
+use entity::{ClusterActive,ClusterColumn,ClusterEntity,ClusterModel};
+use entity::{AppExtendActive,AppExtendColumn,AppExtendEntity,AppExtendModel};
+use entity::{NamespaceActive,NamespaceColumn,NamespaceEntity,NamespaceModel};
+use entity::{ItemActive,ItemColumn,ItemEntity,ItemModel};

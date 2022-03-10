@@ -8,8 +8,8 @@ POST http://localhost:8000/api/app/create
 Content-Type: application/json
 
 {
-    "app_id": "app12",
-    "name": "app23"
+    "app_id": "app_new_id",
+    "name": "new_app"
 }
 ###
 
@@ -37,7 +37,7 @@ Content-Type: application/json
 }
 ###
 
-GET  http://localhost:8000/api/app_ns/list
+GET  http://localhost:8000/api/app_ns/list?
 ###
 
 

@@ -1,9 +1,10 @@
-use super::orm::{ActiveModelTrait, EntityTrait, Set};
+use super::orm::Set;
 use super::response::APIResponse;
-use super::{check, APIResult, AppActive, AppEntity, AppModel};
-use super::{ReqJson, StoreStats};
+use super::{check, APIResult, AppActive, AppModel};
+use super::ReqJson;
 
-use axum::extract::{Extension, Json};
+use entity::dao::app;
+use axum::extract::Json;
 use serde::Deserialize;
 
 #[derive(Deserialize)]
@@ -14,8 +15,7 @@ pub struct AppParam {
 
 // 创建APP
 pub async fn create(
-    ReqJson(param): ReqJson<AppParam>,
-    Extension(store): Extension<StoreStats>,
+    ReqJson(param): ReqJson<AppParam>
 ) -> APIResult<Json<APIResponse<AppModel>>> {
     let app_id = check::app_id(param.app_id)?;
     let name = check::name(param.name, "name")?;
@@ -25,15 +25,13 @@ pub async fn create(
         // TODO 填充其他信息
         ..Default::default()
     };
-    let result = data.insert(&store.db).await?;
+    let result = app::insert_one(data).await?;
     tracing::info!("{:?}", &result);
     Ok(Json(APIResponse::ok(Some(result))))
 }
 
 // 获取所有APP
-pub async fn list(
-    Extension(store): Extension<StoreStats>,
-) -> APIResult<Json<APIResponse<Vec<AppModel>>>> {
-    let list: Vec<AppModel> = AppEntity::find().all(&store.db).await?;
+pub async fn list() -> APIResult<Json<APIResponse<Vec<AppModel>>>> {
+    let list = app::find_all().await?;
     Ok(Json(APIResponse::ok(Some(list))))
 }

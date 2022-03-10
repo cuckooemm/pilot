@@ -10,6 +10,8 @@ pub struct Config {
     pub log: LogConfig,
 
     pub store: StoreConfig,
+
+    pub harsh: HarshConfig,
 }
 
 impl Config {
@@ -24,7 +26,11 @@ impl Config {
 pub struct ServerConfig {
     /// The server IP address
     pub addr: String,
-    
+}
+#[derive(Clone, Default, Deserialize)]
+pub struct HarshConfig {
+    pub min_len: usize,
+    pub slat: String,
 }
 
 #[derive(Clone, Default, Deserialize)]

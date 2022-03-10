@@ -1,12 +1,11 @@
-use super::orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, QuerySelect, Set};
+use super::orm::Set;
 use super::response::{APIError, APIResponse, ParamErrType};
-use super::{check, ReqJson, StoreStats};
-use super::{
-    APIResult, ClusterColumn, ClusterEntity, NamespaceActive, NamespaceColumn, NamespaceEntity,
-    NamespaceModel, ID,
-};
+use super::{check, ReqJson};
+use super::{APIResult, NamespaceActive, NamespaceModel, ID};
 
-use axum::extract::{Extension, Json, Query};
+use axum::extract::{Json, Query};
+use entity::constant::NAME_MAX_LEN;
+use entity::dao::{cluster, namespace};
 use serde::Deserialize;
 
 #[derive(Deserialize)]
@@ -18,12 +17,11 @@ pub struct NamespaceParam {
 
 pub async fn create(
     ReqJson(param): ReqJson<NamespaceParam>,
-    Extension(store): Extension<StoreStats>,
 ) -> APIResult<Json<APIResponse<NamespaceModel>>> {
     let namespace = check::name(param.namespace, "namespace")?;
     let app_id = match param.app_id {
         Some(id) => {
-            if id.len() == 0 || id.len() > 100 {
+            if id.len() == 0 || id.len() > NAME_MAX_LEN {
                 return Err(APIError::new_param_err(ParamErrType::NotExist, "app_id"));
             }
             id
@@ -33,7 +31,7 @@ pub async fn create(
 
     let cluster = match param.cluster {
         Some(cluster) => {
-            if cluster.len() == 0 || cluster.len() > 100 {
+            if cluster.len() == 0 || cluster.len() > NAME_MAX_LEN {
                 return Err(APIError::new_param_err(ParamErrType::NotExist, "cluster"));
             }
             cluster
@@ -42,14 +40,7 @@ pub async fn create(
     };
 
     // 查看当前 app_id namespace 是否存在
-    let id: Option<ID> = ClusterEntity::find()
-        .select_only()
-        .column(ClusterColumn::Id)
-        .filter(ClusterColumn::AppId.eq(app_id.clone()))
-        .filter(ClusterColumn::Name.eq(cluster.clone()))
-        .into_model::<ID>()
-        .one(&store.db)
-        .await?;
+    let id: Option<ID> = cluster::is_exist(&app_id, &cluster).await?;
     if id.is_none() {
         return Err(APIError::new_param_err(
             ParamErrType::NotExist,
@@ -58,15 +49,7 @@ pub async fn create(
     }
 
     // 查看是否已存在此 namespace
-    let id: Option<ID> = NamespaceEntity::find()
-        .select_only()
-        .column(NamespaceColumn::Id)
-        .filter(NamespaceColumn::AppId.eq(app_id.clone()))
-        .filter(NamespaceColumn::ClusterName.eq(cluster.clone()))
-        .filter(NamespaceColumn::Namespace.eq(namespace.clone()))
-        .into_model::<ID>()
-        .one(&store.db)
-        .await?;
+    let id: Option<ID> = namespace::is_exist(&app_id, &cluster, &namespace).await?;
     if id.is_some() {
         return Err(APIError::new_param_err(ParamErrType::Exist, "namespace"));
     }
@@ -76,23 +59,34 @@ pub async fn create(
         namespace: Set(namespace),
         ..Default::default()
     };
-    let result = data.insert(&store.db).await?;
+
+    let result = namespace::insert_one(data).await?;
     Ok(Json(APIResponse::ok(Some(result))))
 }
 
 pub async fn list(
     Query(param): Query<NamespaceParam>,
-    Extension(store): Extension<StoreStats>,
 ) -> APIResult<Json<APIResponse<Vec<NamespaceModel>>>> {
-    let mut stmt = NamespaceEntity::find();
     if let Some(app_id) = &param.app_id {
-        if app_id.len() != 0 {
-            if app_id.len() > 100 {
-                return Err(APIError::new_param_err(ParamErrType::NotExist, "app_id"));
-            }
-            stmt = stmt.filter(NamespaceColumn::AppId.eq(app_id.to_string()))
+        if app_id.len() != 0 && app_id.len() > 100 {
+            return Err(APIError::new_param_err(ParamErrType::NotExist, "app_id"));
         }
     }
-    let list: Vec<NamespaceModel> = stmt.all(&store.db).await?;
+    if let Some(name) = &param.cluster {
+        if name.len() != 0 && name.len() > 100 {
+            return Err(APIError::new_param_err(ParamErrType::NotExist, "cluster"));
+        }
+        // 如果有 cluster_name 则 app_id 必填
+        if let Some(app_id) = &param.app_id {
+            if app_id.len() == 0 {
+                return Err(APIError::new_param_err(ParamErrType::NotExist, "app_id"));
+            }
+        }else{
+            return Err(APIError::new_param_err(ParamErrType::NotExist, "app_id"));
+        }
+    }
+
+    let list: Vec<NamespaceModel> =
+        namespace::find_by_app_cluster_all(param.app_id, param.cluster).await?;
     Ok(Json(APIResponse::ok(Some(list))))
 }

@@ -1,5 +1,5 @@
-use super::orm::{ColumnTrait, ConnectionTrait, DbErr, EntityTrait, QueryFilter, QuerySelect};
-use super::{AppColumn, AppEntity, ClusterColumn, ClusterEntity, ID};
+use entity::orm::{ColumnTrait, ConnectionTrait, DbErr, EntityTrait, QueryFilter, QuerySelect};
+use entity::{AppColumn, AppEntity, ClusterColumn, ClusterEntity, ID};
 
 pub async fn app_exist<'a, C>(db: &C, id: String) -> Result<Option<ID>, DbErr>
 where
