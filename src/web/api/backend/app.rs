@@ -1,10 +1,10 @@
 use super::orm::Set;
 use super::response::APIResponse;
-use super::{check, APIResult, AppActive, AppModel};
 use super::ReqJson;
+use super::{check, APIResult, AppActive, AppModel};
 
-use entity::dao::app;
 use axum::extract::Json;
+use entity::dao::app;
 use serde::Deserialize;
 
 #[derive(Deserialize)]
@@ -14,9 +14,7 @@ pub struct AppParam {
 }
 
 // 创建APP
-pub async fn create(
-    ReqJson(param): ReqJson<AppParam>
-) -> APIResult<Json<APIResponse<AppModel>>> {
+pub async fn create(ReqJson(param): ReqJson<AppParam>) -> APIResult<Json<APIResponse<AppModel>>> {
     let app_id = check::app_id(param.app_id)?;
     let name = check::name(param.name, "name")?;
     let data = AppActive {

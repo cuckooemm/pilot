@@ -10,7 +10,6 @@ pub async fn find_all() -> Result<Vec<Model>, DbErr> {
     AppExtendEntity::find().all(db_cli()).await
 }
 
-
 pub async fn find_by_app_all(app_id: Option<String>) -> Result<Vec<Model>, DbErr> {
     let mut stmt = AppExtendEntity::find();
     if let Some(app_id) = app_id {
@@ -19,7 +18,7 @@ pub async fn find_by_app_all(app_id: Option<String>) -> Result<Vec<Model>, DbErr
     stmt.all(db_cli()).await
 }
 
-pub async fn is_exist(app_id: &String,name: &String) -> Result<Option<ID>, DbErr> {
+pub async fn is_exist(app_id: &String, name: &String) -> Result<Option<ID>, DbErr> {
     // 查找 app_id 是否存在
     AppExtendEntity::find()
         .select_only()

@@ -10,7 +10,10 @@ pub fn app_id(id: Option<String>) -> Result<String, APIError> {
     match id {
         Some(id) => {
             if id.len() == 0 || id.len() > APP_ID_MAX_LEN {
-                return Err(APIError::new_param_err(ParamErrType::Len(1, APP_ID_MAX_LEN), "app_id"));
+                return Err(APIError::new_param_err(
+                    ParamErrType::Len(1, APP_ID_MAX_LEN),
+                    "app_id",
+                ));
             }
             Ok(id)
         }
@@ -35,7 +38,10 @@ pub fn name(name: Option<String>, field: &str) -> Result<String, APIError> {
     match name {
         Some(name) => {
             if name.len() == 0 || name.len() > NAME_MAX_LEN {
-                return Err(APIError::new_param_err(ParamErrType::Len(1, NAME_MAX_LEN), field));
+                return Err(APIError::new_param_err(
+                    ParamErrType::Len(1, NAME_MAX_LEN),
+                    field,
+                ));
             }
             Ok(name)
         }
@@ -44,7 +50,7 @@ pub fn name(name: Option<String>, field: &str) -> Result<String, APIError> {
 }
 
 // 检查 appid 是否存在
-pub async fn appid_exist(app_id: Option<String>) -> Result<String, APIError>{
+pub async fn appid_exist(app_id: Option<String>) -> Result<String, APIError> {
     match app_id {
         Some(id) => {
             if id.len() == 0 || id.len() > 100 {

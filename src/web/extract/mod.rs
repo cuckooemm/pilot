@@ -1,4 +1,3 @@
 pub mod json;
+pub mod query;
 pub mod response;
-
-use entity::orm;

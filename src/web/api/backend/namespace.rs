@@ -81,7 +81,7 @@ pub async fn list(
             if app_id.len() == 0 {
                 return Err(APIError::new_param_err(ParamErrType::NotExist, "app_id"));
             }
-        }else{
+        } else {
             return Err(APIError::new_param_err(ParamErrType::NotExist, "app_id"));
         }
     }

@@ -12,7 +12,9 @@ pub fn db_cli() -> &'static DatabaseConnection {
 // 初始化 orm
 pub async fn init_orm(opt: ConnectOptions) -> Result<(), DbErr> {
     let db = Database::connect(opt).await?;
-    DB_CLI.set(db).expect("failed to init static database client");
+    DB_CLI
+        .set(db)
+        .expect("failed to init static database client");
     // 初始化表
     create_table(db_cli()).await?;
     // 初始化 时区 加密 等常量

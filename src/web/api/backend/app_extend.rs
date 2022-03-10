@@ -2,10 +2,10 @@ use super::orm::Set;
 use super::response::{APIError, APIResponse, ParamErrType};
 use super::ReqJson;
 use super::{check, APIResult, Premissions, ID};
+use super::{AppExtendActive, AppExtendModel};
 
 use axum::extract::{Json, Query};
 use entity::dao::app_extend;
-use entity::{AppExtendActive, AppExtendModel};
 use serde::Deserialize;
 
 #[derive(Deserialize)]

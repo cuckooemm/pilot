@@ -7,6 +7,8 @@ pub enum Status {
     #[sea_orm(num_value = 0)]
     Normal,
     #[sea_orm(num_value = 1)]
+    Release,
+    #[sea_orm(num_value = 2)]
     Delete,
 }
 

@@ -1,4 +1,4 @@
-use super::common::ItemCategory;
+use super::common::{ItemCategory, Status};
 use crate::grable_id;
 use crate::utils::get_time_zone;
 
@@ -19,8 +19,9 @@ pub struct Model {
     #[sea_orm(column_type = "Text")]
     pub value: String,
     pub category: ItemCategory,
+    pub status: Status,
     #[sea_orm(column_type = "String(Some(200))")]
-    pub comment: String,
+    pub remark: String, // 注释
     pub version: i64,
     pub created_at: DateTimeWithTimeZone, // 创建时间
     pub updated_at: DateTimeWithTimeZone, // 更新时间

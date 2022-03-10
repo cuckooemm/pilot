@@ -1,6 +1,6 @@
 use crate::model::cluster::Model;
-use crate::ID;
 use crate::{prelude::db_cli, ClusterActive, ClusterColumn, ClusterEntity};
+use crate::{SecretData, ID};
 
 use sea_orm::{ActiveModelTrait, ColumnTrait, DbErr, EntityTrait, QueryFilter, QuerySelect};
 
@@ -20,12 +20,26 @@ pub async fn find_by_app_all(app_id: Option<String>) -> Result<Vec<Model>, DbErr
     stmt.all(db_cli()).await
 }
 
-pub async fn is_exist(app_id: &String, cluster_name: &String) -> Result<Option<ID>, DbErr> {
+pub async fn get_secret_by_cluster(
+    app_id: &String,
+    cluster: &String,
+) -> Result<Option<SecretData>, DbErr> {
+    ClusterEntity::find()
+        .select_only()
+        .column(ClusterColumn::Secret)
+        .filter(ClusterColumn::AppId.eq(app_id.clone()))
+        .filter(ClusterColumn::Name.eq(cluster.clone()))
+        .into_model::<SecretData>()
+        .one(db_cli())
+        .await
+}
+
+pub async fn is_exist(app_id: &String, cluster: &String) -> Result<Option<ID>, DbErr> {
     ClusterEntity::find()
         .select_only()
         .column(ClusterColumn::Id)
         .filter(ClusterColumn::AppId.eq(app_id.clone()))
-        .filter(ClusterColumn::Name.eq(cluster_name.clone()))
+        .filter(ClusterColumn::Name.eq(cluster.clone()))
         .into_model::<ID>()
         .one(db_cli())
         .await

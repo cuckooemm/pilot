@@ -2,12 +2,13 @@
 pub mod constant;
 pub mod dao;
 pub mod model;
-pub mod utils;
 pub mod prelude;
+pub mod utils;
 
-pub use utils::grable_id;
 pub use sea_orm as orm;
+pub use utils::grable_id;
 
+pub use model::cluster::SecretData;
 pub use model::common::{ItemCategory, Premissions, ID};
 
 pub use model::app::ActiveModel as AppActive;
@@ -34,3 +35,9 @@ pub use model::item::ActiveModel as ItemActive;
 pub use model::item::Column as ItemColumn;
 pub use model::item::Entity as ItemEntity;
 pub use model::item::Model as ItemModel;
+
+pub use model::release::ActiveModel as ReleaseActive;
+pub use model::release::Column as ReleaseColumn;
+pub use model::release::Entity as ReleaseEntity;
+pub use model::release::Item as ReleaseItem;
+pub use model::release::Model as ReleaseModel;

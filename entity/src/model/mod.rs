@@ -4,3 +4,4 @@ pub mod cluster;
 pub mod common;
 pub mod item;
 pub mod namespace;
+pub mod release;

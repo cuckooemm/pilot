@@ -17,7 +17,7 @@ pub async fn find_all() -> Result<Vec<Model>, DbErr> {
 pub async fn find_by_app_cluster_all(
     app_id: Option<String>,
     cluster: Option<String>,
-) -> Result<Vec<Model>,DbErr> {
+) -> Result<Vec<Model>, DbErr> {
     let mut stmt = NamespaceEntity::find();
     if let Some(app_id) = app_id {
         stmt = stmt.filter(NamespaceColumn::AppId.eq(app_id.to_string()))
@@ -27,25 +27,30 @@ pub async fn find_by_app_cluster_all(
     }
     stmt.all(db_cli()).await
 }
-pub async fn get_namespace_id(id: i64, cluster: String) -> Result<(), DbErr> {
-    // let c = ClusterEntity::find()
-    // .select_only()
-    // .column(ClusterColumn::Id)
-    // .filter(ClusterColumn::AppId.eq(id))
-    // .filter(ClusterColumn::Name.eq(cluster))
-    // .into_model::<ID>()
-    // .one(db)
-    // .await?;
-    Ok(())
+
+pub async fn find_namespaceid_by_app_cluster(
+    app_id: &String,
+    cluster: &String,
+    namespace: &Vec<&str>,
+) -> Result<Vec<ID>, DbErr> {
+    NamespaceEntity::find()
+        .select_only()
+        .column(NamespaceColumn::Id)
+        .filter(NamespaceColumn::AppId.eq(app_id.clone()))
+        .filter(NamespaceColumn::ClusterName.eq(cluster.clone()))
+        .filter(NamespaceColumn::Namespace.is_in(namespace.clone()))
+        .into_model::<ID>()
+        .all(db_cli())
+        .await
 }
 
-pub async fn is_exist_by_id(id: i64) -> Result<Option<ID>,DbErr>{
+pub async fn is_exist_by_id(id: i64) -> Result<Option<ID>, DbErr> {
     NamespaceEntity::find_by_id(id)
-    .select_only()
-    .column(NamespaceColumn::Id)
-    .into_model::<ID>()
-    .one(db_cli())
-    .await
+        .select_only()
+        .column(NamespaceColumn::Id)
+        .into_model::<ID>()
+        .one(db_cli())
+        .await
 }
 
 pub async fn is_exist(

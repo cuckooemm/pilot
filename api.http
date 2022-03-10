@@ -20,12 +20,12 @@ POST http://localhost:8000/api/cluster/create
 Content-Type: application/json
 
 {
-    "app_id": "app1",
-    "name": "cluster"
+    "app_id": "app_new_id",
+    "name": "app_new_cluster"
 }
 
 ###
-GET  http://localhost:8000/api/cluster/list?app_id=app1
+GET  http://localhost:8000/api/cluster/list?app_id=app_new_id
 ###
 
 POST http://localhost:8000/api/app_ns/create
@@ -45,13 +45,13 @@ POST http://localhost:8000/api/namespace/create
 Content-Type: application/json
 
 {
-    "app_id": "new_test_application1",
-    "cluster": "new_test_cluster",
-    "namespace": "namespaces1"
+    "app_id": "app_new_id",
+    "cluster": "app_new_cluster",
+    "namespace": "namespaces"
 }
 ###
 
-GET  http://localhost:8000/api/namespace/list
+GET  http://localhost:8000/api/namespace/list?app_id=app_new_id&cluster=app_new_cluster
 ###
 
 POST http://localhost:8000/api/item/create
@@ -67,4 +67,8 @@ Content-Type: application/json
 ###
 
 GET  http://localhost:8000/api/item/list?id=1
+###
+
+
+GET  http://localhost:8000/api/config/desc?app_id=app_new_id&cluster=app_new_cluster&namespace=namespaces
 ###

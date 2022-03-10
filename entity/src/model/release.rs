@@ -1,25 +1,36 @@
-use super::common::{Premissions, Status};
+use super::common::ItemCategory;
+use crate::grable_id;
 use crate::utils::get_time_zone;
-use crate::utils::grable_id;
 
 use chrono::Local;
-use sea_orm::{entity::prelude::*, Set};
+use sea_orm::{entity::prelude::*, FromQueryResult, Set};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Deserialize, Serialize)]
-#[sea_orm(table_name = "app_extend")]
+#[sea_orm(table_name = "release")]
 pub struct Model {
     #[sea_orm(primary_key)]
     #[serde(serialize_with = "grable_id")]
     pub id: i64,
-    #[sea_orm(indexed, column_type = "String(Some(100))")]
-    pub app_id: String, // app 唯一 ID
+    #[sea_orm(indexed)]
+    pub namespace_id: i64,
     #[sea_orm(column_type = "String(Some(100))")]
-    pub name: String, // app  namespace
-    pub premissions: Premissions,         // 权限
-    pub status: Status,                   // 状态
+    pub key: String,
+    #[sea_orm(column_type = "Text")]
+    pub value: String,
+    pub category: ItemCategory,
+    #[sea_orm(column_type = "String(Some(200))")]
+    pub remark: String, // 发布备注
+    pub release_user_id: i64, // 发布者
+    pub version: i64,
     pub created_at: DateTimeWithTimeZone, // 创建时间
-    pub updated_at: DateTimeWithTimeZone, // 更新时间
+}
+
+#[derive(Clone, Debug, PartialEq, FromQueryResult, Deserialize, Serialize)]
+pub struct Item {
+    pub key: String,
+    pub value: String,
+    pub category: ItemCategory,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter)]
@@ -33,30 +44,24 @@ impl RelationTrait for Relation {
 impl ActiveModelBehavior for ActiveModel {
     fn new() -> Self {
         Self {
-            premissions: Set(Premissions::Private),
-            status: Set(Status::Normal),
+            release_user_id: Set(0), // TODO 发布者ID
             created_at: Set(Local::now().with_timezone(get_time_zone())),
-            updated_at: Set(Local::now().with_timezone(get_time_zone())),
             ..ActiveModelTrait::default()
         }
     }
 
-    fn before_save(mut self, _insert: bool) -> Result<Self, DbErr> {
-        self.updated_at = Set(Local::now().with_timezone(get_time_zone()));
+    fn before_save(self, _insert: bool) -> Result<Self, DbErr> {
         Ok(self)
     }
-
     /// Will be triggered after insert / update
     fn after_save(model: Model, _insert: bool) -> Result<Model, DbErr> {
         Ok(model)
     }
 
-    /// Will be triggered before delete
     fn before_delete(self) -> Result<Self, DbErr> {
         Ok(self)
     }
 
-    /// Will be triggered after delete
     fn after_delete(self) -> Result<Self, DbErr> {
         Ok(self)
     }

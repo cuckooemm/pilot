@@ -1,7 +1,7 @@
+use chrono::FixedOffset;
 use harsh::Harsh;
 use once_cell::sync::OnceCell;
 use serde::Serializer;
-use chrono::FixedOffset;
 
 static HARSH: OnceCell<Harsh> = OnceCell::new();
 
@@ -10,9 +10,13 @@ static TZ_CN: OnceCell<FixedOffset> = OnceCell::new();
 pub fn get_time_zone() -> &'static FixedOffset {
     TZ_CN.get().expect("failed to init time zone")
 }
-pub fn init_harsh(min_len: usize,salt: &str) -> () {
-    HARSH.set(Harsh::builder().length(min_len).salt(salt).build().unwrap()).expect("failed to init harsh");
-    TZ_CN.set(FixedOffset::east(8 * 3600)).expect("failed init time zone");
+pub fn init_harsh(min_len: usize, salt: &str) -> () {
+    HARSH
+        .set(Harsh::builder().length(min_len).salt(salt).build().unwrap())
+        .expect("failed to init harsh");
+    TZ_CN
+        .set(FixedOffset::east(8 * 3600))
+        .expect("failed init time zone");
 }
 
 pub fn grable_id<S>(id: &i64, serializer: S) -> Result<S::Ok, S::Error>

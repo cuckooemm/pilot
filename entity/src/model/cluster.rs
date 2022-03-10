@@ -3,7 +3,7 @@ use crate::grable_id;
 use crate::utils::get_time_zone;
 
 use chrono::Local;
-use sea_orm::{entity::prelude::*, Set};
+use sea_orm::{entity::prelude::*, FromQueryResult, Set};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Deserialize, Serialize)]
@@ -16,7 +16,7 @@ pub struct Model {
     pub app_id: String, // app 唯一 ID
     #[sea_orm(column_type = "String(Some(100))")]
     pub name: String, // cluster name
-    #[sea_orm(column_type = "String(Some(200))")]
+    #[sea_orm(column_type = "String(Some(36))")]
     pub secret: String, // 连接 secret
     pub status: Status,
     pub created_at: DateTimeWithTimeZone, // 创建时间
@@ -61,4 +61,9 @@ impl ActiveModelBehavior for ActiveModel {
     fn after_delete(self) -> Result<Self, DbErr> {
         Ok(self)
     }
+}
+
+#[derive(FromQueryResult)]
+pub struct SecretData {
+    pub secret: String,
 }

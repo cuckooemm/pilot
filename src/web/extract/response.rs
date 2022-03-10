@@ -91,9 +91,15 @@ impl APIError {
             cause: None,
         }
     }
+    pub fn with_param(et: APIErrorType, msg: Option<String>) -> Self {
+        Self {
+            error_type: et,
+            message: msg,
+            cause: None,
+        }
+    }
     pub fn new_param_err(param_type: ParamErrType, field: &str) -> Self {
         Self {
-            error_type: APIErrorType::BadParam(param_type.clone()),
             message: match param_type {
                 ParamErrType::Required => Some(format!("The {} is required", field)),
                 ParamErrType::Exist => Some(format!("The {} is exist", field)),
@@ -103,6 +109,7 @@ impl APIError {
                     field, min, max
                 )),
             },
+            error_type: APIErrorType::BadParam(param_type),
             cause: None,
         }
     }

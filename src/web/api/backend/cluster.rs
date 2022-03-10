@@ -1,11 +1,15 @@
-use super::orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, QuerySelect, Set};
+use super::orm::Set;
 use super::response::{APIError, APIResponse, ParamErrType};
 use super::{check, ReqJson};
-use super::{APIResult, ClusterActive, ClusterColumn, ClusterEntity, ClusterModel, ID};
+use super::{APIResult, ClusterActive, ClusterModel};
 
-use axum::extract::{Extension, Json, Query};
+use axum::extract::{Json, Query};
 use entity::dao::cluster;
+use rand::distributions::Alphanumeric;
+use rand::Rng;
 use serde::Deserialize;
+
+const SECRET_LEN: usize = 36;
 
 #[derive(Deserialize, Debug)]
 pub struct ClusterParam {
@@ -29,7 +33,7 @@ pub async fn create(
     let data = ClusterActive {
         app_id: Set(app_id),
         name: Set(cluster_name),
-        // secret TODO
+        secret: Set(general_rand_secret()),
         ..Default::default()
     };
 
@@ -50,4 +54,12 @@ pub async fn list(
     let list: Vec<ClusterModel> = cluster::find_by_app_all(param.app_id).await?;
 
     Ok(Json(APIResponse::ok(Some(list))))
+}
+
+fn general_rand_secret() -> String {
+    rand::thread_rng()
+        .sample_iter(&Alphanumeric)
+        .take(SECRET_LEN)
+        .map(char::from)
+        .collect()
 }
