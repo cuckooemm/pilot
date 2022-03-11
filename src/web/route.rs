@@ -3,12 +3,10 @@ use std::future::ready;
 use super::{
     api::{backend::*, forent::*},
     middleware::metrics,
-    store, user,
+    user,
 };
-use crate::config::StoreConfig;
 
 use axum::{
-    extract::Extension,
     handler::Handler,
     http::StatusCode,
     middleware,
@@ -17,7 +15,7 @@ use axum::{
     Router,
 };
 
-pub async fn init_router(conf: StoreConfig) -> Router {
+pub async fn init_router() -> Router {
     let config_group = Router::new()
         .route("/desc", get(config::description))
         .route("/notifaction", get(config::notifaction));
@@ -60,8 +58,8 @@ pub async fn init_router(conf: StoreConfig) -> Router {
         .route("/metrics", get(move || ready(recorder_handle.render())))
         .fallback(not_found.into_service())
         .nest("/api", api_group)
+        // .layer(Extension(store))
         .route_layer(middleware::from_fn(metrics::track_metrics))
-    // .layer(Extension(store::db::StoreStats::new(conf).await))
 }
 
 // basic handler that responds with a static string

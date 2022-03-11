@@ -1,3 +1,4 @@
+use super::dao::{cluster, namespace};
 use super::ConfigList;
 use crate::web::{
     extract::{
@@ -8,10 +9,7 @@ use crate::web::{
 };
 
 use axum::Json;
-use entity::{
-    constant::NAME_MAX_LEN,
-    dao::{cluster, namespace},
-};
+use entity::constant::NAME_MAX_LEN;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug)]

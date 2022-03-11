@@ -1,23 +1,20 @@
-use crate::model::namespace::Model;
-use crate::prelude::db_cli;
-use crate::ID;
-use crate::{NamespaceActive, NamespaceColumn, NamespaceEntity};
+use super::master;
 
-use sea_orm::{ActiveModelTrait, DbErr};
-use sea_orm::{ColumnTrait, EntityTrait, QueryFilter, QuerySelect};
+use entity::orm::{ActiveModelTrait, ColumnTrait, DbErr, EntityTrait, QueryFilter, QuerySelect};
+use entity::{NamespaceActive, NamespaceColumn, NamespaceEntity, NamespaceModel, ID};
 
-pub async fn insert_one(app: NamespaceActive) -> Result<Model, DbErr> {
-    app.insert(db_cli()).await
+pub async fn insert_one(app: NamespaceActive) -> Result<NamespaceModel, DbErr> {
+    app.insert(master()).await
 }
 
-pub async fn find_all() -> Result<Vec<Model>, DbErr> {
-    NamespaceEntity::find().all(db_cli()).await
+pub async fn find_all() -> Result<Vec<NamespaceModel>, DbErr> {
+    NamespaceEntity::find().all(master()).await
 }
 
 pub async fn find_by_app_cluster_all(
     app_id: Option<String>,
     cluster: Option<String>,
-) -> Result<Vec<Model>, DbErr> {
+) -> Result<Vec<NamespaceModel>, DbErr> {
     let mut stmt = NamespaceEntity::find();
     if let Some(app_id) = app_id {
         stmt = stmt.filter(NamespaceColumn::AppId.eq(app_id.to_string()))
@@ -25,7 +22,7 @@ pub async fn find_by_app_cluster_all(
     if let Some(cluster) = cluster {
         stmt = stmt.filter(NamespaceColumn::ClusterName.eq(cluster))
     }
-    stmt.all(db_cli()).await
+    stmt.all(master()).await
 }
 
 pub async fn find_namespaceid_by_app_cluster(
@@ -40,7 +37,7 @@ pub async fn find_namespaceid_by_app_cluster(
         .filter(NamespaceColumn::ClusterName.eq(cluster.clone()))
         .filter(NamespaceColumn::Namespace.is_in(namespace.clone()))
         .into_model::<ID>()
-        .all(db_cli())
+        .all(master())
         .await
 }
 
@@ -49,7 +46,7 @@ pub async fn is_exist_by_id(id: i64) -> Result<Option<ID>, DbErr> {
         .select_only()
         .column(NamespaceColumn::Id)
         .into_model::<ID>()
-        .one(db_cli())
+        .one(master())
         .await
 }
 
@@ -65,6 +62,6 @@ pub async fn is_exist(
         .filter(NamespaceColumn::ClusterName.eq(cluster.clone()))
         .filter(NamespaceColumn::Namespace.eq(namespace.clone()))
         .into_model::<ID>()
-        .one(db_cli())
+        .one(master())
         .await
 }

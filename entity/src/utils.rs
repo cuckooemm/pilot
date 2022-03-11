@@ -10,6 +10,7 @@ static TZ_CN: OnceCell<FixedOffset> = OnceCell::new();
 pub fn get_time_zone() -> &'static FixedOffset {
     TZ_CN.get().expect("failed to init time zone")
 }
+
 pub fn init_harsh(min_len: usize, salt: &str) -> () {
     HARSH
         .set(Harsh::builder().length(min_len).salt(salt).build().unwrap())

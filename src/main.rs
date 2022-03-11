@@ -2,8 +2,10 @@ mod config;
 mod web;
 
 use config::Config;
-use std::{io, net::SocketAddr, time::Duration};
+use std::{io, net::SocketAddr};
 use tokio::signal;
+
+use crate::web::store::store::init_store;
 
 fn main() {
     let conf: Config = Config::from_file(&"Config.toml");
@@ -12,8 +14,10 @@ fn main() {
         .with_writer(io::stdout)
         .with_target(true)
         .init();
+    tracing::info!("load config: {:?}", &conf);
 
     entity::utils::init_harsh(conf.harsh.min_len, &conf.harsh.slat);
+
     let rumtime = tokio::runtime::Builder::new_multi_thread()
         .enable_all()
         .build()
@@ -21,7 +25,8 @@ fn main() {
 
     rumtime.block_on(async {
         init_store(&conf.store).await;
-        let router = web::route::init_router(conf.store).await;
+
+        let router = web::route::init_router().await;
         let addr: SocketAddr = conf.server.addr.parse().unwrap();
         tracing::info!("listening on {}", &addr);
 
@@ -32,28 +37,6 @@ fn main() {
             .await
             .unwrap();
     })
-}
-
-// 初始化全局变量
-async fn init_store(conf: &config::StoreConfig) {
-    let addr = format!(
-        "{}://{}:{}@{}/{}?useUnicode=ture&characterEncoding=UTF-8",
-        conf.database.derive,
-        conf.database.user,
-        conf.database.password,
-        conf.database.host,
-        conf.database.db
-    );
-    let mut opt = entity::orm::ConnectOptions::new(addr);
-    opt.min_connections(1)
-        .connect_timeout(Duration::from_secs(3))
-        .idle_timeout(Duration::from_secs(60))
-        .max_lifetime(Duration::from_secs(300))
-        .sqlx_logging(true);
-    tracing::info!("connection databases {}", &opt.get_url());
-    if let Err(e) = entity::prelude::init_orm(opt).await {
-        panic!("failed to connection database. err: {}", e)
-    }
 }
 
 // 监听退出信号

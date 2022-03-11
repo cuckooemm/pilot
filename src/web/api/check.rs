@@ -1,7 +1,8 @@
+use crate::web::store::dao::app;
+
 use super::super::extract::response::{APIError, ParamErrType};
 
 use entity::constant::*;
-use entity::dao::app;
 use entity::orm::ConnectionTrait;
 use entity::ID;
 

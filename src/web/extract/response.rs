@@ -71,6 +71,8 @@ pub enum ParamErrType {
     Exist,
     // 不存在
     NotExist,
+    // Invalid
+    Invalid,
 }
 
 /// API错误
@@ -104,6 +106,7 @@ impl APIError {
                 ParamErrType::Required => Some(format!("The {} is required", field)),
                 ParamErrType::Exist => Some(format!("The {} is exist", field)),
                 ParamErrType::NotExist => Some(format!("The {} is not exist", field)),
+                ParamErrType::Invalid => Some(format!("The {} is invalid", field)),
                 ParamErrType::Len(min, max) => Some(format!(
                     "The length of {} should be between {} and {}",
                     field, min, max

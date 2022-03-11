@@ -1,11 +1,12 @@
-use super::orm::Set;
+use super::dao::{cluster, namespace};
 use super::response::{APIError, APIResponse, ParamErrType};
-use super::{check, ReqJson};
-use super::{APIResult, NamespaceActive, NamespaceModel, ID};
+use super::APIResult;
+use super::{check, ReqJson, ReqQuery};
 
-use axum::extract::{Json, Query};
+use axum::extract::Json;
 use entity::constant::NAME_MAX_LEN;
-use entity::dao::{cluster, namespace};
+use entity::orm::Set;
+use entity::{NamespaceActive, NamespaceModel, ID};
 use serde::Deserialize;
 
 #[derive(Deserialize)]
@@ -65,7 +66,7 @@ pub async fn create(
 }
 
 pub async fn list(
-    Query(param): Query<NamespaceParam>,
+    ReqQuery(param): ReqQuery<NamespaceParam>,
 ) -> APIResult<Json<APIResponse<Vec<NamespaceModel>>>> {
     if let Some(app_id) = &param.app_id {
         if app_id.len() != 0 && app_id.len() > 100 {

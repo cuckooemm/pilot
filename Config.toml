@@ -5,14 +5,25 @@ addr = "0.0.0.0:8000"
 level = "Debug"
 path = "logs/mchat.log"
 
-
 [store]
 [store.database]
+max_lifetime = 300
+min_connections = 1
+[store.database.main]
+db = "cuckoo"
 derive = "mysql"
 host = "ten2"
-user = "cuckoo"
 password = "cuckooemm"
+user = "cuckoo"
+
+[[store.database.slaver]]
 db = "cuckoo"
+derive = "mysql"
+host = "ten2"
+password = "cuckooemm"
+user = "cuckoo"
+
+
 
 [harsh]
 min_len = 16

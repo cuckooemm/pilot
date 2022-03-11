@@ -1,21 +1,20 @@
-use crate::model::release::Model;
-use crate::ID;
-use crate::{prelude::db_cli, ReleaseActive, ReleaseColumn, ReleaseEntity, ReleaseItem};
+use super::master;
 
-use sea_orm::{ActiveModelTrait, ColumnTrait, DbErr, EntityTrait, QueryFilter, QuerySelect};
+use entity::orm::{ActiveModelTrait, ColumnTrait, DbErr, EntityTrait, QueryFilter, QuerySelect};
+use entity::{ReleaseActive, ReleaseColumn, ReleaseEntity, ReleaseItem, ReleaseModel, ID};
 
-pub async fn insert_one(app: ReleaseActive) -> Result<Model, DbErr> {
-    app.insert(db_cli()).await
+pub async fn insert_one(app: ReleaseActive) -> Result<ReleaseModel, DbErr> {
+    app.insert(master()).await
 }
 
-pub async fn find_all() -> Result<Vec<Model>, DbErr> {
-    ReleaseEntity::find().all(db_cli()).await
+pub async fn find_all() -> Result<Vec<ReleaseModel>, DbErr> {
+    ReleaseEntity::find().all(master()).await
 }
 
-pub async fn find_by_id_all(ns_id: i64) -> Result<Vec<Model>, DbErr> {
+pub async fn find_by_id_all(ns_id: i64) -> Result<Vec<ReleaseModel>, DbErr> {
     ReleaseEntity::find()
         .filter(ReleaseColumn::NamespaceId.eq(ns_id))
-        .all(db_cli())
+        .all(master())
         .await
 }
 
@@ -26,7 +25,7 @@ pub async fn is_exist_key(ns_id: i64, key: &String) -> Result<Option<ID>, DbErr>
         .filter(ReleaseColumn::NamespaceId.eq(ns_id))
         .filter(ReleaseColumn::Key.eq(key.clone()))
         .into_model::<ID>()
-        .one(db_cli())
+        .one(master())
         .await
 }
 
@@ -38,6 +37,6 @@ pub async fn get_val_by_namespace(namespace_id: i64) -> Result<Vec<ReleaseItem>,
         .column(ReleaseColumn::Category)
         .filter(ReleaseColumn::NamespaceId.eq(namespace_id))
         .into_model::<ReleaseItem>()
-        .all(db_cli())
+        .all(master())
         .await
 }

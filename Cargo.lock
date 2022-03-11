@@ -390,7 +390,6 @@ version = "0.1.0"
 dependencies = [
  "chrono",
  "harsh",
- "lazy_static",
  "once_cell",
  "sea-orm",
  "serde",
@@ -1247,6 +1246,7 @@ dependencies = [
  "lazy_static",
  "metrics",
  "metrics-exporter-prometheus",
+ "once_cell",
  "rand",
  "serde",
  "serde_derive",
