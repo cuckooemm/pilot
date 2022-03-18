@@ -11,7 +11,9 @@ pub struct Store {
 static STORE: OnceCell<Store> = OnceCell::new();
 
 pub async fn init_store(store: &StoreConfig) {
-    STORE.set(Store::new(store).await).expect("failed to init store");
+    STORE
+        .set(Store::new(store).await)
+        .expect("failed to init store");
 }
 
 pub fn get_store() -> &'static Store {

@@ -8,11 +8,29 @@ use crate::{config::DatabaseCluster, web::store::dao::prelude::init_table};
 #[derive(Debug, Clone)]
 pub struct DB {
     main: DatabaseConnection,
-    slaver: Vec<DatabaseConnection>,
+    slavers: Vec<DatabaseConnection>,
 }
 
-fn metrics(info: &entity::orm::metric::Info){
-    tracing::info!("database metrics: {:?}",info);
+fn master_metrics(info: &entity::orm::metric::Info) {
+    let labels = [("success", (!info.failed).to_string()), ("model","slaver".to_owned())];
+    metrics::histogram!(
+        "database_duration_seconds",
+        info.elapsed.as_secs_f64(),
+        &labels
+    );
+    metrics::increment_counter!("database_requests_total", &labels);
+    // tracing::info!("database metrics: {:#?}", info);
+}
+
+fn slaver_metrics(info: &entity::orm::metric::Info) {
+    let labels = [("success", (!info.failed).to_string()), ("model","slaver".to_owned())];
+    metrics::histogram!(
+        "database_duration_seconds",
+        info.elapsed.as_secs_f64(),
+        &labels
+    );
+    metrics::increment_counter!("database_requests_total", &labels);
+    // tracing::info!("database metrics: {:#?}", info);
 }
 
 impl DB {
@@ -23,13 +41,13 @@ impl DB {
             .idle_timeout(Duration::from_secs(60))
             .max_lifetime(Duration::from_secs(opt.max_lifetime))
             .sqlx_logging(true);
-        
+
         tracing::info!("connection main databases {}", &conn.get_url());
         let mut main = Database::connect(conn)
             .await
             .expect("failed to connection main database.");
-        main.set_metric_callback(metrics);
-        let mut slaver: Vec<DatabaseConnection> = Vec::with_capacity(opt.slaver.len());
+        main.set_metric_callback(master_metrics);
+        let mut slavers: Vec<DatabaseConnection> = Vec::with_capacity(opt.slaver.len());
 
         // 初始化表
         init_table(&main).await.expect("failed to init table");
@@ -42,22 +60,21 @@ impl DB {
                 .max_lifetime(Duration::from_secs(opt.max_lifetime))
                 .sqlx_logging(true);
             tracing::info!("connection slaver databases {}", &conn.get_url());
-
-            slaver.push(
-                Database::connect(conn)
-                    .await
-                    .expect(&format!("failed to connection slaver database.")),
-            );
+            let mut slaver = Database::connect(conn)
+                .await
+                .expect(&format!("failed to connection slaver database."));
+            slaver.set_metric_callback(slaver_metrics);
+            slavers.push(slaver);
         }
-        Self { main, slaver }
+        Self { main, slavers }
     }
     // 获取只读链接
     pub fn slaver(&self) -> &DatabaseConnection {
-        if self.slaver.is_empty() {
+        if self.slavers.is_empty() {
             return &self.main;
         }
-        self.slaver
-            .get(thread_rng().next_u32() as usize % self.slaver.len())
+        self.slavers
+            .get(thread_rng().next_u32() as usize % self.slavers.len())
             .unwrap_or(&self.main)
     }
 

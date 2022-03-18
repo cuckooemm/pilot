@@ -58,17 +58,52 @@ POST http://localhost:8000/api/item/create
 Content-Type: application/json
 
 {
-    "id": 1,
-    "key": "testjs2",
-    "value": "{\"id\":\"xxx\"\r\n\"name\":\"hahaha\"}",
+    "id": "pVJkzEGBl4bWwZ0x",
+    "key": "key2",
+    "value": "test value",
     "category": "json",
-    "common": "item functional test"
+    "remark": "item functional test"
 }
 ###
 
-GET  http://localhost:8000/api/item/list?id=1
+POST http://localhost:8000/api/item/edit
+Content-Type: application/json
+
+{
+    "id": "5YN9gPG5VXZM63A1",
+    "key": "test2",
+    "value": "update new value",
+    "category": "",
+    "remark": "item functional test",
+    "version": 3
+}
+###
+
+GET  http://localhost:8000/api/item/list?id=pVJkzEGBl4bWwZ0x
 ###
 
 
 GET  http://localhost:8000/api/config/desc?app_id=app_new_id&cluster=app_new_cluster&namespace=namespaces
+###
+
+
+// 发布配置
+POST http://localhost:8000/api/item/publish
+Content-Type: application/json
+
+{
+    "operation": "publish",
+    "items": [{
+        "id": "pVJkzEGBl4bWwZ0x",
+        "remark": "test"
+    },
+    {
+        "id": "5YN9gPG5VXZM63A1",
+        "remark": "testha"
+    }
+    ]
+}
+###
+GET http://localhost:8000/api/config/notifaction?app_id=app_new_id&cluster=app_new_cluster&namespace=namespace&version=adb9102d55497ac313bc5762baf8644c&timeout=10
+
 ###

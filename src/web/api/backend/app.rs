@@ -30,11 +30,11 @@ pub async fn create(ReqJson(param): ReqJson<AppParam>) -> APIResult<Json<APIResp
     };
     let result = app::insert_one(data).await?;
     tracing::info!("{:?}", &result);
-    Ok(Json(APIResponse::ok(Some(result))))
+    Ok(Json(APIResponse::ok_data(result)))
 }
 
 // 获取所有APP
 pub async fn list() -> APIResult<Json<APIResponse<Vec<AppModel>>>> {
     let list = app::find_all().await?;
-    Ok(Json(APIResponse::ok(Some(list))))
+    Ok(Json(APIResponse::ok_data(list)))
 }

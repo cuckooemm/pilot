@@ -62,7 +62,7 @@ pub async fn create(
     };
 
     let result = namespace::insert_one(data).await?;
-    Ok(Json(APIResponse::ok(Some(result))))
+    Ok(Json(APIResponse::ok_data(result)))
 }
 
 pub async fn list(
@@ -89,5 +89,5 @@ pub async fn list(
 
     let list: Vec<NamespaceModel> =
         namespace::find_by_app_cluster_all(param.app_id, param.cluster).await?;
-    Ok(Json(APIResponse::ok(Some(list))))
+    Ok(Json(APIResponse::ok_data(list)))
 }

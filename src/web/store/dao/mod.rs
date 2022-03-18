@@ -4,8 +4,8 @@ pub mod cluster;
 pub mod item;
 pub mod namespace;
 pub mod prelude;
-pub mod release;
-pub mod release_record;
+pub mod publication;
+pub mod publication_record;
 
 use entity::orm::DatabaseConnection;
 

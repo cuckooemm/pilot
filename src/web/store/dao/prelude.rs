@@ -36,12 +36,12 @@ pub async fn init_table(db: &DatabaseConnection) -> Result<(), DbErr> {
     db.execute(builder.build(&stmt)).await?;
 
     let stmt = schema
-        .create_table_from_entity(entity::ReleaseEntity)
+        .create_table_from_entity(entity::PublicationEntity)
         .if_not_exists()
         .to_owned();
     db.execute(builder.build(&stmt)).await?;
     let stmt = schema
-        .create_table_from_entity(entity::ReleaseRecordEntity)
+        .create_table_from_entity(entity::PublicationRecordEntity)
         .if_not_exists()
         .to_owned();
     db.execute(builder.build(&stmt)).await?;

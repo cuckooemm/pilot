@@ -6,8 +6,8 @@ pub mod common;
 pub mod constant;
 pub mod item;
 pub mod namespace;
-pub mod release;
-pub mod release_record;
+pub mod publication;
+pub mod publication_record;
 pub mod utils;
 
 pub use sea_orm as orm;
@@ -41,13 +41,13 @@ pub use item::Column as ItemColumn;
 pub use item::Entity as ItemEntity;
 pub use item::Model as ItemModel;
 
-pub use release::ActiveModel as ReleaseActive;
-pub use release::Column as ReleaseColumn;
-pub use release::Entity as ReleaseEntity;
-pub use release::Item as ReleaseItem;
-pub use release::Model as ReleaseModel;
+pub use publication::ActiveModel as PublicationActive;
+pub use publication::Column as PublicationColumn;
+pub use publication::Entity as PublicationEntity;
+pub use publication::Item as PublicationItem;
+pub use publication::Model as PublicationModel;
 
-pub use release_record::ActiveModel as ReleaseRecordActive;
-pub use release_record::Column as ReleaseRecordColumn;
-pub use release_record::Entity as ReleaseRecordEntity;
-pub use release_record::Model as ReleaseRecordModel;
+pub use publication_record::ActiveModel as PublicationRecordActive;
+pub use publication_record::Column as PublicationRecordColumn;
+pub use publication_record::Entity as PublicationRecordEntity;
+pub use publication_record::Model as PublicationRecordModel;

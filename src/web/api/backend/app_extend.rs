@@ -1,9 +1,9 @@
 use super::dao::app_extend;
 use super::response::{APIError, APIResponse, ParamErrType};
-use super::ReqJson;
 use super::{check, APIResult};
+use super::{ReqJson, ReqQuery};
 
-use axum::extract::{Json, Query};
+use axum::extract::Json;
 use entity::orm::Set;
 use entity::{AppExtendActive, AppExtendModel};
 use entity::{Premissions, ID};
@@ -47,11 +47,11 @@ pub async fn create(
     };
 
     let result = app_extend::insert_one(data).await?;
-    Ok(Json(APIResponse::ok(Some(result))))
+    Ok(Json(APIResponse::ok_data(result)))
 }
 
 pub async fn list(
-    Query(param): Query<AppExtendParam>,
+    ReqQuery(param): ReqQuery<AppExtendParam>,
 ) -> APIResult<Json<APIResponse<Vec<AppExtendModel>>>> {
     // TODO 空字符串没有去除 进入数据库查询会走 where id = ""
     if let Some(app_id) = &param.app_id {
@@ -61,5 +61,5 @@ pub async fn list(
     }
 
     let list: Vec<AppExtendModel> = app_extend::find_by_app_all(param.app_id).await?;
-    Ok(Json(APIResponse::ok(Some(list))))
+    Ok(Json(APIResponse::ok_data(list)))
 }

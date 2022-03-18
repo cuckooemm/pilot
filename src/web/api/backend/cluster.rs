@@ -1,9 +1,9 @@
 use super::dao::cluster;
 use super::response::{APIError, APIResponse, ParamErrType};
 use super::APIResult;
-use super::{check, ReqJson};
+use super::{check, ReqJson, ReqQuery};
 
-use axum::extract::{Json, Query};
+use axum::extract::Json;
 use entity::orm::Set;
 use entity::{ClusterActive, ClusterModel};
 use rand::{distributions::Alphanumeric, Rng};
@@ -38,11 +38,11 @@ pub async fn create(
     };
 
     let result = cluster::insert_one(data).await?;
-    Ok(Json(APIResponse::ok(Some(result))))
+    Ok(Json(APIResponse::ok_data(result)))
 }
 
 pub async fn list(
-    Query(param): Query<ClusterParam>,
+    ReqQuery(param): ReqQuery<ClusterParam>,
 ) -> APIResult<Json<APIResponse<Vec<ClusterModel>>>> {
     if let Some(app_id) = &param.app_id {
         if app_id.len() != 0 {
@@ -53,7 +53,7 @@ pub async fn list(
     }
     let list: Vec<ClusterModel> = cluster::find_by_app_all(param.app_id).await?;
 
-    Ok(Json(APIResponse::ok(Some(list))))
+    Ok(Json(APIResponse::ok_data(list)))
 }
 
 fn general_rand_secret() -> String {

@@ -809,6 +809,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "md5"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "490cc448043f947bae3cbee9c203358d62dbee0db12107a74be5c30ccfd09771"
+
+[[package]]
 name = "memchr"
 version = "2.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -835,9 +841,9 @@ dependencies = [
 
 [[package]]
 name = "metrics-exporter-prometheus"
-version = "0.8.0"
+version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "eb2da0a53ecf563b398350e3c1834ad27dd050eb47977472f2e654ccb39ff75f"
+checksum = "8b93b470b04c005178058e18ac8bb2eb3fda562cf87af5ea05ba8d44190d458c"
 dependencies = [
  "hyper",
  "indexmap",
@@ -864,9 +870,9 @@ dependencies = [
 
 [[package]]
 name = "metrics-util"
-version = "0.11.1"
+version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0296c9cffd3d72c61d8fcd25efc381fd589f7b155a81f2fa5670010430f60c57"
+checksum = "107a38013e91c04ddf31826b0d0dcc2e0d4ebedded8234cc0dc2b7bbd0c121e8"
 dependencies = [
  "atomic-shim",
  "crossbeam-epoch",
@@ -1240,10 +1246,12 @@ checksum = "eb9f9e6e233e5c4a35559a617bf40a4ec447db2e84c20b55a6f83167b7e57872"
 name = "primordial"
 version = "0.1.0"
 dependencies = [
+ "ahash",
  "axum",
  "chrono",
  "entity",
  "lazy_static",
+ "md5",
  "metrics",
  "metrics-exporter-prometheus",
  "once_cell",

@@ -2,7 +2,7 @@ mod config;
 mod web;
 
 use config::Config;
-use std::{io, net::SocketAddr};
+use std::{io, net::SocketAddr, time::Duration};
 use tokio::signal;
 
 use crate::web::store::store::init_store;
@@ -32,10 +32,13 @@ fn main() {
 
         axum::Server::bind(&addr)
             .http1_keepalive(true)
+            // .tcp_keepalive(Some(Duration::from_secs(90)))
             .serve(router.into_make_service())
             .with_graceful_shutdown(shutdown_signal())
             .await
             .unwrap();
+
+        tracing::info!("exit server...");
     })
 }
 

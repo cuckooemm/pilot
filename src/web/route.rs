@@ -3,10 +3,12 @@ use std::future::ready;
 use super::{
     api::{backend::*, forent::*},
     middleware::metrics,
+    store::cache::CacheItem,
     user,
 };
 
 use axum::{
+    extract::Extension,
     handler::Handler,
     http::StatusCode,
     middleware,
@@ -40,7 +42,9 @@ pub async fn init_router() -> Router {
 
     let item = Router::new()
         .route("/create", post(item::create))
-        .route("/list", get(item::list));
+        .route("/list", get(item::list))
+        .route("/edit", post(item::edit))
+        .route("/publish", post(item::publish));
 
     let recorder_handle = metrics::setup_metrics_recorder();
 
@@ -59,6 +63,7 @@ pub async fn init_router() -> Router {
         .fallback(not_found.into_service())
         .nest("/api", api_group)
         // .layer(Extension(store))
+        .layer(Extension(CacheItem::new()))
         .route_layer(middleware::from_fn(metrics::track_metrics))
 }
 

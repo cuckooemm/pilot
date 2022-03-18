@@ -19,9 +19,11 @@ pub struct Model {
     #[sea_orm(column_type = "Text")]
     pub value: String,
     pub category: ItemCategory,
+    #[sea_orm(default_value = 0)]
     pub status: Status,
     #[sea_orm(column_type = "String(Some(200))")]
     pub remark: String, // 注释
+    #[sea_orm(default_value = 0)]
     pub modify_user_id: i64, // 最后修改人
     pub version: i64,
     pub created_at: DateTimeWithTimeZone, // 创建时间
@@ -39,6 +41,7 @@ impl RelationTrait for Relation {
 impl ActiveModelBehavior for ActiveModel {
     fn new() -> Self {
         Self {
+            status: Set(Status::Normal),
             modify_user_id: Set(0),
             created_at: Set(Local::now().with_timezone(get_time_zone())),
             updated_at: Set(Local::now().with_timezone(get_time_zone())),

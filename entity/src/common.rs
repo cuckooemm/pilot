@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use sea_orm::{entity::prelude::*, FromQueryResult};
 use serde::{Deserialize, Serialize};
 
@@ -7,7 +9,7 @@ pub enum Status {
     #[sea_orm(num_value = 0)]
     Normal,
     #[sea_orm(num_value = 1)]
-    Release,
+    Publication,
     #[sea_orm(num_value = 2)]
     Delete,
 }
@@ -23,6 +25,28 @@ pub enum ItemCategory {
     Yaml,
     #[sea_orm(string_value = "Toml")]
     Toml,
+}
+impl Display for ItemCategory {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let s = match self {
+            &Self::Text => "text",
+            &Self::Json => "json",
+            &Self::Toml => "toml",
+            &Self::Yaml => "yaml",
+        };
+        write!(f, "{}", s)
+    }
+}
+
+impl From<String> for ItemCategory {
+    fn from(str: String) -> Self {
+        match str.to_lowercase().as_str() {
+            "json" => Self::Json,
+            "yaml" => Self::Yaml,
+            "toml" => Self::Toml,
+            _ => Self::Text,
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, EnumIter, DeriveActiveEnum, Deserialize, Serialize)]

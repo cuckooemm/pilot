@@ -35,6 +35,7 @@ impl<T> APIResponse<T>
 where
     T: Serialize,
 {
+    #[inline]
     pub fn new(code: i32, message: String, data: Option<T>) -> Self {
         Self {
             code,
@@ -42,9 +43,15 @@ where
             data,
         }
     }
-    pub fn ok(data: Option<T>) -> Self {
-        Self::new(0, "OK".to_string(), data)
+    #[inline]
+    pub fn ok_data(data: T) -> Self {
+        Self::new(0, "OK".to_string(), Some(data))
     }
+    #[inline]
+    pub fn ok() -> Self {
+        Self::new(0, "OK".to_string(), None)
+    }
+    #[inline]
     pub fn err(code: i32, message: String) -> Self {
         Self::new(code, message, None)
     }
@@ -73,6 +80,8 @@ pub enum ParamErrType {
     NotExist,
     // Invalid
     Invalid,
+    // 已修改
+    Changed,
 }
 
 /// API错误
@@ -107,6 +116,7 @@ impl APIError {
                 ParamErrType::Exist => Some(format!("The {} is exist", field)),
                 ParamErrType::NotExist => Some(format!("The {} is not exist", field)),
                 ParamErrType::Invalid => Some(format!("The {} is invalid", field)),
+                ParamErrType::Changed => Some(format!("The {} is changed", field)),
                 ParamErrType::Len(min, max) => Some(format!(
                     "The length of {} should be between {} and {}",
                     field, min, max
@@ -132,6 +142,10 @@ impl APIError {
             DbErr::RecordNotFound(_s) => {
                 api_err.error_type = APIErrorType::NotFound;
                 None
+            }
+            DbErr::Custom(s) => {
+                api_err.error_type = APIErrorType::BadParam(ParamErrType::Invalid);
+                Some(s)
             }
             _ => {
                 api_err.error_type = APIErrorType::Database;

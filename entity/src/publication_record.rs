@@ -3,15 +3,17 @@ use crate::grable_id;
 use crate::utils::get_time_zone;
 
 use chrono::Local;
-use sea_orm::{entity::prelude::*, FromQueryResult, Set};
+use sea_orm::{entity::prelude::*, Set};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Deserialize, Serialize)]
-#[sea_orm(table_name = "release")]
+#[sea_orm(table_name = "publication_record")]
 pub struct Model {
     #[sea_orm(primary_key)]
     #[serde(serialize_with = "grable_id")]
     pub id: i64,
+    #[sea_orm(unique)]
+    pub item_id: i64,
     #[sea_orm(indexed)]
     pub namespace_id: i64,
     #[sea_orm(column_type = "String(Some(100))")]
@@ -21,16 +23,10 @@ pub struct Model {
     pub category: ItemCategory,
     #[sea_orm(column_type = "String(Some(200))")]
     pub remark: String, // 发布备注
-    pub release_user_id: i64, // 发布者
+    #[sea_orm(default_value = 0)]
+    pub publish_user_id: i64, // 发布者
     pub version: i64,
     pub created_at: DateTimeWithTimeZone, // 创建时间
-}
-
-#[derive(Clone, Debug, PartialEq, FromQueryResult, Deserialize, Serialize)]
-pub struct Item {
-    pub key: String,
-    pub value: String,
-    pub category: ItemCategory,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter)]
@@ -44,7 +40,7 @@ impl RelationTrait for Relation {
 impl ActiveModelBehavior for ActiveModel {
     fn new() -> Self {
         Self {
-            release_user_id: Set(0), // TODO 发布者ID
+            publish_user_id: Set(0), // TODO 发布者ID
             created_at: Set(Local::now().with_timezone(get_time_zone())),
             ..ActiveModelTrait::default()
         }
