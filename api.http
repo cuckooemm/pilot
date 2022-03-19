@@ -104,6 +104,11 @@ Content-Type: application/json
     ]
 }
 ###
-GET http://localhost:8000/api/config/notifaction?app_id=app_new_id&cluster=app_new_cluster&namespace=namespace&version=adb9102d55497ac313bc5762baf8644c&timeout=10
+
+GET http://localhost:8000/api/config/desc?app_id=app_new_id&cluster=app_new_cluster&namespace=namespaces&secret=0fd1ea91af6b81e27c7a7f780c76724c
+
+###
+
+GET http://localhost:8000/api/config/notifaction?app_id=app_new_id&cluster=app_new_cluster&namespace=namespaces&secret=0fd1ea91af6b81e27c7a7f780c76724c&version=adb9102d55497ac313bc5762baf8644c&timeout=10
 
 ###
