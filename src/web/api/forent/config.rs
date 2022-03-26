@@ -33,7 +33,7 @@ const DEFAULT_TIMEOUT: Duration = Duration::from_secs(60);
 pub async fn description(
     ReqQuery(param): ReqQuery<DescParam>,
     Extension(cache): Extension<CacheItem>,
-) -> APIResult<Json<APIResponse<Vec<NamespaceItem>>>> {
+) -> APIResult<Json<APIResponse<NamespaceItem>>> {
     let app_id = match param.app_id {
         Some(app_id) => {
             if app_id.len() == 0 || app_id.len() > APP_ID_MAX_LEN {
@@ -92,7 +92,11 @@ pub async fn description(
     // 默认如果此 app_id 包含同名 namespace, 则优先使用本 app_id 的 namespace， 覆盖关联的 app_namespace
 
     // 监听namespace
-    let namespace_item = time::timeout(Duration::from_secs(1), cache.subscription(namespace_id.unwrap().id as u64, None)).await;
+    let namespace_item = time::timeout(
+        Duration::from_secs(5),
+        cache.subscription(namespace_id.unwrap().id as u64, None),
+    )
+    .await;
     if namespace_item.is_err() {
         // 超时 无更新
         return Ok(Json(APIResponse::ok()));
@@ -101,14 +105,14 @@ pub async fn description(
     if namespace_item.is_none() {
         return Ok(Json(APIResponse::ok()));
     }
-    Ok(Json(APIResponse::ok_data(vec![namespace_item.unwrap()])))
+    Ok(Json(APIResponse::ok_data(namespace_item.unwrap())))
 }
 
 // 阻塞链接, 仅更新时返回数据
 pub async fn notifaction(
     ReqQuery(param): ReqQuery<DescParam>,
     Extension(cache): Extension<CacheItem>,
-) -> APIResult<Json<APIResponse<Vec<NamespaceItem>>>> {
+) -> APIResult<Json<APIResponse<NamespaceItem>>> {
     let app_id = match param.app_id {
         Some(app_id) => {
             if app_id.len() == 0 || app_id.len() > APP_ID_MAX_LEN {
@@ -177,9 +181,17 @@ pub async fn notifaction(
         }
         None => return Err(APIError::new_param_err(ParamErrType::NotExist, "app_id")),
     };
+    // 获取到 namespace_id
+    let namespace_id = namespace::is_exist(&app_id, &cluster, namespace).await?;
+    if namespace_id.is_none() {
+        return Err(APIError::new_param_err(ParamErrType::NotExist, "namespace"));
+    }
 
-
-    let namespace_item = time::timeout(timeout, cache.subscription(1, Some(version))).await;
+    let namespace_item = time::timeout(
+        timeout,
+        cache.subscription(namespace_id.unwrap().id as u64, Some(version)),
+    )
+    .await;
     // let namespace_item = namespace_item.await;
     if namespace_item.is_err() {
         // 超时 无更新
@@ -189,5 +201,5 @@ pub async fn notifaction(
     if namespace_item.is_none() {
         return Ok(Json(APIResponse::ok()));
     }
-    Ok(Json(APIResponse::ok_data(vec![namespace_item.unwrap()])))
+    Ok(Json(APIResponse::ok_data(namespace_item.unwrap())))
 }

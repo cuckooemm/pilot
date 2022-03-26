@@ -37,7 +37,6 @@ pub struct PublicationItem {
 #[derive(Deserialize, Serialize)]
 pub struct PublicationParam {
     pub items: Vec<PublicationItemParam>,
-    pub operation: Option<String>,
 }
 
 #[derive(Deserialize, Serialize)]
@@ -204,9 +203,6 @@ pub async fn publish(
     if param.items.len() == 0 {
         return Err(APIError::new_param_err(ParamErrType::NotExist, "items"));
     }
-    if param.operation.is_none() {
-        return Err(APIError::new_param_err(ParamErrType::Required, "operation"));
-    }
     let mut item_ids = Vec::with_capacity(param.items.len());
     let mut invalid_item_ids = Vec::new();
     for item_param in param.items.into_iter() {
@@ -235,37 +231,46 @@ pub async fn publish(
         successed: Vec::default(),
         failed: Vec::default(),
     };
-    // 判断操作类型 发布
-    match param.operation.unwrap().as_str() {
-        "publish" => {
-            let (successed, failed) = publish_namespace_items(item_ids).await;
-            rsp.successed = Vec::with_capacity(successed.len());
-            for id in successed.iter() {
-                rsp.successed.push(utils::encode_i64(id));
-            }
-            rsp.failed = Vec::with_capacity(failed.len() + invalid_item_ids.len());
-            for id in failed.iter() {
-                rsp.failed.push(utils::encode_i64(id));
-            }
-        }
-        "rollback" => {
-            let (successed, failed) = rollback_namespace_items(item_ids).await;
-            rsp.successed = Vec::with_capacity(successed.len());
-            for id in successed.iter() {
-                rsp.successed.push(utils::encode_i64(id));
-            }
-            rsp.failed = Vec::with_capacity(failed.len() + invalid_item_ids.len());
-            for id in failed.iter() {
-                rsp.failed.push(utils::encode_i64(id));
-            }
-        }
-        _ => return Err(APIError::new_param_err(ParamErrType::Invalid, "operation")),
+    let (successed, failed) = publish_namespace_items(item_ids).await;
+    rsp.successed = Vec::with_capacity(successed.len());
+    for id in successed.iter() {
+        rsp.successed.push(utils::encode_i64(id));
+    }
+    rsp.failed = Vec::with_capacity(failed.len() + invalid_item_ids.len());
+    for id in failed.iter() {
+        rsp.failed.push(utils::encode_i64(id));
     }
     rsp.failed.append(&mut invalid_item_ids);
 
     Ok(Json(APIResponse::ok_data(rsp)))
 }
 
+#[derive(Deserialize, Serialize)]
+pub struct RollbackParam {
+    pub record_id: Option<String>,
+    pub remark: Option<String>,
+}
+
+pub async fn rollback(
+    ReqJson(param): ReqJson<RollbackParam>,
+) -> APIResult<Json<APIResponse<PublicationResult>>> {
+    let record_id = match param.record_id {
+        Some(id) => {
+            if id.len() == 0 || id.len() > 100 {
+                return Err(APIError::new_param_err(ParamErrType::NotExist, "record_id"));
+            }
+            let id = entity::utils::decode_i64(&id);
+            if id == 0 {
+                return Err(APIError::new_param_err(ParamErrType::NotExist, "record_id"));
+            }
+            id
+        }
+        None => return Err(APIError::new_param_err(ParamErrType::Required, "record_id")),
+    };
+    let remark = param.remark.unwrap_or("rollback".to_owned());
+    publication::rollback_item(record_id,remark).await?;
+    Ok(Json(APIResponse::ok()))
+}
 async fn publish_namespace_items(item_ids: Vec<PublicationItem>) -> (Vec<i64>, Vec<i64>) {
     let mut success = Vec::with_capacity(item_ids.len());
     let mut failed = Vec::new();
@@ -285,20 +290,6 @@ async fn publish_namespace_items(item_ids: Vec<PublicationItem>) -> (Vec<i64>, V
             continue;
         }
         success.push(publication.id);
-    }
-    (success, failed)
-}
-
-async fn rollback_namespace_items(item_ids: Vec<PublicationItem>) -> (Vec<i64>, Vec<i64>) {
-    let mut success = Vec::with_capacity(item_ids.len());
-    let mut failed = Vec::new();
-    for rollback in item_ids.iter() {
-        if let Err(err) = publication::rollback_item(rollback.id, rollback.version).await {
-            tracing::warn!("failed rollback item {}. err: {}", rollback.id, err);
-            failed.push(rollback.id);
-            continue;
-        }
-        success.push(rollback.id);
     }
     (success, failed)
 }

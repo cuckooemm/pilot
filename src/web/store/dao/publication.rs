@@ -1,4 +1,4 @@
-use super::{master, slaver};
+use super::{master, publication_record, slaver};
 
 use entity::common::Status;
 use entity::orm::{
@@ -142,13 +142,79 @@ pub async fn publication_item(item_id: i64, remark: String, version: i64) -> Res
     Ok(())
 }
 
-pub async fn rollback_item(item_id: i64, version: i64) -> Result<(), DbErr> {
-    // let transaction = master()
-    // .transaction::<_,(),DbErr>(|tx| {
-    //     Box::pin(async move {
-
-    //     })
-    // }).await;
-
+pub async fn rollback_item(record_id: i64, remark: String) -> Result<(), DbErr> {
+    let record = publication_record::find_by_id(record_id).await?;
+    if record.is_none() {
+        return Err(DbErr::RecordNotFound(format!(
+            "Not found record data by {}",
+            record_id
+        )));
+    }
+    let record = record.unwrap();
+    let item = ItemEntity::find_by_id(record.item_id).one(master()).await?;
+    if item.is_none() {
+        return Err(DbErr::RecordNotFound(format!(
+            "Not found record item data by {}",
+            record_id
+        )));
+    }
+    let item = item.unwrap();
+    let published = PublicationEntity::find()
+        .filter(PublicationColumn::ItemId.eq(item.id))
+        .one(master())
+        .await?;
+    if published.is_none() {
+        return Err(DbErr::RecordNotFound(format!(
+            "Not found record item data by {}",
+            record_id
+        )));
+    }
+    let published = published.unwrap();
+    // 如果回退版本与已发布版本相等 直接返回
+    if published.version == record.version {
+        return Ok(());
+    }
+    let transaction = master()
+        .transaction::<_, (), DbErr>(|tx| {
+            Box::pin(async move {
+                // 如果item 状态为已发布  且 回退版本不等于当前item版本 置状态为未发布
+                if item.status == Status::Publication && record.version != item.version {
+                    let mut entity: ItemActive = item.clone().into();
+                    entity.status = Set(Status::Normal);
+                    ItemEntity::update_many()
+                        .set(entity)
+                        .filter(ItemColumn::Id.eq(item.id))
+                        .exec(tx)
+                        .await?;
+                }
+                // 将记录写入 publiction
+                let publication = PublicationActive {
+                    key: Set(record.key.clone()),
+                    value: Set(record.value.clone()),
+                    category: Set(record.category.clone()),
+                    remark: Set(remark.clone()),
+                    publish_user_id: NotSet, // TODO 发布者id
+                    version: Set(record.version),
+                    ..Default::default()
+                };
+                PublicationEntity::update_many()
+                    .set(publication)
+                    .filter(PublicationColumn::Id.eq(published.id))
+                    .exec(tx)
+                    .await?;
+                Ok(())
+            })
+        })
+        .await;
+    if let Err(e) = transaction {
+        match e {
+            TransactionError::Connection(err) => {
+                return Err(err);
+            }
+            TransactionError::Transaction(err) => {
+                return Err(DbErr::Exec(err.to_string()));
+            }
+        }
+    }
     Ok(())
 }

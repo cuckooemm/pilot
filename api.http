@@ -86,25 +86,24 @@ Content-Type: application/json
 {
     "id": "5YN9gPG5VXZM63A1",
     "key": "test2",
-    "value": "update new value",
+    "value": "update new 11",
     "category": "",
     "remark": "item functional test",
-    "version": 4
+    "version": 7
 }
 ###
 
 GET  http://localhost:8000/api/item/list?namespace=pVJkzEGBl4bWwZ0x
 ###
 
-// 发布配置
+# 发布配置
 POST http://localhost:8000/api/item/publish
 Content-Type: application/json
 
 {
-    "operation": "publish",
     "items": [{
         "id": "5YN9gPG5VXZM63A1",
-        "version": 5,
+        "version": 8,
         "remark": "test"
     },
     {
@@ -115,7 +114,15 @@ Content-Type: application/json
     ]
 }
 ###
+# 回滚配置
+POST http://localhost:8000/api/item/rollback
+Content-Type: application/json
 
+{
+    "record_id": "k2pwgKyArGZ85o1v",
+    "remark": "回滚"
+}
+###
 GET http://localhost:8000/api/item/publish/record?item_id=5YN9gPG5VXZM63A1
 ###
 
@@ -123,6 +130,6 @@ GET http://localhost:8000/api/config/desc?app_id=app_new_id&cluster=app_new_clus
 
 ###
 
-GET http://localhost:8000/api/config/notifaction?app_id=app_new_id&cluster=app_new_cluster&namespace=namespaces&secret=0fd1ea91af6b81e27c7a7f780c76724c&version=adb9102d55497ac313bc5762baf8644c&timeout=10
+GET http://localhost:8000/api/config/notifaction?app_id=app_new_id&cluster=app_new_cluster&namespace=namespaces&secret=0fd1ea91af6b81e27c7a7f780c76724c&version=1acb427448fc584a130b2a30f5ce84f1&timeout=10
 
 ###

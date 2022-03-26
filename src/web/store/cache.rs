@@ -16,15 +16,10 @@ use tokio::{
 
 #[derive(Debug, Clone, Default, Serialize)]
 pub struct NamespaceItem {
+    #[serde(skip_serializing)]
     namespace_id: u64,
     items: Vec<PublicationItem>,
     version: String,
-}
-
-#[derive(Debug, Clone)]
-struct NodeParam {
-    namespace_id: u64,
-    ip: Option<String>,
 }
 
 #[derive(Debug, Clone)]

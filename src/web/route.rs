@@ -46,7 +46,8 @@ pub async fn init_router() -> Router {
         .route("/list", get(item::list))
         .route("/edit", post(item::edit))
         .route("/publish/record", get(publication::publication_record))
-        .route("/publish", post(item::publish));
+        .route("/publish", post(item::publish))
+        .route("/rollback", post(item::rollback));
 
     let recorder_handle = metrics::setup_metrics_recorder();
 
