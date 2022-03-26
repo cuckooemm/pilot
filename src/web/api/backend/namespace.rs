@@ -16,9 +16,7 @@ pub struct NamespaceParam {
     pub namespace: Option<String>,
 }
 
-pub async fn create(
-    ReqJson(param): ReqJson<NamespaceParam>,
-) -> APIResult<Json<APIResponse<NamespaceModel>>> {
+pub async fn create(ReqJson(param): ReqJson<NamespaceParam>) -> APIResult<Json<APIResponse<ID>>> {
     let namespace = check::name(param.namespace, "namespace")?;
     let app_id = match param.app_id {
         Some(id) => {
@@ -61,12 +59,20 @@ pub async fn create(
         ..Default::default()
     };
 
-    let result = namespace::insert_one(data).await?;
-    Ok(Json(APIResponse::ok_data(result)))
+    let id = namespace::insert(data).await?;
+    Ok(Json(APIResponse::ok_data(ID::new(id))))
+}
+
+#[derive(Deserialize)]
+pub struct NamespaceQueryParam {
+    pub app_id: Option<String>,
+    pub cluster: Option<String>,
+    pub page: Option<String>,
+    pub page_size: Option<String>,
 }
 
 pub async fn list(
-    ReqQuery(param): ReqQuery<NamespaceParam>,
+    ReqQuery(param): ReqQuery<NamespaceQueryParam>,
 ) -> APIResult<Json<APIResponse<Vec<NamespaceModel>>>> {
     if let Some(app_id) = &param.app_id {
         if app_id.len() != 0 && app_id.len() > 100 {
@@ -86,8 +92,15 @@ pub async fn list(
             return Err(APIError::new_param_err(ParamErrType::NotExist, "app_id"));
         }
     }
-
-    let list: Vec<NamespaceModel> =
-        namespace::find_by_app_cluster_all(param.app_id, param.cluster).await?;
-    Ok(Json(APIResponse::ok_data(list)))
+    let (page, page_size) = check::page(param.page, param.page_size);
+    let list: Vec<NamespaceModel> = namespace::find_by_app_cluster_all(
+        param.app_id,
+        param.cluster,
+        (page - 1) * page_size,
+        page_size,
+    )
+    .await?;
+    let mut rsp = APIResponse::ok_data(list);
+    rsp.set_page(page, page_size);
+    Ok(Json(rsp))
 }

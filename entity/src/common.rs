@@ -1,4 +1,5 @@
 use std::fmt::Display;
+use crate::grable_id;
 
 use sea_orm::{entity::prelude::*, FromQueryResult};
 use serde::{Deserialize, Serialize};
@@ -58,7 +59,14 @@ pub enum Premissions {
     Public,
 }
 
-#[derive(FromQueryResult)]
+#[derive(FromQueryResult, Default, Debug, Clone, Serialize)]
 pub struct ID {
+    #[serde(serialize_with = "grable_id")]
     pub id: i64,
+}
+
+impl ID {
+    pub fn new(id: i64) -> Self {
+        Self { id }
+    }
 }

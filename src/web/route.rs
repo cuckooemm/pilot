@@ -13,7 +13,7 @@ use axum::{
     http::StatusCode,
     middleware,
     response::Html,
-    routing::{get, post},
+    routing::{get, post, put},
     Router,
 };
 
@@ -30,6 +30,7 @@ pub async fn init_router() -> Router {
 
     let cluster = Router::new()
         .route("/create", post(cluster::create))
+        .route("/secret/reset",put(cluster::reset_secret))
         .route("/list", get(cluster::list));
 
     let app_ns = Router::new()
@@ -44,6 +45,7 @@ pub async fn init_router() -> Router {
         .route("/create", post(item::create))
         .route("/list", get(item::list))
         .route("/edit", post(item::edit))
+        .route("/publish/record", get(publication::publication_record))
         .route("/publish", post(item::publish));
 
     let recorder_handle = metrics::setup_metrics_recorder();

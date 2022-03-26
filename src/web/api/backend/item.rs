@@ -6,7 +6,6 @@ use super::{
 };
 
 use axum::extract::Json;
-use entity::common::Status;
 use entity::constant::{KEY_MAX_LEN, REMARK_MAX_LEN};
 use entity::orm::{ActiveModelTrait, Set};
 use entity::{utils, ItemActive, ItemCategory, ItemModel, ID};
@@ -47,8 +46,7 @@ pub struct PublicationResult {
     pub failed: Vec<String>,
 }
 
-pub async fn create(ReqJson(param): ReqJson<ItemParam>) -> APIResult<Json<APIResponse<ItemModel>>> {
-    let key = check::name(param.key, "key")?;
+pub async fn create(ReqJson(param): ReqJson<ItemParam>) -> APIResult<Json<APIResponse<ID>>> {
     let ns_id = match param.id {
         Some(id) => {
             if id.len() == 0 || id.len() > 100 {
@@ -62,6 +60,16 @@ pub async fn create(ReqJson(param): ReqJson<ItemParam>) -> APIResult<Json<APIRes
         }
         None => return Err(APIError::new_param_err(ParamErrType::Required, "id")),
     };
+    let key = match param.key {
+        Some(key) => {
+            if key.len() == 0 || key.len() > 100 {
+                return Err(APIError::new_param_err(ParamErrType::Len(1, 100), "key"));
+            }
+            key
+        }
+        None => return Err(APIError::new_param_err(ParamErrType::Required, "key")),
+    };
+
     let category: ItemCategory = param.category.unwrap_or_default().into();
     let remark = param.remark.unwrap_or_default();
     if remark.len() > REMARK_MAX_LEN {
@@ -92,12 +100,12 @@ pub async fn create(ReqJson(param): ReqJson<ItemParam>) -> APIResult<Json<APIRes
         ..Default::default()
     };
 
-    let result = item::insert_one(data).await?;
-    Ok(Json(APIResponse::ok_data(result)))
+    let id = item::insert(data).await?;
+    Ok(Json(APIResponse::ok_data(ID::new(id))))
 }
 
 pub async fn edit(Json(param): Json<ItemParam>) -> APIResult<Json<APIResponse<ItemModel>>> {
-    let id = match param.id {
+    let item_id = match param.id {
         Some(id) => {
             if id.len() == 0 || id.len() > KEY_MAX_LEN {
                 return Err(APIError::new_param_err(ParamErrType::NotExist, "id"));
@@ -138,7 +146,7 @@ pub async fn edit(Json(param): Json<ItemParam>) -> APIResult<Json<APIResponse<It
     }
 
     // 找到需要修改的 item
-    let entity = item::find_by_id(id).await?;
+    let entity = item::find_by_id(item_id).await?;
     if entity.is_none() {
         return Err(APIError::new_param_err(ParamErrType::NotExist, "id"));
     }
@@ -161,13 +169,15 @@ pub async fn edit(Json(param): Json<ItemParam>) -> APIResult<Json<APIResponse<It
 
 #[derive(Deserialize)]
 pub struct DetailsParam {
-    pub id: Option<String>,
+    pub namespace: Option<String>,
+    pub page: Option<String>,
+    pub page_size: Option<String>,
 }
 
 pub async fn list(
     ReqQuery(param): ReqQuery<DetailsParam>,
 ) -> APIResult<Json<APIResponse<Vec<ItemModel>>>> {
-    let ns_id = match param.id {
+    let ns_id = match param.namespace {
         Some(id) => {
             if id.len() == 0 || id.len() > 100 {
                 return Err(APIError::new_param_err(ParamErrType::NotExist, "id"));
@@ -180,8 +190,12 @@ pub async fn list(
         }
         None => return Err(APIError::new_param_err(ParamErrType::Required, "id")),
     };
-    let data: Vec<ItemModel> = item::find_by_nsid_all(ns_id).await?;
-    Ok(Json(APIResponse::ok_data(data)))
+    let (page, page_size) = check::page(param.page, param.page_size);
+    let data: Vec<ItemModel> =
+        item::find_by_nsid_all(ns_id, (page - 1) * page_size, page_size).await?;
+    let mut rsp = APIResponse::ok_data(data);
+    rsp.set_page(page, page_size);
+    Ok(Json(rsp))
 }
 
 pub async fn publish(
@@ -190,7 +204,7 @@ pub async fn publish(
     if param.items.len() == 0 {
         return Err(APIError::new_param_err(ParamErrType::NotExist, "items"));
     }
-    if let None = param.operation {
+    if param.operation.is_none() {
         return Err(APIError::new_param_err(ParamErrType::Required, "operation"));
     }
     let mut item_ids = Vec::with_capacity(param.items.len());
@@ -209,13 +223,13 @@ pub async fn publish(
             }
             item_ids.push(PublicationItem {
                 id: item_id,
-                version: version,
+                version,
                 remark: item_param.remark,
             });
         }
     }
     if item_ids.len() == 0 {
-        return Err(APIError::new_param_err(ParamErrType::NotExist, "items"));
+        return Err(APIError::new_param_err(ParamErrType::Invalid, "items"));
     }
     let mut rsp = PublicationResult {
         successed: Vec::default(),
@@ -236,6 +250,14 @@ pub async fn publish(
         }
         "rollback" => {
             let (successed, failed) = rollback_namespace_items(item_ids).await;
+            rsp.successed = Vec::with_capacity(successed.len());
+            for id in successed.iter() {
+                rsp.successed.push(utils::encode_i64(id));
+            }
+            rsp.failed = Vec::with_capacity(failed.len() + invalid_item_ids.len());
+            for id in failed.iter() {
+                rsp.failed.push(utils::encode_i64(id));
+            }
         }
         _ => return Err(APIError::new_param_err(ParamErrType::Invalid, "operation")),
     }

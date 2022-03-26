@@ -1,18 +1,39 @@
 use super::master;
 
-use entity::orm::{ActiveModelTrait, ColumnTrait, DbErr, EntityTrait, QueryFilter, QuerySelect};
+use entity::orm::{ColumnTrait, DbErr, EntityTrait, QueryFilter, QuerySelect};
 use entity::{ClusterActive, ClusterColumn, ClusterEntity, ClusterModel, SecretData, ID};
 
-pub async fn insert_one(app: ClusterActive) -> Result<ClusterModel, DbErr> {
-    app.insert(master()).await
+pub async fn insert(cluster: ClusterActive) -> Result<i64, DbErr> {
+    let r = ClusterEntity::insert(cluster).exec(master()).await?;
+    Ok(r.last_insert_id)
 }
 
 pub async fn find_all() -> Result<Vec<ClusterModel>, DbErr> {
     ClusterEntity::find().all(master()).await
 }
 
-pub async fn find_by_app_all(app_id: Option<String>) -> Result<Vec<ClusterModel>, DbErr> {
-    let mut stmt = ClusterEntity::find();
+pub async fn find_by_cluster(
+    app_id: String,
+    cluster: String,
+) -> Result<Option<ClusterModel>, DbErr> {
+    ClusterEntity::find()
+        .filter(ClusterColumn::AppId.eq(app_id))
+        .filter(ClusterColumn::Name.eq(cluster))
+        .one(master())
+        .await
+}
+
+pub async fn update_by_id(model: ClusterActive, id: i64) -> Result<(), DbErr> {
+    let x = ClusterEntity::update_many()
+        .set(model)
+        .filter(ClusterColumn::Id.eq(id))
+        .exec(master())
+        .await?;
+    Ok(())
+}
+
+pub async fn find_by_app_all(app_id: Option<String>,offset: u64,limit: u64) -> Result<Vec<ClusterModel>, DbErr> {
+    let mut stmt = ClusterEntity::find().offset(offset).limit(limit);
     if let Some(app_id) = app_id {
         stmt = stmt.filter(ClusterColumn::AppId.eq(app_id))
     }

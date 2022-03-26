@@ -15,8 +15,10 @@ pub struct Model {
     #[serde(serialize_with = "grable_id")]
     pub id: i64,
     #[sea_orm(unique)]
+    #[serde(serialize_with = "grable_id")]
     pub item_id: i64,
     #[sea_orm(indexed)]
+    #[serde(serialize_with = "grable_id")]
     pub namespace_id: i64,
     #[sea_orm(column_type = "String(Some(100))")]
     pub key: String,
@@ -28,7 +30,7 @@ pub struct Model {
     #[sea_orm(default_value = 0)]
     pub publish_user_id: i64, // 发布者
     pub version: i64,
-    pub updated_at: DateTimeWithTimeZone, // 发布时间
+    pub published_at: DateTimeWithTimeZone, // 发布时间
 }
 
 #[derive(Clone, Debug, PartialEq, FromQueryResult, Deserialize, Serialize)]
@@ -62,13 +64,13 @@ impl ActiveModelBehavior for ActiveModel {
     fn new() -> Self {
         Self {
             publish_user_id: Set(0), // TODO 发布者ID
-            updated_at: Set(Local::now().with_timezone(get_time_zone())),
+            published_at: Set(Local::now().with_timezone(get_time_zone())),
             ..ActiveModelTrait::default()
         }
     }
 
     fn before_save(mut self, _insert: bool) -> Result<Self, DbErr> {
-        self.updated_at = Set(Local::now().with_timezone(get_time_zone()));
+        self.published_at = Set(Local::now().with_timezone(get_time_zone()));
         Ok(self)
     }
     /// Will be triggered after insert / update

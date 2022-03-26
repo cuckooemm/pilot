@@ -50,34 +50,45 @@ pub async fn get_val_by_namespace(namespace_id: u64) -> Result<Vec<PublicationIt
 }
 
 pub async fn publication_item(item_id: i64, remark: String, version: i64) -> Result<(), DbErr> {
+    let item = ItemEntity::find_by_id(item_id).one(master()).await?;
+    if item.is_none() {
+        return Err(DbErr::RecordNotFound(format!(
+            "Not found item data by {}",
+            item_id
+        )));
+    }
+    let item: ItemModel = item.unwrap();
+    if item.version != version {
+        return Err(DbErr::Custom(format!("The item version is invalid")));
+    }
+    if item.status == Status::Publication {
+        // 已经发布过
+        return Ok(());
+    }
     let transaction = master()
         .transaction::<_, (), DbErr>(|tx| {
             Box::pin(async move {
-                let item = ItemEntity::find_by_id(item_id)
-                    .lock_exclusive() // 加锁记录 避免并发
-                    .one(tx)
-                    .await?;
-                if item.is_none() {
-                    return Err(DbErr::RecordNotFound(format!(
-                        "Not found item data by {}",
-                        item_id
-                    )));
-                }
-                let item: ItemModel = item.unwrap();
-                if item.version != version {
-                    return Err(DbErr::Custom(format!("The item version is invalid")));
-                }
-                if item.status == Status::Publication {
-                    // 已经发布过
-                    return Ok(());
-                }
                 let mut entity: ItemActive = item.clone().into();
                 // 更新记录 status 字段至 Publication, 如果成功继续下一步，如果已被更新则返回
                 entity.status = Set(Status::Publication);
                 // 更新数据库
-
-                let item = entity.update(tx).await?;
+                let result = ItemEntity::update_many()
+                    .set(entity)
+                    .filter(ItemColumn::Id.eq(item_id))
+                    .filter(ItemColumn::Version.eq(version))
+                    .exec(tx)
+                    .await?;
+                if result.rows_affected == 0 {
+                    return Ok(());
+                }
                 // 写入或更新 Publication表 和 Publication_record 表
+                let publication_id = PublicationEntity::find()
+                    .select_only()
+                    .column(PublicationColumn::Id)
+                    .filter(PublicationColumn::ItemId.eq(item_id))
+                    .into_model::<ID>()
+                    .one(tx)
+                    .await?;
                 let publication = PublicationActive {
                     item_id: Set(item.id),
                     namespace_id: Set(item.namespace_id),
@@ -89,7 +100,18 @@ pub async fn publication_item(item_id: i64, remark: String, version: i64) -> Res
                     version: Set(item.version),
                     ..Default::default()
                 };
-                PublicationEntity::insert(publication).exec(tx).await?;
+                match publication_id {
+                    Some(id) => {
+                        PublicationEntity::update_many()
+                            .set(publication)
+                            .filter(PublicationColumn::Id.eq(id.id))
+                            .exec(tx)
+                            .await?;
+                    }
+                    None => {
+                        PublicationEntity::insert(publication).exec(tx).await?;
+                    }
+                };
 
                 let record = PublicationRecordActive {
                     item_id: Set(item.id),

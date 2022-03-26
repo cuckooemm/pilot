@@ -12,9 +12,11 @@ pub struct Model {
     #[sea_orm(primary_key)]
     #[serde(serialize_with = "grable_id")]
     pub id: i64,
-    #[sea_orm(unique)]
+    #[sea_orm(indexed)]
+    #[serde(serialize_with = "grable_id")]
     pub item_id: i64,
     #[sea_orm(indexed)]
+    #[serde(serialize_with = "grable_id")]
     pub namespace_id: i64,
     #[sea_orm(column_type = "String(Some(100))")]
     pub key: String,
@@ -26,7 +28,7 @@ pub struct Model {
     #[sea_orm(default_value = 0)]
     pub publish_user_id: i64, // 发布者
     pub version: i64,
-    pub created_at: DateTimeWithTimeZone, // 创建时间
+    pub published_at: DateTimeWithTimeZone, // 创建时间
 }
 
 #[derive(Copy, Clone, Debug, EnumIter)]
@@ -41,7 +43,7 @@ impl ActiveModelBehavior for ActiveModel {
     fn new() -> Self {
         Self {
             publish_user_id: Set(0), // TODO 发布者ID
-            created_at: Set(Local::now().with_timezone(get_time_zone())),
+            published_at: Set(Local::now().with_timezone(get_time_zone())),
             ..ActiveModelTrait::default()
         }
     }

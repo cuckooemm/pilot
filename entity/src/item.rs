@@ -13,6 +13,7 @@ pub struct Model {
     #[serde(serialize_with = "grable_id")]
     pub id: i64,
     #[sea_orm(indexed)]
+    #[serde(serialize_with = "grable_id")]
     pub namespace_id: i64,
     #[sea_orm(column_type = "String(Some(100))")]
     pub key: String,

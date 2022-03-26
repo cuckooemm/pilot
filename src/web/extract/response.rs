@@ -16,6 +16,12 @@ pub struct APIResponse<T: Serialize> {
     #[serde(rename(serialize = "data"))]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub data: Option<T>,
+    #[serde(rename(serialize = "page"))]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub page: Option<u64>,
+    #[serde(rename(serialize = "page_size"))]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub page_size: Option<u64>,
 }
 
 // impl<T> Display for APIResponse<T>
@@ -41,6 +47,8 @@ where
             code,
             message,
             data,
+            page: None,
+            page_size: None,
         }
     }
     #[inline]
@@ -54,6 +62,10 @@ where
     #[inline]
     pub fn err(code: i32, message: String) -> Self {
         Self::new(code, message, None)
+    }
+    pub fn set_page(&mut self, page: u64, page_size: u64) {
+        self.page = Some(page);
+        self.page_size = Some(page_size);
     }
 }
 

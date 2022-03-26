@@ -1,33 +1,46 @@
 Get http://localhost:8000
 ###
 
-Get http://localhost:8000/api/config/
-###
-
+# 创建应用
 POST http://localhost:8000/api/app/create
 Content-Type: application/json
 
 {
-    "app_id": "app_new_id",
-    "name": "new_app"
+    "app_id": "new2_app",
+    "name": "some_app"
 }
 ###
 
+# 获取所有应用
 GET http://localhost:8000/api/app/list
 ###
 
+# 创建应用集群
 POST http://localhost:8000/api/cluster/create
 Content-Type: application/json
 
 {
-    "app_id": "app_new_id",
-    "name": "app_new_cluster"
+    "app_id": "new2_app",
+    "cluster": "app_cluster"
 }
-
-###
-GET  http://localhost:8000/api/cluster/list?app_id=app_new_id
 ###
 
+# 重置应用集群 secret
+PUT http://localhost:8000/api/cluster/secret/reset
+Content-Type: application/json
+
+{
+    "app_id": "some_app",
+    "cluster": "app_cluster"
+}
+###
+
+
+# 获取应用集群
+GET  http://localhost:8000/api/cluster/list?app_id=some_app
+###
+
+# 创建应用所属 namespace 
 POST http://localhost:8000/api/app_ns/create
 Content-Type: application/json
 
@@ -37,31 +50,32 @@ Content-Type: application/json
 }
 ###
 
+# 获取应用所属 namespace 
 GET  http://localhost:8000/api/app_ns/list?
 ###
 
-
+# 创建集群所属 namespace 
 POST http://localhost:8000/api/namespace/create
 Content-Type: application/json
 
 {
-    "app_id": "app_new_id",
-    "cluster": "app_new_cluster",
-    "namespace": "namespaces"
+    "app_id": "some_app",
+    "cluster": "app_cluster",
+    "namespace": "namespaces2"
 }
 ###
 
-GET  http://localhost:8000/api/namespace/list?app_id=app_new_id&cluster=app_new_cluster
+GET  http://localhost:8000/api/namespace/list?app_id=some_app&cluster=app_cluster
 ###
 
 POST http://localhost:8000/api/item/create
 Content-Type: application/json
 
 {
-    "id": "pVJkzEGBl4bWwZ0x",
-    "key": "key2",
-    "value": "test value",
-    "category": "json",
+    "id": "5YN9gPG5VXZM63A1",
+    "key": "some keyx1",
+    "value": "some value",
+    "category": "",
     "remark": "item functional test"
 }
 ###
@@ -75,17 +89,12 @@ Content-Type: application/json
     "value": "update new value",
     "category": "",
     "remark": "item functional test",
-    "version": 3
+    "version": 4
 }
 ###
 
-GET  http://localhost:8000/api/item/list?id=pVJkzEGBl4bWwZ0x
+GET  http://localhost:8000/api/item/list?namespace=pVJkzEGBl4bWwZ0x
 ###
-
-
-GET  http://localhost:8000/api/config/desc?app_id=app_new_id&cluster=app_new_cluster&namespace=namespaces
-###
-
 
 // 发布配置
 POST http://localhost:8000/api/item/publish
@@ -94,15 +103,20 @@ Content-Type: application/json
 {
     "operation": "publish",
     "items": [{
-        "id": "pVJkzEGBl4bWwZ0x",
+        "id": "5YN9gPG5VXZM63A1",
+        "version": 5,
         "remark": "test"
     },
     {
-        "id": "5YN9gPG5VXZM63A1",
+        "id": "kq18VPyWR4ajwNBp",
+        "version": 1,
         "remark": "testha"
     }
     ]
 }
+###
+
+GET http://localhost:8000/api/item/publish/record?item_id=5YN9gPG5VXZM63A1
 ###
 
 GET http://localhost:8000/api/config/desc?app_id=app_new_id&cluster=app_new_cluster&namespace=namespaces&secret=0fd1ea91af6b81e27c7a7f780c76724c

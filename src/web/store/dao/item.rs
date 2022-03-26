@@ -6,16 +6,23 @@ use entity::orm::{
 };
 use entity::{ItemActive, ItemCategory, ItemColumn, ItemEntity, ItemModel, ID};
 
-pub async fn insert_one(app: ItemActive) -> Result<ItemModel, DbErr> {
-    app.insert(master()).await
+pub async fn insert(app: ItemActive) -> Result<i64, DbErr> {
+    let r = ItemEntity::insert(app).exec(master()).await?;
+    Ok(r.last_insert_id)
 }
 
 pub async fn find_all() -> Result<Vec<ItemModel>, DbErr> {
     ItemEntity::find().all(master()).await
 }
 
-pub async fn find_by_nsid_all(ns_id: i64) -> Result<Vec<ItemModel>, DbErr> {
+pub async fn find_by_nsid_all(
+    ns_id: i64,
+    offset: u64,
+    limit: u64,
+) -> Result<Vec<ItemModel>, DbErr> {
     ItemEntity::find()
+        .offset(offset)
+        .limit(limit)
         .filter(ItemColumn::NamespaceId.eq(ns_id))
         .all(master())
         .await
