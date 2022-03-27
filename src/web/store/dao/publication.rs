@@ -187,6 +187,16 @@ pub async fn rollback_item(record_id: i64, remark: String) -> Result<(), DbErr> 
                         .exec(tx)
                         .await?;
                 }
+                // 如果回退版本等于当前item版本且状态为未发布置状态为已发布
+                if record.version == item.version && item.status != Status::Publication {
+                    let mut entity: ItemActive = item.clone().into();
+                    entity.status = Set(Status::Publication);
+                    ItemEntity::update_many()
+                        .set(entity)
+                        .filter(ItemColumn::Id.eq(item.id))
+                        .exec(tx)
+                        .await?;
+                }
                 // 将记录写入 publiction
                 let publication = PublicationActive {
                     key: Set(record.key.clone()),

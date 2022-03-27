@@ -228,17 +228,24 @@ pub async fn publish(
         return Err(APIError::new_param_err(ParamErrType::Invalid, "items"));
     }
     let mut rsp = PublicationResult {
-        successed: Vec::default(),
-        failed: Vec::default(),
+        successed: Vec::with_capacity(item_ids.len()),
+        failed: Vec::new(),
     };
-    let (successed, failed) = publish_namespace_items(item_ids).await;
-    rsp.successed = Vec::with_capacity(successed.len());
-    for id in successed.iter() {
-        rsp.successed.push(utils::encode_i64(id));
-    }
-    rsp.failed = Vec::with_capacity(failed.len() + invalid_item_ids.len());
-    for id in failed.iter() {
-        rsp.failed.push(utils::encode_i64(id));
+    for publication in item_ids.iter() {
+        // 校验存在 鉴权
+        // let data = item::find_by_id(publication.id).await;
+        if let Err(err) = publication::publication_item(
+            publication.id,
+            publication.remark.clone().unwrap_or_default(),
+            publication.version,
+        )
+        .await
+        {
+            tracing::warn!("failed publish item {}. err: {}", publication.id, err);
+            rsp.failed.push(utils::encode_i64(&publication.id));
+            continue;
+        }
+        rsp.successed.push(utils::encode_i64(&publication.id));
     }
     rsp.failed.append(&mut invalid_item_ids);
 
@@ -268,28 +275,6 @@ pub async fn rollback(
         None => return Err(APIError::new_param_err(ParamErrType::Required, "record_id")),
     };
     let remark = param.remark.unwrap_or("rollback".to_owned());
-    publication::rollback_item(record_id,remark).await?;
+    publication::rollback_item(record_id, remark).await?;
     Ok(Json(APIResponse::ok()))
-}
-async fn publish_namespace_items(item_ids: Vec<PublicationItem>) -> (Vec<i64>, Vec<i64>) {
-    let mut success = Vec::with_capacity(item_ids.len());
-    let mut failed = Vec::new();
-    for publication in item_ids.iter() {
-        // 校验存在 鉴权
-        // let data = item::find_by_id(publication.id).await;
-
-        if let Err(err) = publication::publication_item(
-            publication.id,
-            publication.remark.clone().unwrap_or_default(),
-            publication.version,
-        )
-        .await
-        {
-            tracing::warn!("failed publish item {}. err: {}", publication.id, err);
-            failed.push(publication.id);
-            continue;
-        }
-        success.push(publication.id);
-    }
-    (success, failed)
 }
