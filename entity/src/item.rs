@@ -11,10 +11,10 @@ use serde::{Deserialize, Serialize};
 pub struct Model {
     #[sea_orm(primary_key)]
     #[serde(serialize_with = "grable_id")]
-    pub id: i64,
+    pub id: u64,
     #[sea_orm(indexed)]
     #[serde(serialize_with = "grable_id")]
-    pub namespace_id: i64,
+    pub namespace_id: u64,
     #[sea_orm(column_type = "String(Some(100))")]
     pub key: String,
     #[sea_orm(column_type = "Text")]
@@ -25,8 +25,8 @@ pub struct Model {
     #[sea_orm(column_type = "String(Some(200))")]
     pub remark: String, // 注释
     #[sea_orm(default_value = 0)]
-    pub modify_user_id: i64, // 最后修改人
-    pub version: i64,
+    pub modify_user_id: u64, // 最后修改人
+    pub version: u64,
     pub created_at: DateTimeWithTimeZone, // 创建时间
     pub updated_at: DateTimeWithTimeZone, // 更新时间
 }

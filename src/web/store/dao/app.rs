@@ -3,7 +3,7 @@ use super::master;
 use entity::orm::{ColumnTrait, DbErr, EntityTrait, QueryFilter, QuerySelect};
 use entity::{AppActive, AppColumn, AppEntity, AppModel, ID};
 
-pub async fn insert(app: AppActive) -> Result<i64, DbErr> {
+pub async fn insert(app: AppActive) -> Result<u64, DbErr> {
     let r = AppEntity::insert(app).exec(master()).await?;
     Ok(r.last_insert_id)
 }

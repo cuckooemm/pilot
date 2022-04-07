@@ -6,7 +6,7 @@ use entity::orm::{
 };
 use entity::{ItemActive, ItemCategory, ItemColumn, ItemEntity, ItemModel, ID};
 
-pub async fn insert(app: ItemActive) -> Result<i64, DbErr> {
+pub async fn insert(app: ItemActive) -> Result<u64, DbErr> {
     let r = ItemEntity::insert(app).exec(master()).await?;
     Ok(r.last_insert_id)
 }
@@ -16,7 +16,7 @@ pub async fn find_all() -> Result<Vec<ItemModel>, DbErr> {
 }
 
 pub async fn find_by_nsid_all(
-    ns_id: i64,
+    ns_id: u64,
     offset: u64,
     limit: u64,
 ) -> Result<Vec<ItemModel>, DbErr> {
@@ -28,7 +28,7 @@ pub async fn find_by_nsid_all(
         .await
 }
 
-pub async fn is_exist_key(ns_id: i64, key: &String) -> Result<Option<ID>, DbErr> {
+pub async fn is_exist_key(ns_id: u64, key: &String) -> Result<Option<ID>, DbErr> {
     ItemEntity::find()
         .select_only()
         .column(ItemColumn::Id)
@@ -39,7 +39,7 @@ pub async fn is_exist_key(ns_id: i64, key: &String) -> Result<Option<ID>, DbErr>
         .await
 }
 
-pub async fn find_by_id(id: i64) -> Result<Option<ItemModel>, DbErr> {
+pub async fn find_by_id(id: u64) -> Result<Option<ItemModel>, DbErr> {
     ItemEntity::find_by_id(id).one(master()).await
 }
 

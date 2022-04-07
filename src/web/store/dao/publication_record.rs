@@ -9,7 +9,7 @@ use entity::{
     PublicationRecordModel,
 };
 
-pub async fn insert(active: PublicationRecordActive) -> Result<i64, DbErr> {
+pub async fn insert(active: PublicationRecordActive) -> Result<u64, DbErr> {
     let r = PublicationRecordEntity::insert(active)
         .exec(master())
         .await?;
@@ -21,7 +21,7 @@ pub async fn find_all() -> Result<Vec<PublicationRecordModel>, DbErr> {
 }
 
 pub async fn find_by_item(
-    item_id: i64,
+    item_id: u64,
     offset: u64,
     limit: u64,
 ) -> Result<Vec<PublicationRecordModel>, DbErr> {
@@ -34,7 +34,7 @@ pub async fn find_by_item(
         .await
 }
 
-pub async fn find_by_id(record: i64) -> Result<Option<PublicationRecordModel>, DbErr> {
+pub async fn find_by_id(record: u64) -> Result<Option<PublicationRecordModel>, DbErr> {
     PublicationRecordEntity::find_by_id(record)
         .one(master())
         .await

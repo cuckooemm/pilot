@@ -49,7 +49,7 @@ pub async fn get_val_by_namespace(namespace_id: u64) -> Result<Vec<PublicationIt
         .await
 }
 
-pub async fn publication_item(item_id: i64, remark: String, version: i64) -> Result<(), DbErr> {
+pub async fn publication_item(item_id: u64, remark: String, version: u64) -> Result<(), DbErr> {
     let item = ItemEntity::find_by_id(item_id).one(master()).await?;
     if item.is_none() {
         return Err(DbErr::RecordNotFound(format!(
@@ -142,7 +142,7 @@ pub async fn publication_item(item_id: i64, remark: String, version: i64) -> Res
     Ok(())
 }
 
-pub async fn rollback_item(record_id: i64, remark: String) -> Result<(), DbErr> {
+pub async fn rollback_item(record_id: u64, remark: String) -> Result<(), DbErr> {
     let record = publication_record::find_by_id(record_id).await?;
     if record.is_none() {
         return Err(DbErr::RecordNotFound(format!(

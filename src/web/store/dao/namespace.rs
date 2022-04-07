@@ -3,7 +3,7 @@ use super::master;
 use entity::orm::{ActiveModelTrait, ColumnTrait, DbErr, EntityTrait, QueryFilter, QuerySelect};
 use entity::{NamespaceActive, NamespaceColumn, NamespaceEntity, NamespaceModel, ID};
 
-pub async fn insert(namespace: NamespaceActive) -> Result<i64, DbErr> {
+pub async fn insert(namespace: NamespaceActive) -> Result<u64, DbErr> {
     let r = NamespaceEntity::insert(namespace).exec(master()).await?;
     Ok(r.last_insert_id)
 }
@@ -44,7 +44,7 @@ pub async fn find_namespaceid_by_app_cluster(
         .await
 }
 
-pub async fn is_exist_by_id(id: i64) -> Result<Option<ID>, DbErr> {
+pub async fn is_exist_by_id(id: u64) -> Result<Option<ID>, DbErr> {
     NamespaceEntity::find_by_id(id)
         .select_only()
         .column(NamespaceColumn::Id)

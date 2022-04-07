@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 pub struct Model {
     #[sea_orm(primary_key)]
     #[serde(serialize_with = "grable_id")]
-    pub id: i64,
+    pub id: u64,
     #[sea_orm(indexed, column_type = "String(Some(100))")]
     pub app_id: String, // app ID
     #[sea_orm(column_type = "String(Some(100))")]

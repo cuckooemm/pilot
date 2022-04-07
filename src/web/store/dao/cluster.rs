@@ -3,7 +3,7 @@ use super::master;
 use entity::orm::{ColumnTrait, DbErr, EntityTrait, QueryFilter, QuerySelect};
 use entity::{ClusterActive, ClusterColumn, ClusterEntity, ClusterModel, SecretData, ID};
 
-pub async fn insert(cluster: ClusterActive) -> Result<i64, DbErr> {
+pub async fn insert(cluster: ClusterActive) -> Result<u64, DbErr> {
     let r = ClusterEntity::insert(cluster).exec(master()).await?;
     Ok(r.last_insert_id)
 }
@@ -23,7 +23,7 @@ pub async fn find_by_cluster(
         .await
 }
 
-pub async fn update_by_id(model: ClusterActive, id: i64) -> Result<(), DbErr> {
+pub async fn update_by_id(model: ClusterActive, id: u64) -> Result<(), DbErr> {
     let x = ClusterEntity::update_many()
         .set(model)
         .filter(ClusterColumn::Id.eq(id))

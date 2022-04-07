@@ -20,24 +20,24 @@ pub fn init_harsh(min_len: usize, salt: &str) -> () {
         .expect("failed init time zone");
 }
 
-pub fn grable_id<S>(id: &i64, serializer: S) -> Result<S::Ok, S::Error>
+pub fn grable_id<S>(id: &u64, serializer: S) -> Result<S::Ok, S::Error>
 where
     S: Serializer,
 {
-    serializer.serialize_str(&encode_i64(id))
+    serializer.serialize_str(&encode_u64(id))
 }
 
-pub fn encode_i64(id: &i64) -> String {
-    HARSH.get().unwrap().encode(&[(*id).try_into().unwrap()])
+pub fn encode_u64(id: &u64) -> String {
+    HARSH.get().unwrap().encode(&[*id])
 }
 
-pub fn decode_i64(id: &String) -> i64 {
+pub fn decode_i64(id: &String) -> u64 {
     let x = HARSH.get().unwrap().decode(id);
     if x.is_err() {
         return 0;
     }
     for id in x.unwrap().into_iter() {
-        return id as i64;
+        return id;
     }
     0
 }

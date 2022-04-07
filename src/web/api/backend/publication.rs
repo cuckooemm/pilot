@@ -4,7 +4,6 @@ use super::APIResult;
 use super::{check, ReqJson, ReqQuery};
 
 use axum::extract::Json;
-use entity::constant::NAME_MAX_LEN;
 use entity::PublicationRecordModel;
 use serde::{Deserialize, Serialize};
 

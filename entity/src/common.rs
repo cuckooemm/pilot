@@ -5,7 +5,7 @@ use sea_orm::{entity::prelude::*, FromQueryResult};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, EnumIter, DeriveActiveEnum, Deserialize, Serialize)]
-#[sea_orm(rs_type = "i16", db_type = "Integer")]
+#[sea_orm(rs_type = "u16", db_type = "Integer")]
 pub enum Status {
     #[sea_orm(num_value = 0)]
     Normal,
@@ -62,11 +62,11 @@ pub enum Premissions {
 #[derive(FromQueryResult, Default, Debug, Clone, Serialize)]
 pub struct ID {
     #[serde(serialize_with = "grable_id")]
-    pub id: i64,
+    pub id: u64,
 }
 
 impl ID {
-    pub fn new(id: i64) -> Self {
+    pub fn new(id: u64) -> Self {
         Self { id }
     }
 }

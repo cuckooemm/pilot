@@ -24,13 +24,13 @@ pub struct ItemParam {
 #[derive(Deserialize, Serialize)]
 pub struct PublicationItemParam {
     pub id: Option<String>,
-    pub version: Option<i64>,
+    pub version: Option<u64>,
     pub remark: Option<String>,
 }
 
 pub struct PublicationItem {
-    pub id: i64,
-    pub version: i64,
+    pub id: u64,
+    pub version: u64,
     pub remark: Option<String>,
 }
 
@@ -95,7 +95,7 @@ pub async fn create(ReqJson(param): ReqJson<ItemParam>) -> APIResult<Json<APIRes
         value: Set(param.value.unwrap_or_default()),
         category: Set(category),
         remark: Set(remark),
-        version: Set(1i64),
+        version: Set(1u64),
         ..Default::default()
     };
 
@@ -242,10 +242,10 @@ pub async fn publish(
         .await
         {
             tracing::warn!("failed publish item {}. err: {}", publication.id, err);
-            rsp.failed.push(utils::encode_i64(&publication.id));
+            rsp.failed.push(utils::encode_u64(&publication.id));
             continue;
         }
-        rsp.successed.push(utils::encode_i64(&publication.id));
+        rsp.successed.push(utils::encode_u64(&publication.id));
     }
     rsp.failed.append(&mut invalid_item_ids);
 

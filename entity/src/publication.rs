@@ -13,13 +13,13 @@ use serde::{Deserialize, Serialize};
 pub struct Model {
     #[sea_orm(primary_key)]
     #[serde(serialize_with = "grable_id")]
-    pub id: i64,
+    pub id: u64,
     #[sea_orm(unique)]
     #[serde(serialize_with = "grable_id")]
-    pub item_id: i64,
+    pub item_id: u64,
     #[sea_orm(indexed)]
     #[serde(serialize_with = "grable_id")]
-    pub namespace_id: i64,
+    pub namespace_id: u64,
     #[sea_orm(column_type = "String(Some(100))")]
     pub key: String,
     #[sea_orm(column_type = "Text")]
@@ -28,8 +28,8 @@ pub struct Model {
     #[sea_orm(column_type = "String(Some(200))")]
     pub remark: String, // 发布备注
     #[sea_orm(default_value = 0)]
-    pub publish_user_id: i64, // 发布者
-    pub version: i64,
+    pub publish_user_id: u64, // 发布者
+    pub version: u64,
     pub published_at: DateTimeWithTimeZone, // 发布时间
 }
 

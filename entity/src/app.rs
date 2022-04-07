@@ -11,12 +11,12 @@ use serde::{Deserialize, Serialize};
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = true)]
     #[serde(serialize_with = "grable_id")]
-    pub id: i64,
+    pub id: u64,
     #[sea_orm(unique, column_type = "String(Some(100))")]
     pub app_id: String, // app 唯一 ID
     #[sea_orm(column_type = "String(Some(100))")]
     pub name: String, // app name
-    pub org_id: i64, // 组织 ID
+    pub org_id: u64, // 组织 ID
     #[sea_orm(column_type = "String(Some(100))")]
     pub org_name: String, // 组织名
     #[sea_orm(column_type = "String(Some(100))")]
