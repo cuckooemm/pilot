@@ -9,6 +9,7 @@ pub mod namespace;
 pub mod publication;
 pub mod publication_record;
 pub mod utils;
+pub mod user;
 
 pub use sea_orm as orm;
 pub use utils::grable_id;
