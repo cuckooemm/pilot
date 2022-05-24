@@ -1,0 +1,30 @@
+[server]
+addr = "0.0.0.0:8000"
+
+[log]
+level = "Debug"
+path = "logs/mchat.log"
+
+[store]
+[store.database]
+max_lifetime = 300
+min_connections = 1
+[store.database.main]
+db = "cmm"
+derive = "mysql"
+host = "localhost"
+user = "root"
+password = "cuckooemm"
+
+[[store.database.slaver]]
+db = "cmm"
+derive = "mysql"
+host = "localhost"
+user = "root"
+password = "cuckooemm"
+
+
+
+[harsh]
+min_len = 16
+slat = "cuckooemm@gmail.com"
