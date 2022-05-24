@@ -3,7 +3,7 @@ use std::time::Duration;
 use entity::orm::{ConnectOptions, Database, DatabaseConnection};
 use rand::{thread_rng, RngCore};
 
-use crate::{config::DatabaseCluster, web::store::dao::prelude::init_table};
+use crate::{config::DatabaseCluster};
 
 #[derive(Debug, Clone)]
 pub struct DB {
@@ -49,8 +49,6 @@ impl DB {
         main.set_metric_callback(master_metrics);
         let mut slavers: Vec<DatabaseConnection> = Vec::with_capacity(opt.slaver.len());
 
-        // 初始化表
-        init_table(&main).await.expect("failed to init table");
         // 初始化从库
         for c in opt.slaver.iter() {
             let mut conn = ConnectOptions::new(c.clone().into());

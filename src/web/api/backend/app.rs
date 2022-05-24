@@ -1,11 +1,17 @@
-use super::dao::app;
-use super::response::{APIError, APIResponse, ParamErrType};
-use super::{check, APIResult};
-use super::{ReqJson, ReqQuery};
+use std::str::FromStr;
+
+use crate::web::api::check;
+use crate::web::api::permission::accredit;
+use crate::web::extract::json::ReqJson;
+use crate::web::extract::jwt::Claims;
+use crate::web::extract::query::ReqQuery;
+use crate::web::extract::response::{APIError, APIResponse, ParamErrType};
+use crate::web::store::dao::app;
+use crate::web::APIResult;
 
 use axum::extract::Json;
-use entity::orm::Set;
-use entity::{AppActive, AppModel, ID};
+use entity::rule::Verb;
+use entity::{AppModel, ID};
 use serde::Deserialize;
 
 #[derive(Deserialize)]
@@ -21,28 +27,34 @@ pub struct QueryParam {
 }
 
 // 创建APP
-pub async fn create(ReqJson(param): ReqJson<AppParam>) -> APIResult<Json<APIResponse<ID>>> {
-    let app_id = check::app_id(param.app_id)?;
-    let name = check::name(param.name, "name")?;
-    let record = app::is_exist(app_id.clone()).await?;
-    if record.is_some() {
+pub async fn create(
+    ReqJson(param): ReqJson<AppParam>,
+    auth: Claims,
+) -> APIResult<Json<APIResponse<ID>>> {
+    let app_id = check::id_str(param.app_id, "app_id")?;
+    let name = match param.name {
+        Some(name) => {
+            if name.len() < 2 || name.len() > 100 {
+                return Err(APIError::new_param_err(ParamErrType::Len(2, 100), "name"));
+            }
+            name
+        }
+        None => app_id.clone(),
+    };
+
+    if app::is_exist(app_id.clone()).await? {
         return Err(APIError::new_param_err(ParamErrType::Exist, "app_id"));
     }
-
-    let data = AppActive {
-        app_id: Set(app_id),
-        name: Set(name),
-        // TODO 填充其他信息
-        ..Default::default()
-    };
-    let id = app::insert(data).await?;
-    Ok(Json(APIResponse::ok_data(ID::new(id))))
+    app::add(app_id, name, &auth).await?;
+    Ok(Json(APIResponse::ok()))
 }
 
-// 获取所有APP
+// 获取用户APP
 pub async fn list(
     ReqQuery(param): ReqQuery<QueryParam>,
+    auth: Claims,
 ) -> APIResult<Json<APIResponse<Vec<AppModel>>>> {
+    accredit::accredit(&auth, Verb::VIEW, vec!["some_app", "test", "namespace"]).await?;
     let (page, page_size) = check::page(param.page, param.page_size);
     let list = app::find_all((page - 1) * page_size, page_size).await?;
     let mut rsp = APIResponse::ok_data(list);

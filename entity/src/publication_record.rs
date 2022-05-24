@@ -1,8 +1,7 @@
 use super::common::ItemCategory;
 use crate::grable_id;
-use crate::utils::get_time_zone;
 
-use chrono::Local;
+use chrono::{FixedOffset, Local};
 use sea_orm::{entity::prelude::*, Set};
 use serde::{Deserialize, Serialize};
 
@@ -43,7 +42,7 @@ impl ActiveModelBehavior for ActiveModel {
     fn new() -> Self {
         Self {
             publish_user_id: Set(0), // TODO 发布者ID
-            published_at: Set(Local::now().with_timezone(get_time_zone())),
+            published_at: Set(Local::now().with_timezone(&FixedOffset::east(8 * 3600))),
             ..ActiveModelTrait::default()
         }
     }

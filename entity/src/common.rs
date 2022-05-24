@@ -1,5 +1,6 @@
+use crate::{grable_id, grable_id_u32};
+
 use std::fmt::Display;
-use crate::grable_id;
 
 use sea_orm::{entity::prelude::*, FromQueryResult};
 use serde::{Deserialize, Serialize};
@@ -13,6 +14,12 @@ pub enum Status {
     Publication,
     #[sea_orm(num_value = 2)]
     Delete,
+}
+
+impl Default for Status {
+    fn default() -> Self {
+        Status::Normal
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, EnumIter, DeriveActiveEnum, Deserialize, Serialize)]
@@ -51,12 +58,34 @@ impl From<String> for ItemCategory {
 }
 
 #[derive(Debug, Clone, PartialEq, EnumIter, DeriveActiveEnum, Deserialize, Serialize)]
-#[sea_orm(rs_type = "i16", db_type = "Integer")]
-pub enum Premissions {
+#[sea_orm(rs_type = "u8", db_type = "TinyUnsigned")]
+pub enum Scope {
     #[sea_orm(num_value = 0)]
     Private,
     #[sea_orm(num_value = 1)]
     Public,
+}
+
+impl Default for Scope {
+    fn default() -> Self {
+        Scope::Private
+    }
+}
+
+impl From<String> for Scope {
+    fn from(str: String) -> Self {
+        match str.to_lowercase().as_str() {
+            "private" => Self::Private,
+            "public" => Self::Public,
+            _ => Self::Private, // 默认 private
+        }
+    }
+}
+
+#[derive(FromQueryResult, Default, Debug, Clone, Serialize)]
+pub struct IDu32 {
+    #[serde(serialize_with = "grable_id_u32")]
+    pub id: u32,
 }
 
 #[derive(FromQueryResult, Default, Debug, Clone, Serialize)]

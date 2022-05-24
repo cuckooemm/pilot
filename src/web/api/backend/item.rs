@@ -1,3 +1,6 @@
+use crate::web::api::permission::accredit;
+use crate::web::extract::jwt::Claims;
+
 use super::dao::{item, namespace, publication};
 use super::{check, ReqJson, ReqQuery};
 use super::{
@@ -6,8 +9,7 @@ use super::{
 };
 
 use axum::extract::Json;
-use entity::constant::{KEY_MAX_LEN, REMARK_MAX_LEN};
-use entity::orm::{ActiveModelTrait, Set};
+use entity::orm::Set;
 use entity::{utils, ItemActive, ItemCategory, ItemModel, ID};
 use serde::{Deserialize, Serialize};
 
@@ -45,50 +47,39 @@ pub struct PublicationResult {
     pub failed: Vec<String>,
 }
 
-pub async fn create(ReqJson(param): ReqJson<ItemParam>) -> APIResult<Json<APIResponse<ID>>> {
-    let ns_id = match param.id {
-        Some(id) => {
-            if id.len() == 0 || id.len() > 100 {
-                return Err(APIError::new_param_err(ParamErrType::NotExist, "id"));
-            }
-            let id = entity::utils::decode_i64(&id);
-            if id == 0 {
-                return Err(APIError::new_param_err(ParamErrType::NotExist, "id"));
-            }
-            id
-        }
-        None => return Err(APIError::new_param_err(ParamErrType::Required, "id")),
-    };
-    let key = match param.key {
-        Some(key) => {
-            if key.len() == 0 || key.len() > 100 {
-                return Err(APIError::new_param_err(ParamErrType::Len(1, 100), "key"));
-            }
-            key
-        }
-        None => return Err(APIError::new_param_err(ParamErrType::Required, "key")),
-    };
-
+pub async fn create(
+    ReqJson(param): ReqJson<ItemParam>,
+    auth: Claims,
+) -> APIResult<Json<APIResponse<ID>>> {
+    let ns_id = check::id_decode(param.id, "id")?;
+    let key = check::id_str(param.key, "key")?;
     let category: ItemCategory = param.category.unwrap_or_default().into();
     let remark = param.remark.unwrap_or_default();
-    if remark.len() > REMARK_MAX_LEN {
-        return Err(APIError::new_param_err(
-            ParamErrType::Len(1, REMARK_MAX_LEN),
-            "remark",
-        ));
+    if remark.len() > 200 {
+        return Err(APIError::new_param_err(ParamErrType::Len(1, 200), "remark"));
     }
     // 检查 namespace_id 是否存在
-    let id = namespace::is_exist_by_id(ns_id).await?;
-    if id.is_none() {
-        return Err(APIError::new_param_err(ParamErrType::NotExist, "namespace"));
+    let info = namespace::get_app_info(ns_id).await?;
+    if info.is_none() {
+        return Err(APIError::new_param_err(ParamErrType::NotExist, "id"));
     }
+    let info = info.unwrap();
     // 权限验证 TODO
+    if !accredit::accredit(
+        &auth,
+        entity::rule::Verb::Create,
+        vec![&info.app_id, &info.cluster, &info.namespace],
+    )
+    .await?
+    {
+        return Err(APIError::new_permission_forbidden());
+    }
 
     // 检查是否已存在此key
-    let id = item::is_exist_key(ns_id, &key).await?;
-    if id.is_some() {
+    if item::is_key_exist(ns_id, key.clone()).await? {
         return Err(APIError::new_param_err(ParamErrType::Exist, "key"));
     }
+
     let data = ItemActive {
         namespace_id: Set(ns_id),
         key: Set(key),
@@ -99,14 +90,14 @@ pub async fn create(ReqJson(param): ReqJson<ItemParam>) -> APIResult<Json<APIRes
         ..Default::default()
     };
 
-    let id = item::insert(data).await?;
+    let id = item::add(data).await?;
     Ok(Json(APIResponse::ok_data(ID::new(id))))
 }
 
 pub async fn edit(Json(param): Json<ItemParam>) -> APIResult<Json<APIResponse<ItemModel>>> {
     let item_id = match param.id {
         Some(id) => {
-            if id.len() == 0 || id.len() > KEY_MAX_LEN {
+            if id.len() == 0 || id.len() > 100 {
                 return Err(APIError::new_param_err(ParamErrType::NotExist, "id"));
             }
             let id = entity::utils::decode_i64(&id);
@@ -127,20 +118,14 @@ pub async fn edit(Json(param): Json<ItemParam>) -> APIResult<Json<APIResponse<It
         None => return Err(APIError::new_param_err(ParamErrType::Required, "version")),
     };
     if let Some(key) = &param.key {
-        if key.len() == 0 || key.len() > KEY_MAX_LEN {
-            return Err(APIError::new_param_err(
-                ParamErrType::Len(1, KEY_MAX_LEN),
-                "key",
-            ));
+        if key.len() == 0 || key.len() > 100 {
+            return Err(APIError::new_param_err(ParamErrType::Len(1, 100), "key"));
         }
     }
     // 校验值类型
     if let Some(remark) = &param.remark {
-        if remark.len() > REMARK_MAX_LEN {
-            return Err(APIError::new_param_err(
-                ParamErrType::Len(1, REMARK_MAX_LEN),
-                "remark",
-            ));
+        if remark.len() > 200 {
+            return Err(APIError::new_param_err(ParamErrType::Len(1, 200), "remark"));
         }
     }
 
@@ -242,10 +227,10 @@ pub async fn publish(
         .await
         {
             tracing::warn!("failed publish item {}. err: {}", publication.id, err);
-            rsp.failed.push(utils::encode_u64(&publication.id));
+            rsp.failed.push(utils::encode_u64(publication.id));
             continue;
         }
-        rsp.successed.push(utils::encode_u64(&publication.id));
+        rsp.successed.push(utils::encode_u64(publication.id));
     }
     rsp.failed.append(&mut invalid_item_ids);
 

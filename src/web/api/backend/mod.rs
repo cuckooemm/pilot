@@ -4,6 +4,7 @@ pub mod cluster;
 pub mod item;
 pub mod namespace;
 pub mod publication;
+pub mod users;
 
 use super::super::extract::response;
 use super::super::APIResult;

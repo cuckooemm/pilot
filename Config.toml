@@ -10,18 +10,18 @@ path = "logs/mchat.log"
 max_lifetime = 300
 min_connections = 1
 [store.database.main]
-db = "cuckoo"
+db = "cmm"
 derive = "mysql"
-host = "ten2"
+host = "localhost"
+user = "root"
 password = "cuckooemm"
-user = "cuckoo"
 
 [[store.database.slaver]]
-db = "cuckoo"
+db = "cmm"
 derive = "mysql"
-host = "ten2"
+host = "localhost"
+user = "root"
 password = "cuckooemm"
-user = "cuckoo"
 
 
 

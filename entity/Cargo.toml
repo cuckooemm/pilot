@@ -10,7 +10,7 @@ serde = { version="1", features = ["derive"] }
 chrono = "0.4"
 harsh = "0.2"
 once_cell = "1.10.0"
-sea-orm = { version = "^0",features = ["sqlx-mysql","macros", "runtime-tokio-native-tls", "debug-print","with-chrono"]}
+sea-orm = { version = "0",features = ["sqlx-mysql","macros", "runtime-tokio-native-tls", "debug-print","with-chrono"]}
 
 # [dependencies.sea-orm]
 # version = "0.7"

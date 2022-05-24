@@ -6,7 +6,7 @@ use entity::orm::{
 };
 use entity::{ItemActive, ItemCategory, ItemColumn, ItemEntity, ItemModel, ID};
 
-pub async fn insert(app: ItemActive) -> Result<u64, DbErr> {
+pub async fn add(app: ItemActive) -> Result<u64, DbErr> {
     let r = ItemEntity::insert(app).exec(master()).await?;
     Ok(r.last_insert_id)
 }
@@ -28,15 +28,16 @@ pub async fn find_by_nsid_all(
         .await
 }
 
-pub async fn is_exist_key(ns_id: u64, key: &String) -> Result<Option<ID>, DbErr> {
-    ItemEntity::find()
+pub async fn is_key_exist(ns_id: u64, key: String) -> Result<bool, DbErr> {
+    let entity = ItemEntity::find()
         .select_only()
         .column(ItemColumn::Id)
         .filter(ItemColumn::NamespaceId.eq(ns_id))
-        .filter(ItemColumn::Key.eq(key.clone()))
+        .filter(ItemColumn::Key.eq(key))
         .into_model::<ID>()
         .one(master())
-        .await
+        .await?;
+    Ok(entity.is_some())
 }
 
 pub async fn find_by_id(id: u64) -> Result<Option<ItemModel>, DbErr> {

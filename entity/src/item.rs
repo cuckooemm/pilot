@@ -1,9 +1,7 @@
 use super::common::{ItemCategory, Status};
 use crate::grable_id;
-use crate::utils::get_time_zone;
 
-use chrono::Local;
-use sea_orm::{entity::prelude::*, Set};
+use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Deserialize, Serialize)]
@@ -12,21 +10,16 @@ pub struct Model {
     #[sea_orm(primary_key)]
     #[serde(serialize_with = "grable_id")]
     pub id: u64,
-    #[sea_orm(indexed)]
     #[serde(serialize_with = "grable_id")]
     pub namespace_id: u64,
-    #[sea_orm(column_type = "String(Some(100))")]
     pub key: String,
-    #[sea_orm(column_type = "Text")]
     pub value: String,
     pub category: ItemCategory,
-    #[sea_orm(default_value = 0)]
-    pub status: Status,
-    #[sea_orm(column_type = "String(Some(200))")]
     pub remark: String, // 注释
-    #[sea_orm(default_value = 0)]
-    pub modify_user_id: u64, // 最后修改人
+    pub status: Status,
     pub version: u64,
+    pub modify_user_id: u64, // 最后修改人
+    pub delete_at: u64,
     pub created_at: DateTimeWithTimeZone, // 创建时间
     pub updated_at: DateTimeWithTimeZone, // 更新时间
 }
@@ -39,31 +32,4 @@ impl RelationTrait for Relation {
     }
 }
 
-impl ActiveModelBehavior for ActiveModel {
-    fn new() -> Self {
-        Self {
-            status: Set(Status::Normal),
-            modify_user_id: Set(0),
-            created_at: Set(Local::now().with_timezone(get_time_zone())),
-            updated_at: Set(Local::now().with_timezone(get_time_zone())),
-            ..ActiveModelTrait::default()
-        }
-    }
-
-    fn before_save(mut self, _insert: bool) -> Result<Self, DbErr> {
-        self.updated_at = Set(Local::now().with_timezone(get_time_zone()));
-        Ok(self)
-    }
-    /// Will be triggered after insert / update
-    fn after_save(model: Model, _insert: bool) -> Result<Model, DbErr> {
-        Ok(model)
-    }
-
-    fn before_delete(self) -> Result<Self, DbErr> {
-        Ok(self)
-    }
-
-    fn after_delete(self) -> Result<Self, DbErr> {
-        Ok(self)
-    }
-}
+impl ActiveModelBehavior for ActiveModel {}

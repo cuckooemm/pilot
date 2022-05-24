@@ -79,7 +79,14 @@ pub enum APIErrorType {
     BadParam(ParamErrType),
     // 请求体错误
     BadRequestBody,
+    // 服务内部异常
+    ServerAbnormal,
+    // 认证授权异常
+    InvalidToken,
+    // 无权限访问 拒绝访问
+    Forbidden,
 }
+
 #[derive(Clone)]
 pub enum ParamErrType {
     // 必填
@@ -114,10 +121,32 @@ impl APIError {
             cause: None,
         }
     }
+
     pub fn with_param(et: APIErrorType, msg: Option<String>) -> Self {
         Self {
             error_type: et,
             message: msg,
+            cause: None,
+        }
+    }
+    pub fn new_permission_forbidden() -> Self {
+        Self {
+            error_type: APIErrorType::Forbidden,
+            message: None,
+            cause: None,
+        }
+    }
+    pub fn new_auth_invalid(msg: String) -> Self {
+        Self {
+            error_type: APIErrorType::InvalidToken,
+            message: Some(msg),
+            cause: None,
+        }
+    }
+    pub fn new_server_error() -> Self {
+        Self {
+            error_type: APIErrorType::ServerAbnormal,
+            message: None,
             cause: None,
         }
     }
@@ -170,7 +199,11 @@ impl APIError {
         tracing::error!("parsing request body err: {}", err);
         let mut api_err = APIError::new();
         api_err.message = match err {
-            JsonRejection::InvalidJsonBody(err) => {
+            JsonRejection::JsonDataError(err) => {
+                api_err.error_type = APIErrorType::BadRequestBody;
+                Some(err.to_string())
+            }
+            JsonRejection::JsonSyntaxError(err) => {
                 api_err.error_type = APIErrorType::BadRequestBody;
                 Some(err.to_string())
             }
@@ -197,15 +230,22 @@ impl IntoResponse for APIError {
     fn into_response(self) -> Response {
         let rsp: APIResponse<()> = match self.error_type {
             APIErrorType::BadParam(_) => {
-                APIResponse::err(4000, self.message.unwrap_or("内部服务错误".to_owned()))
+                APIResponse::err(4000, self.message.unwrap_or("内部服务异常".to_owned()))
             }
             APIErrorType::BadRequestBody => {
                 APIResponse::err(4000, self.message.unwrap_or("".to_owned()))
             }
-            APIErrorType::Database => APIResponse::err(5000, "内部服务错误".to_owned()),
+            APIErrorType::InvalidToken => {
+                APIResponse::err(4100, self.message.unwrap_or("认证无效".to_owned()))
+            }
+            APIErrorType::Forbidden => {
+                APIResponse::err(4300, self.message.unwrap_or("无权限访问".to_owned()))
+            }
+            APIErrorType::ServerAbnormal => APIResponse::err(5000, "内部服务异常".to_owned()),
+            APIErrorType::Database => APIResponse::err(5000, "内部服务异常".to_owned()),
             APIErrorType::NotFound => APIResponse::err(0, "OK".to_owned()),
         };
-        let mut header = HeaderMap::with_capacity(1);
+        let mut header = HeaderMap::new();
         header.insert(
             HeaderName::from_static("inner-status-code"),
             HeaderValue::from(rsp.code),

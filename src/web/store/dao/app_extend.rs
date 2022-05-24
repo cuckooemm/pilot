@@ -25,7 +25,6 @@ pub async fn is_exist(app_id: &String, name: &String) -> Result<Option<ID>, DbEr
         .select_only()
         .column(AppExtendColumn::Id)
         .filter(AppExtendColumn::AppId.eq(app_id.clone()))
-        .filter(AppExtendColumn::Name.eq(name.clone()))
         .into_model::<ID>()
         .one(master())
         .await

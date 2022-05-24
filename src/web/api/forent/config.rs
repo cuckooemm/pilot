@@ -13,7 +13,6 @@ use crate::web::{
 
 use axum::extract::Extension;
 use axum::Json;
-use entity::constant::{APP_ID_MAX_LEN, NAME_MAX_LEN};
 use serde::{Deserialize, Serialize};
 use tokio::time;
 
@@ -36,7 +35,7 @@ pub async fn description(
 ) -> APIResult<Json<APIResponse<NamespaceItem>>> {
     let app_id = match param.app_id {
         Some(app_id) => {
-            if app_id.len() == 0 || app_id.len() > APP_ID_MAX_LEN {
+            if app_id.len() == 0 || app_id.len() > 100 {
                 return Err(APIError::new_param_err(ParamErrType::NotExist, "app_id"));
             }
             app_id
@@ -45,7 +44,7 @@ pub async fn description(
     };
     let cluster = match param.cluster {
         Some(cluster) => {
-            if cluster.len() == 0 || cluster.len() > NAME_MAX_LEN {
+            if cluster.len() == 0 || cluster.len() > 100 {
                 return Err(APIError::new_param_err(ParamErrType::NotExist, "cluster"));
             }
             cluster
@@ -54,7 +53,7 @@ pub async fn description(
     };
     let namespace = match &param.namespace {
         Some(ns) => {
-            if ns.len() == 0 || ns.len() > NAME_MAX_LEN {
+            if ns.len() == 0 || ns.len() > 100 {
                 return Err(APIError::new_param_err(ParamErrType::NotExist, "namespace"));
             }
             ns
@@ -84,7 +83,8 @@ pub async fn description(
     };
 
     // 获取到 namespace_id
-    let namespace_id = namespace::is_exist(&app_id, &cluster, namespace).await?;
+    let namespace_id =
+        namespace::get_namespace_id(app_id.clone(), cluster.clone(), namespace.clone()).await?;
     if namespace_id.is_none() {
         return Err(APIError::new_param_err(ParamErrType::NotExist, "namespace"));
     }
@@ -94,7 +94,7 @@ pub async fn description(
     // 监听namespace
     let namespace_item = time::timeout(
         Duration::from_secs(5),
-        cache.subscription(namespace_id.unwrap().id as u64, None),
+        cache.subscription(namespace_id.unwrap(), None),
     )
     .await;
     if namespace_item.is_err() {
@@ -115,7 +115,7 @@ pub async fn notifaction(
 ) -> APIResult<Json<APIResponse<NamespaceItem>>> {
     let app_id = match param.app_id {
         Some(app_id) => {
-            if app_id.len() == 0 || app_id.len() > APP_ID_MAX_LEN {
+            if app_id.len() == 0 || app_id.len() > 100 {
                 return Err(APIError::new_param_err(ParamErrType::NotExist, "app_id"));
             }
             app_id
@@ -124,7 +124,7 @@ pub async fn notifaction(
     };
     let cluster = match param.cluster {
         Some(cluster) => {
-            if cluster.len() == 0 || cluster.len() > NAME_MAX_LEN {
+            if cluster.len() == 0 || cluster.len() > 100 {
                 return Err(APIError::new_param_err(ParamErrType::NotExist, "cluster"));
             }
             cluster
@@ -133,7 +133,7 @@ pub async fn notifaction(
     };
     let namespace = match &param.namespace {
         Some(ns) => {
-            if ns.len() == 0 || ns.len() > NAME_MAX_LEN {
+            if ns.len() == 0 || ns.len() > 100 {
                 return Err(APIError::new_param_err(ParamErrType::NotExist, "namespace"));
             }
             ns
@@ -182,14 +182,15 @@ pub async fn notifaction(
         None => return Err(APIError::new_param_err(ParamErrType::NotExist, "app_id")),
     };
     // 获取到 namespace_id
-    let namespace_id = namespace::is_exist(&app_id, &cluster, namespace).await?;
+    let namespace_id =
+        namespace::get_namespace_id(app_id.clone(), cluster.clone(), namespace.clone()).await?;
     if namespace_id.is_none() {
         return Err(APIError::new_param_err(ParamErrType::NotExist, "namespace"));
     }
 
     let namespace_item = time::timeout(
         timeout,
-        cache.subscription(namespace_id.unwrap().id as u64, Some(version)),
+        cache.subscription(namespace_id.unwrap(), Some(version)),
     )
     .await;
     // let namespace_item = namespace_item.await;
