@@ -13,22 +13,21 @@ pub async fn find_all() -> Result<Vec<ClusterModel>, DbErr> {
     ClusterEntity::find().all(master()).await
 }
 
-pub async fn find_app_cluster(
-    app_id: String,
-    cluster: String,
-) -> Result<Option<ClusterModel>, DbErr> {
-    ClusterEntity::find()
+pub async fn find_app_cluster(app_id: String, cluster: String) -> Result<Option<u64>, DbErr> {
+    let r = ClusterEntity::find()
         .select_only()
         .column(ClusterColumn::Id)
         .filter(ClusterColumn::AppId.eq(app_id))
         .filter(ClusterColumn::Name.eq(cluster))
         .filter(ClusterColumn::DeletedAt.eq(0_u64))
+        .into_model::<ID>()
         .one(master())
-        .await
+        .await?;
+    Ok(r.and_then(|r| Some(r.id)))
 }
 
 pub async fn update_by_id(model: ClusterActive, id: u64) -> Result<(), DbErr> {
-    let x = ClusterEntity::update_many()
+    ClusterEntity::update_many()
         .set(model)
         .filter(ClusterColumn::Id.eq(id))
         .exec(master())

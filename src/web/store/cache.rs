@@ -1,9 +1,9 @@
-use super::dao::publication;
-
 use std::{collections::HashMap, sync::Arc, time::Duration};
 
+use super::dao::release;
+
 use ahash::RandomState;
-use entity::{orm::DbErr, PublicationItem};
+use entity::{item::ConfigItem, orm::DbErr};
 use md5;
 use serde::Serialize;
 use tokio::{
@@ -18,8 +18,8 @@ use tokio::{
 pub struct NamespaceItem {
     #[serde(skip_serializing)]
     namespace_id: u64,
-    items: Vec<PublicationItem>,
-    version: String,
+    items: Vec<ConfigItem>,
+    version: u64,
 }
 
 #[derive(Debug, Clone)]
@@ -36,22 +36,22 @@ impl CacheItem {
     pub fn new() -> Self {
         let (reserve, _) = broadcast::channel::<NamespaceItem>(1024);
         let (namespace_id_sender, namespace_id_receiver) = mpsc::unbounded_channel();
-        let capacity = 16;
-        let map_capacity = 64;
-        let mut area = Vec::with_capacity(capacity);
-        let mut noti = Vec::with_capacity(capacity);
-        for _ in 0..capacity {
+        const CAPACITY: usize = 16;
+        const MAP_CAPACITY: usize = 64;
+        let mut area = Vec::with_capacity(CAPACITY);
+        let mut noti = Vec::with_capacity(CAPACITY);
+        for _ in 0..CAPACITY {
             area.push(Arc::new(RwLock::new(HashMap::with_capacity_and_hasher(
-                map_capacity,
+                MAP_CAPACITY,
                 RandomState::new(),
             ))));
             noti.push(Arc::new(RwLock::new(HashMap::with_capacity_and_hasher(
-                map_capacity,
+                MAP_CAPACITY,
                 RandomState::new(),
             ))));
         }
         let cache = Self {
-            capacity,
+            capacity: CAPACITY,
             reserve,
             list: area,
             notifaction: noti,
@@ -65,7 +65,7 @@ impl CacheItem {
     pub async fn subscription(
         &self,
         namespace_id: u64,
-        version: Option<String>,
+        version: Option<u64>,
     ) -> Option<NamespaceItem> {
         let mut added_namespace = false;
         // 从缓存中查找
@@ -97,7 +97,7 @@ impl CacheItem {
         // 暂时实现 仅更新时发送更新事件, 此模式下如果发生此低概率事件 则最长下发时间也不会超过一个请求周期
         let item_receiver = self.get_item_receive(namespace_id).await;
         if item_receiver.is_none() {
-            // receive一版不为none 为none 重新添加namespace监听
+            // receive一般不为none 为none 重新添加namespace监听
             if added_namespace {
                 return None;
             } else {
@@ -124,7 +124,7 @@ impl CacheItem {
     }
 
     #[inline]
-    async fn add_new_namespace(&self, namespace_id: u64, version: String) -> Option<NamespaceItem> {
+    async fn add_new_namespace(&self, namespace_id: u64, version: u64) -> Option<NamespaceItem> {
         // namespace 不存在 添加到监听列表
         tracing::debug!("send namespace [{}]", namespace_id);
         // 先开启订阅 再发送添加的 namespace
@@ -240,7 +240,8 @@ impl CacheItem {
                 return false;
             }
         }
-        // 不存在值(低概率) 版本不一致
+        // 不存在值
+        // 版本不一致
         // 需要更新 直接覆盖
         self.set_item_data(item).await;
         true
@@ -257,6 +258,7 @@ impl CacheItem {
                     id = namespace_receiver.recv() => {
                         let id = id.unwrap_or_default();
                         if id == 0 {
+                            tracing::warn!("namespace_receiver receiver zero");
                             continue;
                         }
                         let item = load_database_publication(id).await;
@@ -284,8 +286,8 @@ impl CacheItem {
         tokio::spawn(async move {
             let mut listen_ids: HashMap<u64, usize> = HashMap::new();
             let mut tick = time::interval(Duration::from_secs(3));
-            // 如果执行时间过长而定时到期 则跳过 避免堆积
             // TODO 监控
+            // 如果执行时间过长而定时到期 则跳过 避免堆积
             tick.set_missed_tick_behavior(MissedTickBehavior::Skip);
             loop {
                 tokio::select! {
@@ -303,7 +305,7 @@ impl CacheItem {
                                         continue;
                                     }
                                     let item = item.unwrap();
-                                    sync_item.set_item_data(item.clone()).await;
+                                    // sync_item.set_item_data(item.clone()).await;
                                     // 如果发生更新  则发送事件
                                     if sync_item.update_item_data(item.clone()).await{
                                         tracing::info!("send namesoace {} data to sender",&item.namespace_id);
@@ -320,6 +322,7 @@ impl CacheItem {
                     id = listen_receiver.recv() => {
                         let id = id.unwrap_or_default();
                         if id == 0 {
+                            tracing::warn!("listen_receiver receiver zero");
                             continue;
                         }
                         listen_ids.insert(id,0);
@@ -334,23 +337,30 @@ impl CacheItem {
 // 从数据库中加载数据
 pub async fn load_database_publication(namespace_id: u64) -> Option<NamespaceItem> {
     for _ in 0..3 {
-        let item = publication::get_val_by_namespace(namespace_id).await;
-        match item {
-            Ok(item) => {
-                let item = NamespaceItem {
-                    // 计算内容md5值
-                    namespace_id,
-                    version: format!("{:x}", md5::compute(format!("{:?}", &item))),
-                    items: item,
-                };
-                return Some(item);
-            }
+        let config = release::get_namespace_config(namespace_id).await;
+        match config {
+            Ok(config) => match config {
+                Some(config) => {
+                    let items: Result<Vec<ConfigItem>, serde_json::Error> =
+                        serde_json::from_str(&config.configurations);
+                    if items.is_err() {
+                        tracing::error!("failed to parse config item err: {:?}", items);
+                        return None;
+                    }
+                    return Some(NamespaceItem {
+                        namespace_id,
+                        version: config.id,
+                        items: items.unwrap(),
+                    });
+                }
+                None => return None,
+            },
             Err(err) => match err {
-                DbErr::Conn(_) => {
+                DbErr::Conn(e) => {
                     tracing::error!(
                         "failed to get item by {}, err: {}, retry...",
                         namespace_id,
-                        err
+                        e
                     );
                     continue;
                 }

@@ -54,7 +54,7 @@ pub async fn list(
     ReqQuery(param): ReqQuery<QueryParam>,
     auth: Claims,
 ) -> APIResult<Json<APIResponse<Vec<AppModel>>>> {
-    accredit::accredit(&auth, Verb::VIEW, vec!["some_app", "test", "namespace"]).await?;
+    // accredit::accredit(&auth, Verb::VIEW, vec!["some_app"]).await?;
     let (page, page_size) = check::page(param.page, param.page_size);
     let list = app::find_all((page - 1) * page_size, page_size).await?;
     let mut rsp = APIResponse::ok_data(list);

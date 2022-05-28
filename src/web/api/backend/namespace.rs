@@ -1,15 +1,15 @@
 use std::collections::HashSet;
 
-use crate::web::api::permission::accredit;
-use crate::web::extract::jwt::Claims;
-use crate::web::store::dao::{rule, user_role};
 use super::dao::{cluster, namespace};
 use super::response::{APIError, APIResponse, ParamErrType};
 use super::APIResult;
 use super::{check, ReqJson, ReqQuery};
+use crate::web::api::permission::accredit;
+use crate::web::extract::jwt::Claims;
+use crate::web::store::dao::{rule, user_role};
 
 use axum::extract::Json;
-use entity::namespace::NamespaceItem;
+use entity::namespace::{NamespaceInfo, NamespaceItem};
 use entity::orm::Set;
 use entity::rule::Verb;
 use entity::{NamespaceActive, Scope, ID};
@@ -68,8 +68,8 @@ pub async fn create(
         ..Default::default()
     };
 
-    let id = namespace::add(data).await?;
-    Ok(Json(APIResponse::ok_data(ID::new(id))))
+    namespace::add(data).await?;
+    Ok(Json(APIResponse::ok()))
 }
 
 #[derive(Deserialize)]
@@ -86,8 +86,6 @@ pub async fn list(
 ) -> APIResult<Json<APIResponse<Vec<NamespaceItem>>>> {
     let app_id = check::id_str(param.app_id, "app_id")?;
     let cluster = check::id_str(param.cluster, "cluster")?;
-
-    let (page, page_size) = check::page(param.page, param.page_size);
     let list: Vec<NamespaceItem> =
         namespace::get_namespace_by_appcluster(app_id.clone(), cluster.clone()).await?;
     if list.is_empty() {
@@ -110,7 +108,7 @@ pub async fn list(
     for r_id in role.iter() {
         // 拥有上级资源权限角色  直接返回
         if user_role_set.contains(r_id) {
-            // return Ok(Json(APIResponse::ok_data(list)));
+            return Ok(Json(APIResponse::ok_data(list)));
         }
     }
     // 获取此资源下级拥有View权限的所有角色
@@ -143,7 +141,22 @@ pub async fn list(
 
     let list: Vec<NamespaceItem> = list
         .into_iter()
-        .filter(|c| rules.contains(&c.name))
+        .filter(|c| rules.contains(&c.namespace))
         .collect();
+    Ok(Json(APIResponse::ok_data(list)))
+}
+
+#[derive(Deserialize)]
+pub struct PublucNamespaceQueryParam {
+    pub namespace: Option<String>,
+}
+// 获取公共的namespace
+pub async fn list_public(
+    ReqQuery(param): ReqQuery<PublucNamespaceQueryParam>,
+    auth: Claims,
+) -> APIResult<Json<APIResponse<Vec<NamespaceInfo>>>> {
+    let namespace = check::id_str(param.namespace, "namespace")?;
+
+    let list = namespace::get_public_namespace_info(namespace).await?;
     Ok(Json(APIResponse::ok_data(list)))
 }

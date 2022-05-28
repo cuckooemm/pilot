@@ -34,21 +34,22 @@ pub async fn init_router() -> Router {
         .route("/secret/reset", put(cluster::reset_secret))
         .route("/list", get(cluster::list));
 
-    let app_ns = Router::new()
+    let app_extend = Router::new()
         .route("/create", post(app_extend::create))
         .route("/list", get(app_extend::list));
 
     let namespace = Router::new()
         .route("/create", post(namespace::create))
-        .route("/list", get(namespace::list));
+        .route("/list", get(namespace::list))
+        .route("/public", get(namespace::list_public));
 
     let item = Router::new()
         .route("/create", post(item::create))
         .route("/list", get(item::list))
         .route("/edit", post(item::edit))
-        .route("/publish/record", get(publication::publication_record))
-        .route("/publish", post(item::publish))
-        .route("/rollback", post(item::rollback));
+        .route("/publish/history", get(publication::release_list))
+        .route("/publish", post(publication::publish))
+        .route("/rollback", post(publication::rollback));
 
     let api_group = Router::new()
         .nest("/config", config_group)
@@ -56,7 +57,7 @@ pub async fn init_router() -> Router {
         .nest("/users", users_group)
         .nest("/cluster", cluster)
         .nest("/namespace", namespace)
-        .nest("/app_ns", app_ns)
+        .nest("/app_extend", app_extend)
         .nest("/item", item);
 
     let recorder_handle = metrics::setup_metrics_recorder();

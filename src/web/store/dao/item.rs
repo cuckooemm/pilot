@@ -1,10 +1,11 @@
-use super::master;
+use super::{master, slaver};
 
 use entity::common::Status;
+use entity::item::{ItemData, ItemDesc};
 use entity::orm::{
     ActiveModelTrait, ColumnTrait, DbErr, EntityTrait, QueryFilter, QuerySelect, Set,
 };
-use entity::{ItemActive, ItemCategory, ItemColumn, ItemEntity, ItemModel, ID};
+use entity::{ItemActive, ItemCategory, ItemColumn, ItemEntity, ItemModel, NamespaceColumn, ID};
 
 pub async fn add(app: ItemActive) -> Result<u64, DbErr> {
     let r = ItemEntity::insert(app).exec(master()).await?;
@@ -13,6 +14,36 @@ pub async fn add(app: ItemActive) -> Result<u64, DbErr> {
 
 pub async fn find_all() -> Result<Vec<ItemModel>, DbErr> {
     ItemEntity::find().all(master()).await
+}
+
+pub async fn get_item_by_ids(ids: Vec<u64>) -> Result<Vec<ItemData>, DbErr> {
+    ItemEntity::find()
+        .select_only()
+        .column(ItemColumn::Id)
+        .column(ItemColumn::NamespaceId)
+        .column(ItemColumn::Key)
+        .column(ItemColumn::Value)
+        .column(ItemColumn::Category)
+        .column(ItemColumn::Version)
+        .column(ItemColumn::DeletedAt)
+        .filter(ItemColumn::Id.is_in(ids))
+        .into_model::<ItemData>()
+        .all(master())
+        .await
+}
+
+pub async fn get_namespace_items(id: u64) -> Result<Vec<ItemDesc>, DbErr> {
+    ItemEntity::find()
+        .select_only()
+        .column(ItemColumn::Key)
+        .column(ItemColumn::Value)
+        .column(ItemColumn::Category)
+        .column(ItemColumn::Version)
+        .filter(ItemColumn::NamespaceId.eq(id))
+        .filter(ItemColumn::DeletedAt.eq(0_u64))
+        .into_model::<ItemDesc>()
+        .all(master())
+        .await
 }
 
 pub async fn find_by_nsid_all(
@@ -24,7 +55,8 @@ pub async fn find_by_nsid_all(
         .offset(offset)
         .limit(limit)
         .filter(ItemColumn::NamespaceId.eq(ns_id))
-        .all(master())
+        .filter(ItemColumn::DeletedAt.eq(0_u64))
+        .all(slaver())
         .await
 }
 
@@ -51,6 +83,7 @@ pub async fn update(
     category: Option<String>,
     remark: Option<String>,
     version: i64,
+    modify_user_id: u32,
 ) -> Result<bool, DbErr> {
     let mut active: ItemActive = entity.clone().into();
 
@@ -75,9 +108,13 @@ pub async fn update(
             active.remark = Set(remark);
         }
     }
-    active.status = Set(Status::Normal); // 状态重置
+    // 无更新
+    if !active.is_changed() {
+        return Ok(false);
+    }
     active.version = Set(entity.version + 1);
-    // active.modify_user_id = Set(0);
+    active.modify_user_id = Set(modify_user_id);
+
     // let result = active.save(master()).await?;
     let result = ItemEntity::update_many()
         .set(active)

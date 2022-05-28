@@ -1,6 +1,6 @@
 use super::{master, slaver};
 
-use entity::namespace::NamespaceItem;
+use entity::namespace::{NamespaceInfo, NamespaceItem};
 use entity::orm::{ActiveModelTrait, ColumnTrait, DbErr, EntityTrait, QueryFilter, QuerySelect};
 use entity::{NamespaceActive, NamespaceColumn, NamespaceEntity, NamespaceModel, Scope, ID};
 
@@ -55,8 +55,29 @@ pub async fn is_exist_by_id(id: u64) -> Result<bool, DbErr> {
     Ok(entity.is_some())
 }
 
-pub async fn get_app_info(id: u64) -> Result<Option<NamespaceModel>, DbErr> {
-    NamespaceEntity::find_by_id(id).one(master()).await
+pub async fn get_app_info(id: u64) -> Result<Option<NamespaceInfo>, DbErr> {
+    NamespaceEntity::find()
+        .select_only()
+        .column(NamespaceColumn::Id)
+        .column(NamespaceColumn::AppId)
+        .column(NamespaceColumn::Cluster)
+        .column(NamespaceColumn::Namespace)
+        .filter(NamespaceColumn::Id.eq(id))
+        .filter(NamespaceColumn::DeletedAt.eq(0_u64))
+        .into_model()
+        .one(slaver())
+        .await
+}
+
+pub async fn get_namespace_name(id: u64) -> Result<Option<String>, DbErr> {
+    let ns = NamespaceEntity::find_by_id(id)
+        .select_only()
+        .column(NamespaceColumn::Namespace)
+        .filter(NamespaceColumn::DeletedAt.eq(0_u64))
+        .into_model::<NamespaceItem>()
+        .one(slaver())
+        .await?;
+    Ok(ns.and_then(|n| Some(n.namespace)))
 }
 
 pub async fn is_exist(app_id: String, cluster: String, namespace: String) -> Result<bool, DbErr> {
@@ -71,6 +92,23 @@ pub async fn is_exist(app_id: String, cluster: String, namespace: String) -> Res
         .one(master())
         .await?;
     Ok(entity.is_some())
+}
+
+pub async fn get_public_namespace_info(
+    namespace_prefix: String,
+) -> Result<Vec<NamespaceInfo>, DbErr> {
+    NamespaceEntity::find()
+        .select_only()
+        .column(NamespaceColumn::Id)
+        .column(NamespaceColumn::AppId)
+        .column(NamespaceColumn::Cluster)
+        .column(NamespaceColumn::Namespace)
+        .filter(NamespaceColumn::Namespace.starts_with(&namespace_prefix))
+        .filter(NamespaceColumn::Scope.eq(Scope::Public))
+        .filter(NamespaceColumn::DeletedAt.eq(0_u64))
+        .into_model::<NamespaceInfo>()
+        .all(slaver())
+        .await
 }
 
 pub async fn get_namespace_id(

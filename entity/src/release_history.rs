@@ -1,19 +1,19 @@
-use super::common::Scope;
+use super::common::{ItemCategory, Status};
+use crate::grable_id;
 
 use sea_orm::{entity::prelude::*, FromQueryResult};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Deserialize, Serialize)]
-#[sea_orm(table_name = "namespace")]
+#[sea_orm(table_name = "release_history")]
 pub struct Model {
     #[sea_orm(primary_key)]
-    #[serde(serialize_with = "super::grable_id")]
+    #[serde(serialize_with = "grable_id")]
     pub id: u64,
-    pub app_id: String, // app ID
-    pub cluster: String,
-    pub namespace: String,
-    pub scope: Scope,
-    pub creator_user: u32,
+    #[serde(serialize_with = "grable_id")]
+    pub namespace_id: u64,
+    pub release_id: u64,
+    pub change: String,
     pub deleted_at: u64,
     pub created_at: DateTimeWithTimeZone, // 创建时间
     pub updated_at: DateTimeWithTimeZone, // 更新时间
@@ -29,18 +29,16 @@ impl RelationTrait for Relation {
 
 impl ActiveModelBehavior for ActiveModel {}
 
-#[derive(FromQueryResult, Serialize, Debug)]
-pub struct NamespaceItem {
+#[derive(FromQueryResult, Default, Serialize, Deserialize, Debug, Clone)]
+pub struct HistoryItem {
     #[serde(serialize_with = "super::grable_id")]
     pub id: u64,
-    pub namespace: String,
+    #[serde(serialize_with = "super::grable_id")]
+    pub release_id: u64,
+    pub change: String,
 }
 
-#[derive(FromQueryResult, Serialize, Debug)]
-pub struct NamespaceInfo {
-    #[serde(serialize_with = "super::grable_id")]
-    pub id: u64,
-    pub app_id: String, // app ID
-    pub cluster: String,
-    pub namespace: String,
+#[derive(FromQueryResult)]
+pub struct HistoryNamespaceID {
+    pub namespace_id: u64,
 }
