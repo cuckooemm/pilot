@@ -6,7 +6,7 @@ use super::APIResult;
 use super::{check, ReqJson, ReqQuery};
 use crate::web::api::permission::accredit::{self, acc_admin};
 use crate::web::extract::jwt::Claims;
-use crate::web::store::dao::{rule, user_role};
+use crate::web::store::dao::{app, rule, user_role};
 
 use axum::extract::Json;
 use entity::cluster::ClusterItem;
@@ -31,7 +31,10 @@ pub async fn create(
 ) -> APIResult<Json<APIResponse<ID>>> {
     // check param
     let cluster = check::id_str(param.cluster, "cluster")?;
-    let app_id = check::appid_exist(param.app_id).await?;
+    let app_id = check::id_str(param.app_id, "app_id")?;
+    if !app::is_exist(app_id.clone()).await? {
+        return Err(APIError::new_param_err(ParamErrType::NotExist, "app_id"));
+    }
     // 校验权限
     if !accredit::accredit(&auth, entity::rule::Verb::Create, vec![&app_id]).await? {
         return Err(APIError::new_permission_forbidden());
@@ -49,8 +52,8 @@ pub async fn create(
         creator_user: Set(auth.user_id),
         ..Default::default()
     };
-    let id = cluster::add(data).await?;
-    Ok(Json(APIResponse::ok_data(ID::new(id))))
+    cluster::add(data).await?;
+    Ok(Json(APIResponse::ok()))
 }
 
 // 重置密钥接口
@@ -59,20 +62,22 @@ pub async fn reset_secret(
     auth: Claims,
 ) -> APIResult<Json<APIResponse<ID>>> {
     let cluster = check::id_str(param.cluster, "cluster")?;
-    let app_id = check::appid_exist(param.app_id).await?;
+    let app_id = check::id_str(param.app_id, "app_id")?;
     // 校验权限
     if !accredit::accredit(&auth, entity::rule::Verb::Modify, vec![&app_id, &cluster]).await? {
         return Err(APIError::new_permission_forbidden());
     }
-    let entity = cluster::find_app_cluster(app_id, cluster).await?;
-    if entity.is_none() {
+    let id = cluster::find_app_cluster(app_id, cluster)
+        .await?
+        .unwrap_or_default();
+    if id == 0 {
         return Err(APIError::new_param_err(ParamErrType::NotExist, "cluster"));
     }
-    let entity = entity.unwrap();
-    let pk_id = entity.id;
-    let mut active: ClusterActive = entity.into();
-    active.secret = Set(general_rand_secret());
-    cluster::update_by_id(active, pk_id).await?;
+    let active = ClusterActive {
+        secret: Set(general_rand_secret()),
+        ..Default::default()
+    };
+    cluster::update_by_id(active, id).await?;
     Ok(Json(APIResponse::ok()))
 }
 
@@ -111,7 +116,7 @@ pub async fn list(
     for r_id in role.iter() {
         // 拥有上级资源权限角色  直接返回
         if user_role_set.contains(r_id) {
-            // return Ok(Json(APIResponse::ok_data(list)));
+            return Ok(Json(APIResponse::ok_data(list)));
         }
     }
 

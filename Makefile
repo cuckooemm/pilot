@@ -8,3 +8,5 @@ s:
 	cargo run
 c:
 	cargo check
+b: 
+	cargo build

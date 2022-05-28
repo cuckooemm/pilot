@@ -7,9 +7,8 @@ pub mod constant;
 pub mod department;
 pub mod item;
 pub mod namespace;
-pub mod publication;
-pub mod publication_record;
 pub mod release;
+pub mod release_history;
 pub mod role;
 pub mod role_rule;
 pub mod rule;
@@ -85,13 +84,7 @@ pub use release::Column as ReleaseColumn;
 pub use release::Entity as ReleaseEntity;
 pub use release::Model as ReleaseModel;
 
-pub use publication::ActiveModel as PublicationActive;
-pub use publication::Column as PublicationColumn;
-pub use publication::Entity as PublicationEntity;
-pub use publication::Item as PublicationItem;
-pub use publication::Model as PublicationModel;
-
-pub use publication_record::ActiveModel as PublicationRecordActive;
-pub use publication_record::Column as PublicationRecordColumn;
-pub use publication_record::Entity as PublicationRecordEntity;
-pub use publication_record::Model as PublicationRecordModel;
+pub use release_history::ActiveModel as ReleaseHistoryActive;
+pub use release_history::Column as ReleaseHistoryColumn;
+pub use release_history::Entity as ReleaseHistoryEntity;
+pub use release_history::Model as ReleaseHistoryModel;

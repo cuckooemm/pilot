@@ -34,6 +34,12 @@ pub enum ItemCategory {
     #[sea_orm(string_value = "Toml")]
     Toml,
 }
+
+impl Default for ItemCategory {
+    fn default() -> Self {
+        Self::Text
+    }
+}
 impl Display for ItemCategory {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let s = match self {

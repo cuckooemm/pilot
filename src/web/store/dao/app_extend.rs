@@ -1,31 +1,35 @@
-use super::master;
+use super::{master, slaver};
 
-use entity::orm::{ActiveModelTrait, ColumnTrait, DbErr, EntityTrait, QueryFilter, QuerySelect};
-use entity::{AppExtendActive, AppExtendColumn, AppExtendEntity, AppExtendModel, ID};
+use entity::namespace::NamespaceItem;
+use entity::orm::{ColumnTrait, DbErr, EntityTrait, QueryFilter, QuerySelect};
+use entity::{AppExtendActive, AppExtendColumn, AppExtendEntity, ID};
 
-pub async fn insert_one(app: AppExtendActive) -> Result<AppExtendModel, DbErr> {
-    app.insert(master()).await
+pub async fn add(app: AppExtendActive) -> Result<u64, DbErr> {
+    let x = AppExtendEntity::insert(app).exec(master()).await?;
+    Ok(x.last_insert_id)
 }
 
-pub async fn find_all() -> Result<Vec<AppExtendModel>, DbErr> {
-    AppExtendEntity::find().all(master()).await
-}
-
-pub async fn find_by_app_all(app_id: Option<String>) -> Result<Vec<AppExtendModel>, DbErr> {
-    let mut stmt = AppExtendEntity::find();
-    if let Some(app_id) = app_id {
-        stmt = stmt.filter(AppExtendColumn::AppId.eq(app_id))
-    }
-    stmt.all(master()).await
-}
-
-pub async fn is_exist(app_id: &String, name: &String) -> Result<Option<ID>, DbErr> {
-    // 查找 app_id 是否存在
-    AppExtendEntity::find()
+pub async fn is_exist(app_id: String, namespace_name: String) -> Result<bool, DbErr> {
+    let entity = AppExtendEntity::find()
         .select_only()
         .column(AppExtendColumn::Id)
-        .filter(AppExtendColumn::AppId.eq(app_id.clone()))
+        .filter(AppExtendColumn::AppId.eq(app_id))
+        .filter(AppExtendColumn::NamespaceName.eq(namespace_name))
+        .filter(AppExtendColumn::DeletedAt.eq(0_u64))
         .into_model::<ID>()
         .one(master())
+        .await?;
+    Ok(entity.is_some())
+}
+
+pub async fn get_app_namespace(app_id: String) -> Result<Vec<NamespaceItem>, DbErr> {
+    AppExtendEntity::find()
+        .select_only()
+        .column_as(AppExtendColumn::NamespaceId, "id")
+        .column(AppExtendColumn::NamespaceName)
+        .filter(AppExtendColumn::AppId.eq(app_id))
+        .filter(AppExtendColumn::DeletedAt.eq(0_u64))
+        .into_model::<NamespaceItem>()
+        .all(slaver())
         .await
 }

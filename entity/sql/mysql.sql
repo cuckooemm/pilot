@@ -131,7 +131,8 @@ CREATE TABLE `namespace` (
     `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     primary key (`id`),
-    unique key `uk_app_cluster_namespace` (`app_id`, `cluster`, `namespace`, `deleted_at`)
+    unique key `uk_app_cluster_namespace` (`app_id`, `cluster`, `namespace`, `deleted_at`),
+    KEY `namespace` (`namespace`, `scope`, `deleted_at`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT = '命名空间';
 
 DROP TABLE IF EXISTS `app_extend`;
@@ -170,24 +171,31 @@ CREATE TABLE `item` (
 DROP TABLE IF EXISTS `release`;
 
 CREATE TABLE `release` (
-    `id` bigint unsigned NOT NULL AUTO_INCREMENT COMMENT '自增主键',
-    `ReleaseKey` varchar(64) NOT NULL DEFAULT '' COMMENT '发布的Key',
-    `Name` varchar(64) NOT NULL DEFAULT 'default' COMMENT '发布名字',
-    `Comment` varchar(256) DEFAULT NULL COMMENT '发布说明',
-    `AppId` varchar(500) NOT NULL DEFAULT 'default' COMMENT 'AppID',
-    `ClusterName` varchar(500) NOT NULL DEFAULT 'default' COMMENT 'ClusterName',
-    `NamespaceName` varchar(500) NOT NULL DEFAULT 'default' COMMENT 'namespaceName',
-    `Configurations` longtext NOT NULL COMMENT '发布配置',
-    `IsAbandoned` bit(1) NOT NULL DEFAULT b '0' COMMENT '是否废弃',
+    `id` bigint unsigned NOT NULL AUTO_INCREMENT COMMENT '自增主键,发布version',
+    `namespace_id` bigint unsigned NOT NULL COMMENT '命名空间ID',
+    `key` varchar(64) NOT NULL DEFAULT '' COMMENT '发布的Key',
+    `name` varchar(64) NOT NULL DEFAULT '' COMMENT '发布名字',
+    `remark` varchar(255) DEFAULT NULL DEFAULT '' COMMENT '发布说明',
+    `configurations` longtext NOT NULL COMMENT '发布配置',
+    `is_abandoned` tinyint unsigned NOT NULL DEFAULT 0 COMMENT '是否废弃',
+    `publish_user_id` int NOT NULL DEFAULT 0 COMMENT '用户身份标识',
     `deleted_at` bigint unsigned NOT NULL DEFAULT 0 COMMENT '删除时间 second',
     `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    PRIMARY KEY (`Id`),
-    UNIQUE KEY `UK_ReleaseKey_DeletedAt` (`ReleaseKey`, `DeletedAt`),
-    KEY `AppId_ClusterName_GroupName` (
-        `AppId`(191),
-        `ClusterName`(191),
-        `NamespaceName`(191)
-    ),
-    KEY `DataChange_LastTime` (`DataChange_LastTime`)
+    PRIMARY KEY (`id`),
+    KEY `ix_namespace` (`namespace_id`, `deleted_at`)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT = '发布';
+
+DROP TABLE IF EXISTS `release_history`;
+
+CREATE TABLE `release_history` (
+    `id` bigint unsigned NOT NULL AUTO_INCREMENT COMMENT '自增主键',
+    `namespace_id` bigint unsigned NOT NULL COMMENT '命名空间ID',
+    `change` longtext NOT NULL COMMENT '变更集',
+    `release_id` bigint unsigned NOT NULL COMMENT '对应release_id',
+    `deleted_at` bigint unsigned NOT NULL DEFAULT 0 COMMENT '删除时间 second',
+    `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    PRIMARY KEY (`id`),
+    KEY `ix_namespace` (`namespace_id`, `deleted_at`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT = '发布';

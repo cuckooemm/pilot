@@ -22,7 +22,7 @@ pub struct DescParam {
     pub cluster: Option<String>,
     pub namespace: Option<String>,
     pub secret: Option<String>,
-    pub version: Option<String>,
+    pub version: Option<u64>,
     pub timeout: Option<u64>,
 }
 
@@ -151,7 +151,7 @@ pub async fn notifaction(
     };
     let version = match param.version {
         Some(version) => {
-            if version.len() != 32 {
+            if version == 0 {
                 return Err(APIError::new_param_err(ParamErrType::NotExist, "version"));
             }
             version

@@ -2,7 +2,7 @@ use super::{master, slaver};
 
 use entity::orm::{ColumnTrait, DbErr, EntityTrait, QueryFilter, QuerySelect};
 use entity::user_role::UserRoleID;
-use entity::{UserRoleActive, UserRoleColumn, UserRoleEntity, ID};
+use entity::{UserRoleActive, UserRoleColumn, UserRoleEntity};
 
 pub async fn add(user: UserRoleActive) -> Result<u64, DbErr> {
     let r = UserRoleEntity::insert(user).exec(master()).await?;
