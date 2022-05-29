@@ -1,4 +1,4 @@
-use super::common::{ItemCategory, Status};
+use super::common::ItemCategory;
 
 use sea_orm::{entity::prelude::*, FromQueryResult};
 use serde::{Deserialize, Serialize};

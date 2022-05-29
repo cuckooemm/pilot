@@ -4,7 +4,7 @@ use super::dao::cluster;
 use super::response::{APIError, APIResponse, ParamErrType};
 use super::APIResult;
 use super::{check, ReqJson, ReqQuery};
-use crate::web::api::permission::accredit::{self, acc_admin};
+use crate::web::api::permission::accredit;
 use crate::web::extract::jwt::Claims;
 use crate::web::store::dao::{app, rule, user_role};
 

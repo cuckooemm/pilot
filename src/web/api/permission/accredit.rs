@@ -6,7 +6,6 @@ use crate::web::{
 };
 
 use entity::{rule::Verb, users::UserLevel};
-use serde_json::to_string;
 
 #[inline]
 pub fn acc_admin(user_level: &UserLevel, app_id: Option<String>) -> bool {

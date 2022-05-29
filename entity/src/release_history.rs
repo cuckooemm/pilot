@@ -1,4 +1,3 @@
-use super::common::{ItemCategory, Status};
 use crate::grable_id;
 
 use sea_orm::{entity::prelude::*, FromQueryResult};

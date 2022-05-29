@@ -1,7 +1,4 @@
-use std::str::FromStr;
-
 use crate::web::api::check;
-use crate::web::api::permission::accredit;
 use crate::web::extract::json::ReqJson;
 use crate::web::extract::jwt::Claims;
 use crate::web::extract::query::ReqQuery;
@@ -10,7 +7,6 @@ use crate::web::store::dao::app;
 use crate::web::APIResult;
 
 use axum::extract::Json;
-use entity::rule::Verb;
 use entity::{AppModel, ID};
 use serde::Deserialize;
 
@@ -52,7 +48,7 @@ pub async fn create(
 // 获取用户APP
 pub async fn list(
     ReqQuery(param): ReqQuery<QueryParam>,
-    auth: Claims,
+    _: Claims,
 ) -> APIResult<Json<APIResponse<Vec<AppModel>>>> {
     // accredit::accredit(&auth, Verb::VIEW, vec!["some_app"]).await?;
     let (page, page_size) = check::page(param.page, param.page_size);

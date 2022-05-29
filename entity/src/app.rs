@@ -1,4 +1,4 @@
-use sea_orm::entity::prelude::*;
+use sea_orm::{entity::prelude::*, FromQueryResult};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Deserialize, Serialize)]
@@ -7,11 +7,11 @@ pub struct Model {
     #[sea_orm(primary_key)]
     #[serde(skip)]
     pub id: u32,
-    pub app_id: String, // app 唯一 ID
-    pub name: String, // app name
-    pub org_id: u32, // 部门 ID
-    pub creator_user: u32, // 创建者ID
-    pub deleted_at: u64, // 删除时间 为0则未删除
+    pub app_id: String,                   // app 唯一 ID
+    pub name: String,                     // app name
+    pub org_id: u32,                      // 部门 ID
+    pub creator_user: u32,                // 创建者ID
+    pub deleted_at: u64,                  // 删除时间 为0则未删除
     pub created_at: DateTimeWithTimeZone, // 创建时间
     pub updated_at: DateTimeWithTimeZone, // 更新时间
 }
@@ -25,3 +25,9 @@ impl RelationTrait for Relation {
 }
 
 impl ActiveModelBehavior for ActiveModel {}
+
+#[derive(FromQueryResult, Serialize, Debug)]
+pub struct AppItem {
+    pub app_id: String,
+    pub name: String,
+}

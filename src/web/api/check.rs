@@ -1,8 +1,10 @@
 use crate::web::extract::response::{APIError, ParamErrType};
-use crate::web::store::dao::app;
 
 use once_cell::sync::Lazy;
 use regex::Regex;
+
+const ID_MIN_LEN: usize = 2;
+const ID_MAX_LEN: usize = 80;
 
 struct Re {
     id_str: Regex,
@@ -11,9 +13,6 @@ struct Re {
     email: Regex,
     key: Regex,
 }
-
-const ID_MIN_LEN: usize = 2;
-const ID_MAX_LEN: usize = 80;
 
 static RE: Lazy<Re> = Lazy::new(|| Re {
     id_str: Regex::new(r"^[a-z0-9_-]{2,80}$")

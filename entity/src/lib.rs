@@ -15,6 +15,7 @@ pub mod rule;
 pub mod user_role;
 pub mod users;
 pub mod utils;
+pub mod favorite;
 
 pub use sea_orm as orm;
 
@@ -58,6 +59,11 @@ pub use app::ActiveModel as AppActive;
 pub use app::Column as AppColumn;
 pub use app::Entity as AppEntity;
 pub use app::Model as AppModel;
+
+pub use favorite::ActiveModel as FavoriteActive;
+pub use favorite::Column as FavoriteColumn;
+pub use favorite::Entity as FavoriteEntity;
+pub use favorite::Model as FavoriteModel;
 
 pub use cluster::ActiveModel as ClusterActive;
 pub use cluster::Column as ClusterColumn;

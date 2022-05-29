@@ -5,6 +5,7 @@ pub mod item;
 pub mod namespace;
 pub mod publication;
 pub mod users;
+pub mod favorite;
 
 use super::super::extract::response;
 use super::super::APIResult;

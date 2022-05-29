@@ -4,7 +4,6 @@ use super::dao::release;
 
 use ahash::RandomState;
 use entity::{item::ConfigItem, orm::DbErr};
-use md5;
 use serde::Serialize;
 use tokio::{
     sync::{
@@ -217,7 +216,7 @@ impl CacheItem {
         None
     }
     // 批量设置 item data
-    async fn batch_set_item_data(&self, item: NamespaceItem) {}
+    // async fn batch_set_item_data(&self, item: NamespaceItem) {}
 
     // 设置 item 数据
     #[inline]
