@@ -1,8 +1,7 @@
 use std::str::FromStr;
 
-use crate::web::extract::jwt::Claims;
-
 use super::master;
+use crate::web::extract::jwt::Claims;
 
 use entity::orm::{
     ColumnTrait, DbErr, EntityTrait, Iterable, QueryFilter, QuerySelect, Set, TransactionError,
@@ -10,7 +9,7 @@ use entity::orm::{
 };
 use entity::rule::Verb;
 use entity::{
-    AppActive, AppColumn, AppEntity, AppModel, RoleActive, RoleEntity, RoleRuleActive,
+    AppActive, AppColumn, AppEntity, AppModel, IDu32, RoleActive, RoleEntity, RoleRuleActive,
     RoleRuleEntity, RuleActive, RuleEntity, UserRoleActive, UserRoleEntity, ID,
 };
 
@@ -97,8 +96,21 @@ pub async fn find_all(offset: u64, limit: u64) -> Result<Vec<AppModel>, DbErr> {
         .await
 }
 
+// 查找 app_id 是否存在
+pub async fn get_app_id(app_id: String) -> Result<Option<u32>, DbErr> {
+    let id = AppEntity::find()
+        .select_only()
+        .column(AppColumn::Id)
+        .filter(AppColumn::AppId.eq(app_id))
+        .filter(AppColumn::DeletedAt.eq(0_u64))
+        .into_model::<IDu32>()
+        .one(master())
+        .await?;
+    Ok(id.and_then(|x| Some(x.id)))
+}
+
+// 查找 app_id 是否存在
 pub async fn is_exist(app_id: String) -> Result<bool, DbErr> {
-    // 查找 app_id 是否存在
     let entiy = AppEntity::find()
         .select_only()
         .column(AppColumn::Id)

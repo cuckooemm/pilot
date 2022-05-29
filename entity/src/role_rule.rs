@@ -1,7 +1,6 @@
 use crate::grable_id;
 
-use crate::RoleEntity;
-use sea_orm::{entity::prelude::*, FromQueryResult};
+use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Deserialize, Serialize)]

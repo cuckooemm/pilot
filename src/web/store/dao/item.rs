@@ -1,19 +1,14 @@
 use super::{master, slaver};
 
-use entity::common::Status;
 use entity::item::{ItemData, ItemDesc};
 use entity::orm::{
     ActiveModelTrait, ColumnTrait, DbErr, EntityTrait, QueryFilter, QuerySelect, Set,
 };
-use entity::{ItemActive, ItemCategory, ItemColumn, ItemEntity, ItemModel, NamespaceColumn, ID};
+use entity::{ItemActive, ItemCategory, ItemColumn, ItemEntity, ItemModel, ID};
 
 pub async fn add(app: ItemActive) -> Result<u64, DbErr> {
     let r = ItemEntity::insert(app).exec(master()).await?;
     Ok(r.last_insert_id)
-}
-
-pub async fn find_all() -> Result<Vec<ItemModel>, DbErr> {
-    ItemEntity::find().all(master()).await
 }
 
 pub async fn get_item_by_ids(ids: Vec<u64>) -> Result<Vec<ItemData>, DbErr> {

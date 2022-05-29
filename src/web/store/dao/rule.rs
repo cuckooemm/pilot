@@ -1,18 +1,9 @@
-use std::str::FromStr;
+use super::slaver;
 
-use super::{master, slaver};
-
-use entity::orm::sea_query::{expr, Expr, Query};
-use entity::orm::{
-    ColumnTrait, Condition, ConnectionTrait, DbErr, EntityTrait, Iterable, QueryFilter,
-    QuerySelect, Related, Set, Statement, TransactionTrait,
-};
+use entity::orm::{ColumnTrait, DbErr, EntityTrait, QueryFilter, QuerySelect};
 use entity::rule::Verb;
 use entity::user_role::{RoleResource, UserRoleID};
-use entity::{
-    RoleActive, RoleEntity, RoleRuleActive, RoleRuleColumn, RoleRuleEntity, RuleActive, RuleColumn,
-    RuleEntity, ID,
-};
+use entity::{RoleRuleColumn, RoleRuleEntity, RuleColumn, RuleEntity};
 
 const RESOURCE_PAT: &str = "/";
 

@@ -27,7 +27,9 @@ pub async fn init_router() -> Router {
 
     let app_group = Router::new()
         .route("/create", post(app::create))
-        .route("/list", get(app::list));
+        .route("/list", get(app::list))
+        .route("/favorite", get(favorite::list))
+        .route("/favorite/add", post(favorite::add));
 
     let cluster = Router::new()
         .route("/create", post(cluster::create))

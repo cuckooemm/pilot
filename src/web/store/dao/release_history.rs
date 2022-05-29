@@ -1,13 +1,8 @@
 use super::{master, slaver};
 
-use entity::orm::{
-    ActiveModelTrait, ColumnTrait, DbErr, EntityTrait, PaginatorTrait, QueryFilter, QueryOrder,
-    QuerySelect,
-};
+use entity::orm::{ColumnTrait, DbErr, EntityTrait, QueryFilter, QuerySelect};
 use entity::release_history::{HistoryItem, HistoryNamespaceID};
-use entity::{
-    ReleaseHistoryActive, ReleaseHistoryColumn, ReleaseHistoryEntity, ReleaseHistoryModel,
-};
+use entity::{ReleaseHistoryActive, ReleaseHistoryColumn, ReleaseHistoryEntity};
 
 pub async fn add(active: ReleaseHistoryActive) -> Result<u64, DbErr> {
     let r = ReleaseHistoryEntity::insert(active).exec(master()).await?;

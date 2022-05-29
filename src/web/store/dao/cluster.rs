@@ -1,16 +1,12 @@
 use super::{master, slaver};
 
 use entity::cluster::ClusterItem;
-use entity::orm::{ActiveModelTrait, ColumnTrait, DbErr, EntityTrait, QueryFilter, QuerySelect};
-use entity::{ClusterActive, ClusterColumn, ClusterEntity, ClusterModel, SecretData, ID};
+use entity::orm::{ColumnTrait, DbErr, EntityTrait, QueryFilter, QuerySelect};
+use entity::{ClusterActive, ClusterColumn, ClusterEntity, SecretData, ID};
 
 pub async fn add(cluster: ClusterActive) -> Result<u64, DbErr> {
     let r = ClusterEntity::insert(cluster).exec(master()).await?;
     Ok(r.last_insert_id)
-}
-
-pub async fn find_all() -> Result<Vec<ClusterModel>, DbErr> {
-    ClusterEntity::find().all(master()).await
 }
 
 pub async fn find_app_cluster(app_id: String, cluster: String) -> Result<Option<u64>, DbErr> {

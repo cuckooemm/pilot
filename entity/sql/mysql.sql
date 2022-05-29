@@ -102,6 +102,21 @@ CREATE TABLE `app` (
     unique key `uk_app_id` (`app_id`, `deleted_at`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT = '应用';
 
+-- 用户应用收藏
+DROP TABLE IF EXISTS `user_favorite`;
+
+CREATE TABLE `user_favorite` (
+    `id` bigint unsigned AUTO_INCREMENT COMMENT '主键',
+    `user_id` int unsigned NOT NULL COMMENT '用户ID',
+    `app_id` int unsigned NOT NULL COMMENT '应用ID',
+    `deleted_at` bigint unsigned NOT NULL DEFAULT 0 COMMENT '删除时间 second',
+    `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    primary key (`id`),
+    unique key `uk_user_app` (`user_id`, `app_id`, `deleted_at`)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT = '应用收藏';
+
+
 -- app 集群环境
 DROP TABLE IF EXISTS `cluster`;
 
