@@ -3,7 +3,7 @@ use std::time::Duration;
 use entity::orm::{ConnectOptions, Database, DatabaseConnection};
 use rand::{thread_rng, RngCore};
 
-use crate::{config::DatabaseCluster};
+use crate::config::DatabaseCluster;
 
 #[derive(Debug, Clone)]
 pub struct DB {
@@ -12,7 +12,10 @@ pub struct DB {
 }
 
 fn master_metrics(info: &entity::orm::metric::Info) {
-    let labels = [("success", (!info.failed).to_string()), ("model","slaver".to_owned())];
+    let labels = [
+        ("success", (!info.failed).to_string()),
+        ("model", "slaver".to_owned()),
+    ];
     metrics::histogram!(
         "database_duration_seconds",
         info.elapsed.as_secs_f64(),
@@ -23,7 +26,10 @@ fn master_metrics(info: &entity::orm::metric::Info) {
 }
 
 fn slaver_metrics(info: &entity::orm::metric::Info) {
-    let labels = [("success", (!info.failed).to_string()), ("model","slaver".to_owned())];
+    let labels = [
+        ("success", (!info.failed).to_string()),
+        ("model", "slaver".to_owned()),
+    ];
     metrics::histogram!(
         "database_duration_seconds",
         info.elapsed.as_secs_f64(),
@@ -35,7 +41,7 @@ fn slaver_metrics(info: &entity::orm::metric::Info) {
 
 impl DB {
     pub async fn new(opt: &DatabaseCluster) -> Self {
-        let mut conn = ConnectOptions::new(opt.main.clone().into());
+        let mut conn = ConnectOptions::new(opt.main.clone());
         conn.min_connections(opt.min_connections)
             .connect_timeout(Duration::from_secs(3))
             .idle_timeout(Duration::from_secs(60))
@@ -51,7 +57,7 @@ impl DB {
 
         // 初始化从库
         for c in opt.slaver.iter() {
-            let mut conn = ConnectOptions::new(c.clone().into());
+            let mut conn = ConnectOptions::new(c.clone());
             conn.min_connections(opt.min_connections)
                 .connect_timeout(Duration::from_secs(3))
                 .idle_timeout(Duration::from_secs(60))
@@ -60,7 +66,7 @@ impl DB {
             tracing::info!("connection slaver databases {}", &conn.get_url());
             let mut slaver = Database::connect(conn)
                 .await
-                .expect(&format!("failed to connection slaver database."));
+                .expect("failed to connection slaver database.");
             slaver.set_metric_callback(slaver_metrics);
             slavers.push(slaver);
         }
