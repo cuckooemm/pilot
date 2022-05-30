@@ -1,3 +1,5 @@
+use crate::config;
+
 use super::response::APIError;
 
 use axum::{
@@ -9,20 +11,16 @@ use chrono::Local;
 use entity::users::UserLevel;
 use headers::HeaderMap;
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
-use serde::{Deserialize, Serialize};
 use once_cell::sync::Lazy;
+use serde::{Deserialize, Serialize};
 
-pub const JWT_KEY: &'static [u8] = b"secrpt";
-pub const AUTH_COOKIE_NAME: &str = "primordial_auth_token";
+pub const AUTH_COOKIE_NAME: &str = "pilot_auth_token";
 
-static JWT_DECODE: Lazy<DecodingKey> = Lazy::new(||{
-    DecodingKey::from_secret(JWT_KEY)
-});
+static JWT_DECODE: Lazy<DecodingKey> =
+    Lazy::new(|| DecodingKey::from_secret(config::get_jwt_secret().as_bytes()));
 
-static JWT_ENCODE: Lazy<EncodingKey> = Lazy::new(||{
-    EncodingKey::from_secret(JWT_KEY)
-});
-
+static JWT_ENCODE: Lazy<EncodingKey> =
+    Lazy::new(|| EncodingKey::from_secret(config::get_jwt_secret().as_bytes()));
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct Claims {
@@ -48,11 +46,7 @@ where
             ));
         }
         tracing::info!("token {:?}", token);
-        let token_data = decode::<Claims>(
-            &token.unwrap(),
-            &JWT_DECODE,
-            &Validation::default(),
-        );
+        let token_data = decode::<Claims>(&token.unwrap(), &JWT_DECODE, &Validation::default());
         if token_data.is_err() {
             tracing::error!("decode token fail. {:?}", token_data);
             return Err((
@@ -66,18 +60,18 @@ where
 }
 
 #[inline]
-pub fn auth_token(user_id: u32, org_id: u32,user_level: UserLevel) -> Result<String, jsonwebtoken::errors::Error> {
+pub fn auth_token(
+    user_id: u32,
+    org_id: u32,
+    user_level: UserLevel,
+) -> Result<String, jsonwebtoken::errors::Error> {
     let claim = Claims {
         user_id,
         org_id,
         user_level,
         exp: Local::now().timestamp() + 86400,
     };
-    encode(
-        &Header::default(),
-        &claim,
-        &JWT_ENCODE,
-    )
+    encode(&Header::default(), &claim, &JWT_ENCODE)
 }
 
 pub fn set_cookie(value: &str) -> HeaderMap {

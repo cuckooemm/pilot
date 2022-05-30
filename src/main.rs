@@ -8,15 +8,16 @@ use tokio::signal;
 use crate::web::store::store::init_store;
 
 fn main() {
-    let conf: Config = Config::from_file(&"Config.toml");
+    dotenv::dotenv().ok();
+    Config::init_env();
+
     tracing_subscriber::fmt()
-        .with_max_level(conf.log.level.parse::<tracing::Level>().unwrap())
+        .with_max_level(config::get_log().level)
         .with_writer(io::stdout)
         .with_target(true)
         .init();
-    tracing::info!("load config: {:?}", &conf);
-
-    entity::utils::init_harsh(conf.harsh.min_len, &conf.harsh.slat);
+    let harsh = config::get_harsh();
+    entity::utils::init_harsh(harsh.min_len, &harsh.slat);
 
     let rumtime = tokio::runtime::Builder::new_multi_thread()
         .enable_all()
@@ -24,10 +25,11 @@ fn main() {
         .unwrap();
 
     rumtime.block_on(async {
-        init_store(&conf.store).await;
+        init_store(&config::get_store()).await;
 
         let router = web::route::init_router().await;
-        let addr: SocketAddr = conf.server.addr.parse().unwrap();
+        let svc = config::get_server();
+        let addr: SocketAddr = svc.addr.parse().unwrap();
         tracing::info!("listening on {}", &addr);
 
         axum::Server::bind(&addr)

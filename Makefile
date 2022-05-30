@@ -1,12 +1,23 @@
-.PHONY: s c db-init
+PK_NAME=pilot
+VERSION=0.1.0
+DOCKER_REPO=cuckooemm
 
-all: s
+.PHONY: r c b build db-init push-image
+
+all: r
 
 mysql-init:
 	mysql -h localhost -uroot -p cuckooemm entity/sql/mysql.sql
-s:
-	cargo run
+r :
+	@cargo run
 c:
-	cargo check
+	@cargo check
 b: 
-	cargo build
+	@cargo build
+
+build:
+	docker build -t $(PK_NAME) .
+tag:
+	docker tag ${PK_NAME}:latest ${DOCKER_REPO}/${PK_NAME}:${VERSION}
+push-image:
+	docker push ${DOCKER_REPO}/${PK_NAME}:${VERSION}
