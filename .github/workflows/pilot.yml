@@ -1,4 +1,4 @@
-name: pilot-actions
+name: pilot
 on:
   push:
     branches: [ main ]
@@ -11,8 +11,6 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Build
-        run: cargo build --verbose
       - name: Build Docker
         run: make build
       - name: Login Docker Hub
