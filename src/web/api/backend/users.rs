@@ -13,7 +13,7 @@ use crate::web::{
 use axum::Json;
 use chrono::Local;
 use entity::{
-    orm::{IntoActiveModel, Set},
+    orm::{ActiveModelTrait, IntoActiveModel, Set},
     users::{Status, UserLevel},
     UsersActive, UsersModel, ID,
 };
@@ -39,9 +39,18 @@ pub async fn addition(
     let password = check::password(param.password)?;
     let email = check::email(param.email)?;
     let nickname = check::nickname(param.nickname)?.unwrap_or(account.clone());
-    let dept_id = check::id_decode(param.dept_id, "dept_id")? as u32;
     let level: UserLevel = param.level.unwrap_or_default().into();
-
+    let mut dept_id = 0;
+    let mut dept_name = None;
+    if level != UserLevel::Admin {
+        // 如果添加的帐号为超级管理员则无需填写部门ID
+        dept_id = check::id_decode(param.dept_id, "dept_id")? as u32;
+        // 获取部门名
+        dept_name = department::get_department_name(dept_id).await?;
+        if dept_name.is_none() {
+            return Err(APIError::new_param_err(ParamErrType::NotExist, "dept_id"));
+        }
+    }
     match auth.user_level {
         UserLevel::Admin => (),
         // 仅可添加本部门帐号
@@ -53,11 +62,6 @@ pub async fn addition(
         }
         // 无权限
         UserLevel::Normal => return Err(APIError::new_permission_forbidden()),
-    }
-    // 获取部门名
-    let dept_name = department::get_department_name(dept_id).await?;
-    if dept_name.is_none() {
-        return Err(APIError::new_param_err(ParamErrType::NotExist, "dept_id"));
     }
 
     // 检查帐号是否存在
@@ -80,7 +84,7 @@ pub async fn addition(
         password: Set(password.unwrap()),
         nickname: Set(nickname),
         dept_id: Set(dept_id),
-        dept_name: Set(dept_name.unwrap()),
+        dept_name: Set(dept_name.unwrap_or_default()),
         level: Set(level),
         ..Default::default()
     };
@@ -100,7 +104,7 @@ pub struct UpdateParam {
     pub status: Option<String>,
 }
 
-pub async fn update(
+pub async fn edit(
     ReqJson(param): ReqJson<UpdateParam>,
     auth: Claims,
 ) -> APIResult<Json<APIResponse<UsersModel>>> {
@@ -223,7 +227,7 @@ pub async fn update(
         UserLevel::Normal => return Err(APIError::new_permission_forbidden()),
     }
 
-    let mut active = user.into_active_model();
+    let mut active = user.clone().into_active_model();
 
     // 检查帐号是否存在 并更新
     if let Some(account) = account {
@@ -269,6 +273,9 @@ pub async fn update(
     }
     if let Some(delete) = delete {
         active.deleted_at = Set(delete);
+    }
+    if !active.is_changed() {
+        return Ok(Json(APIResponse::ok_data(user)));
     }
     let model = users::update(active).await?;
     Ok(Json(APIResponse::ok_data(model)))

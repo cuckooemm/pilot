@@ -16,9 +16,7 @@ pub struct Model {
     pub dept_id: u32, // 部门
     pub dept_name: String, // 部门名称
     pub level: UserLevel, // 帐号等级
-    #[serde(
-        serialize_with = "super::format_time"
-    )]
+    #[serde(serialize_with = "super::format_time")]
     //     skip_serializing_if = "super::is_zero"
     pub deleted_at: u64, // 删除时间
     pub created_at: DateTimeWithTimeZone, // 创建时间

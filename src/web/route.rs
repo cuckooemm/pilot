@@ -25,7 +25,8 @@ pub async fn init_router() -> Router {
         .route("/register", post(users::register))
         .route("/login", post(users::login))
         .route("/addition", post(users::addition))
-        .route("/list",get(users::list));
+        .route("/list", get(users::list))
+        .route("/edit", post(users::edit));
 
     let department_group = Router::new()
         .route("/create", post(department::create))
