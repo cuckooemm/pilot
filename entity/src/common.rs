@@ -1,10 +1,7 @@
-use crate::{grable_id, grable_id_u32};
-
 use std::fmt::Display;
 
 use sea_orm::{entity::prelude::*, FromQueryResult};
 use serde::{Deserialize, Serialize};
-
 
 #[derive(Debug, Clone, PartialEq, EnumIter, DeriveActiveEnum, Deserialize, Serialize)]
 #[sea_orm(rs_type = "String", db_type = "String(Some(20))")]
@@ -47,6 +44,28 @@ impl From<String> for ItemCategory {
     }
 }
 
+pub enum Status {
+    Normal,
+    Delete,
+    Other,
+}
+
+impl From<String> for Status {
+    fn from(str: String) -> Self {
+        match str.trim().to_lowercase().as_str() {
+            "delete" => Self::Delete,
+            "normal" => Self::Normal,
+            _ => Self::Other,
+        }
+    }
+}
+
+impl Default for Status {
+    fn default() -> Self {
+        Status::Normal
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, EnumIter, DeriveActiveEnum, Deserialize, Serialize)]
 #[sea_orm(rs_type = "u8", db_type = "TinyUnsigned")]
 pub enum Scope {
@@ -73,34 +92,34 @@ impl From<String> for Scope {
 }
 
 #[derive(FromQueryResult, Default, Debug, Clone, Serialize)]
-pub struct IDu32 {
-    #[serde(serialize_with = "grable_id_u32")]
-    pub id: u32,
-}
-
-#[derive(FromQueryResult, Default, Debug, Clone, Serialize)]
 pub struct Name {
     pub name: String,
 }
 
 #[derive(FromQueryResult, Default, Debug, Clone, Serialize)]
 pub struct Id32Name {
-    #[serde(serialize_with = "grable_id_u32")]
+    #[serde(serialize_with = "super::confuse")]
     pub id: u32,
     pub name: String,
 }
 
 #[derive(FromQueryResult, Default, Debug, Clone, Serialize)]
 pub struct Id64Name {
-    #[serde(serialize_with = "grable_id")]
+    #[serde(serialize_with = "super::confuse")]
     pub id: u64,
     pub name: String,
 }
 
 #[derive(FromQueryResult, Default, Debug, Clone, Serialize)]
 pub struct ID {
-    #[serde(serialize_with = "grable_id")]
+    #[serde(serialize_with = "super::confuse")]
     pub id: u64,
+}
+
+#[derive(FromQueryResult, Default, Debug, Clone, Serialize)]
+pub struct IDu32 {
+    #[serde(serialize_with = "super::confuse")]
+    pub id: u32,
 }
 
 impl ID {

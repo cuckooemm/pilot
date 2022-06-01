@@ -7,9 +7,9 @@ use serde::{Deserialize, Serialize};
 #[sea_orm(table_name = "item")]
 pub struct Model {
     #[sea_orm(primary_key)]
-    #[serde(serialize_with = "super::grable_id")]
+    #[serde(serialize_with = "super::confuse")]
     pub id: u64,
-    #[serde(serialize_with = "super::grable_id")]
+    #[serde(serialize_with = "super::confuse")]
     pub namespace_id: u64,
     pub key: String,
     pub value: String,

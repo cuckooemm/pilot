@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use super::dao::cluster;
-use super::response::{APIError, APIResponse, ParamErrType};
+use super::response::{APIError, ApiResponse, ParamErrType};
 use super::APIResult;
 use super::{check, ReqJson, ReqQuery};
 use crate::web::api::permission::accredit;
@@ -28,7 +28,7 @@ pub struct ClusterParam {
 pub async fn create(
     ReqJson(param): ReqJson<ClusterParam>,
     auth: Claims,
-) -> APIResult<Json<APIResponse<ID>>> {
+) -> APIResult<Json<ApiResponse<ID>>> {
     // check param
     let cluster = check::id_str(param.cluster, "cluster")?;
     let app_id = check::id_str(param.app_id, "app_id")?;
@@ -53,14 +53,14 @@ pub async fn create(
         ..Default::default()
     };
     cluster::add(data).await?;
-    Ok(Json(APIResponse::ok()))
+    Ok(Json(ApiResponse::ok()))
 }
 
 // 重置密钥接口
 pub async fn reset_secret(
     ReqJson(param): ReqJson<ClusterParam>,
     auth: Claims,
-) -> APIResult<Json<APIResponse<ID>>> {
+) -> APIResult<Json<ApiResponse<ID>>> {
     let cluster = check::id_str(param.cluster, "cluster")?;
     let app_id = check::id_str(param.app_id, "app_id")?;
     // 校验权限
@@ -78,7 +78,7 @@ pub async fn reset_secret(
         ..Default::default()
     };
     cluster::update_by_id(active, id).await?;
-    Ok(Json(APIResponse::ok()))
+    Ok(Json(ApiResponse::ok()))
 }
 
 #[derive(Deserialize, Debug)]
@@ -91,23 +91,23 @@ pub struct ClusterQueryParam {
 pub async fn list(
     ReqQuery(param): ReqQuery<ClusterQueryParam>,
     auth: Claims,
-) -> APIResult<Json<APIResponse<Vec<ClusterItem>>>> {
+) -> APIResult<Json<ApiResponse<Vec<ClusterItem>>>> {
     let app_id = check::id_str(param.app_id, "app_id")?;
 
     // 获取内容
     let list = cluster::find_cluster_by_app(app_id.clone()).await?;
     // 无内容直接返回
     if list.is_empty() {
-        return Ok(Json(APIResponse::ok_data(list)));
+        return Ok(Json(ApiResponse::ok_data(list)));
     }
     if accredit::acc_admin(&auth, Some(app_id.clone())) {
-        return Ok(Json(APIResponse::ok_data(list)));
+        return Ok(Json(ApiResponse::ok_data(list)));
     }
     // 获取用户角色ID
     let user_roles = user_role::get_user_role(auth.user_id).await?;
     if user_roles.is_empty() {
         // 返回空
-        return Ok(Json(APIResponse::ok_data(vec![])));
+        return Ok(Json(ApiResponse::ok_data(vec![])));
     }
     let user_role_set: HashSet<u32> = HashSet::from_iter(user_roles.into_iter());
 
@@ -116,14 +116,14 @@ pub async fn list(
     for r_id in role.iter() {
         // 拥有上级资源权限角色  直接返回
         if user_role_set.contains(r_id) {
-            return Ok(Json(APIResponse::ok_data(list)));
+            return Ok(Json(ApiResponse::ok_data(list)));
         }
     }
 
     // 获取此资源下级拥有View权限的所有角色
     let role = rule::get_resource_prefix_role(Verb::VIEW, app_id.clone(), None).await?;
     if role.is_empty() {
-        return Ok(Json(APIResponse::ok_data(vec![])));
+        return Ok(Json(ApiResponse::ok_data(vec![])));
     }
 
     let mut rules = HashSet::with_capacity(role.len());
@@ -145,14 +145,14 @@ pub async fn list(
     }
     if rules.is_empty() {
         // 无相关权限
-        return Ok(Json(APIResponse::ok_data(vec![])));
+        return Ok(Json(ApiResponse::ok_data(vec![])));
     }
 
     let list: Vec<ClusterItem> = list
         .into_iter()
         .filter(|c| rules.contains(&c.name))
         .collect();
-    Ok(Json(APIResponse::ok_data(list)))
+    Ok(Json(ApiResponse::ok_data(list)))
 }
 
 // 生成密钥

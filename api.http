@@ -8,23 +8,27 @@ Content-Type: application/json
 
 ###
 
-
-POST http://localhost:8000/api/users/edit
+PUT  http://localhost:8000/api/app/edit
 Content-Type: application/json
-Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXB0X2lkIjoxLCJ1c2VyX2xldmVsIjoiZGVwdF9hZG1pbiIsImV4cCI6MTY1NDEzNDQ5OH0.nDqZPR0_v9sYLxiOdKhtgKXOlYVbi0lLfevl5-sYlGo
+Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXB0X2lkIjoxLCJ1c2VyX2xldmVsIjoiYWRtaW4iLCJleHAiOjE2NTQxNjgxNTl9.1Fp8mgNIqXuQ2v-ErFMtJ0vXYvmWtb6RMJxdB1MbiiI
 
 {
-    "id": "KxWLzJGe9GBvdDV5",
-    "dept_id": "Wan6xZgDR29Y1b73",
-    "nickname": "部门管理员",
-    "level": "normal",
+    "app_id": "adx-dsp",
+    "name": "引擎",
+    "dept_id": "",
     "status": "normal"
 }
 
 
 ###
 
-GET http://localhost:8000/api/users/list?status
+GET http://localhost:8000/api/department/list HTTP/1.1
+Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXB0X2lkIjoxLCJ1c2VyX2xldmVsIjoiZGVwdF9hZG1pbiIsImV4cCI6MTY1NDE2NDYyMn0.9A3yHgL5Vl8jYMUyFp8nxF7d13FzW-wD1K5OvqqMLqE
+
+
+###
+
+GET http://localhost:8000/api/users/list?status=normal
 Content-Type: application/json
 Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXB0X2lkIjoxLCJ1c2VyX2xldmVsIjoiZGVwdF9hZG1pbiIsImV4cCI6MTY1NDEzNDQ5OH0.nDqZPR0_v9sYLxiOdKhtgKXOlYVbi0lLfevl5-sYlGo
 
@@ -32,24 +36,15 @@ Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZ
 
 POST http://localhost:8000/api/users/addition HTTP/1.1
 Content-Type: application/json
-Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXB0X2lkIjoxLCJ1c2VyX2xldmVsIjoiRGVwdEFkbWluIiwiZXhwIjoxNjU0MDczMDkwfQ.GpKwKePL-PLPRzOJjb9ck2HMKgruhQ6QHA6QStW_8SU
+Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXB0X2lkIjoxLCJ1c2VyX2xldmVsIjoiZGVwdF9hZG1pbiIsImV4cCI6MTY1NDEzNDQ5OH0.nDqZPR0_v9sYLxiOdKhtgKXOlYVbi0lLfevl5-sYlGo
 
 {
-    "account": "admin4",
+    "account": "admin5",
     "password": "111111",
     "nickname": "管理员",
     "email": "12122@qq.com",
     "dept_id": "Wan6xZgDR29Y1b73",
     "level": "admin"
-}
-###
-
-POST http://localhost:8000/api/department/delete HTTP/1.1
-Content-Type: application/json
-Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJvcmdfaWQiOjAsInVzZXJfbGV2ZWwiOiJBZG1pbiIsImV4cCI6MTY1NDA2MjY4NX0.-4nVYIa2XgLmFMkNalNjerXfwS1hPCFJ_Haec0wPmDI
-
-{
-    "name": "admin"
 }
 ###
 

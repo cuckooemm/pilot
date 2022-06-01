@@ -4,8 +4,8 @@ use super::master;
 use crate::web::extract::jwt::Claims;
 
 use entity::orm::{
-    ColumnTrait, DbErr, EntityTrait, Iterable, QueryFilter, QuerySelect, Set, TransactionError,
-    TransactionTrait,
+    ActiveModelTrait, ColumnTrait, DbErr, EntityTrait, Iterable, QueryFilter, QuerySelect, Set,
+    TransactionError, TransactionTrait,
 };
 use entity::rule::Verb;
 use entity::{
@@ -13,12 +13,12 @@ use entity::{
     RoleRuleEntity, RuleActive, RuleEntity, UserRoleActive, UserRoleEntity, ID,
 };
 
-pub async fn add(app_id: String, name: String, auth: &Claims) -> Result<(), DbErr> {
+pub async fn add(app_id: String, name: String, dept_id: u32, auth: &Claims) -> Result<(), DbErr> {
     // 构造应用数据
     let app = AppActive {
         app_id: Set(app_id.clone()),
         name: Set(name),
-        dept_id: Set(auth.dept_id),
+        dept_id: Set(dept_id),
         creator_user: Set(auth.user_id),
         ..Default::default()
     };
@@ -88,6 +88,10 @@ pub async fn add(app_id: String, name: String, auth: &Claims) -> Result<(), DbEr
     Ok(())
 }
 
+pub async fn update(app: AppActive) -> Result<AppModel, DbErr> {
+    app.update(master()).await
+}
+
 pub async fn find_all(offset: u64, limit: u64) -> Result<Vec<AppModel>, DbErr> {
     AppEntity::find()
         .offset(offset)
@@ -96,7 +100,13 @@ pub async fn find_all(offset: u64, limit: u64) -> Result<Vec<AppModel>, DbErr> {
         .await
 }
 
-// 查找 app_id 是否存在
+pub async fn get_info(app_id: String) -> Result<Option<AppModel>, DbErr> {
+    AppEntity::find()
+        .filter(AppColumn::AppId.eq(app_id))
+        .one(master())
+        .await
+}
+
 pub async fn get_app_id(app_id: String) -> Result<Option<u32>, DbErr> {
     let id = AppEntity::find()
         .select_only()

@@ -1,5 +1,3 @@
-use crate::grable_id;
-
 use sea_orm::{entity::prelude::*, FromQueryResult};
 use serde::{Deserialize, Serialize};
 
@@ -7,9 +5,9 @@ use serde::{Deserialize, Serialize};
 #[sea_orm(table_name = "release_history")]
 pub struct Model {
     #[sea_orm(primary_key)]
-    #[serde(serialize_with = "grable_id")]
+    #[serde(serialize_with = "super::confuse")]
     pub id: u64,
-    #[serde(serialize_with = "grable_id")]
+    #[serde(serialize_with = "super::confuse")]
     pub namespace_id: u64,
     pub release_id: u64,
     pub change: String,
@@ -30,9 +28,9 @@ impl ActiveModelBehavior for ActiveModel {}
 
 #[derive(FromQueryResult, Default, Serialize, Deserialize, Debug, Clone)]
 pub struct HistoryItem {
-    #[serde(serialize_with = "super::grable_id")]
+    #[serde(serialize_with = "super::confuse")]
     pub id: u64,
-    #[serde(serialize_with = "super::grable_id")]
+    #[serde(serialize_with = "super::confuse")]
     pub release_id: u64,
     pub change: String,
 }

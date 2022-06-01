@@ -11,7 +11,7 @@ use serde::Serialize;
 pub struct Empty {}
 
 #[derive(Debug, Serialize, Default)]
-pub struct APIResponse<T: Serialize> {
+pub struct ApiResponse<T: Serialize> {
     #[serde(rename(serialize = "code"))]
     pub code: i32,
     #[serde(rename(serialize = "message"))]
@@ -40,7 +40,7 @@ pub struct APIResponse<T: Serialize> {
 //     }
 // }
 
-impl<T> APIResponse<T>
+impl<T> ApiResponse<T>
 where
     T: Serialize,
 {
@@ -231,22 +231,22 @@ impl From<DbErr> for APIError {
 
 impl IntoResponse for APIError {
     fn into_response(self) -> Response {
-        let rsp: APIResponse<()> = match self.error_type {
+        let rsp: ApiResponse<()> = match self.error_type {
             APIErrorType::BadParam(_) => {
-                APIResponse::err(4000, self.message.unwrap_or("内部服务异常".to_owned()))
+                ApiResponse::err(4000, self.message.unwrap_or("内部服务异常".to_owned()))
             }
             APIErrorType::BadRequestBody => {
-                APIResponse::err(4000, self.message.unwrap_or("".to_owned()))
+                ApiResponse::err(4000, self.message.unwrap_or("".to_owned()))
             }
             APIErrorType::InvalidToken => {
-                APIResponse::err(4100, self.message.unwrap_or("认证无效".to_owned()))
+                ApiResponse::err(4100, self.message.unwrap_or("认证无效".to_owned()))
             }
             APIErrorType::Forbidden => {
-                APIResponse::err(4300, self.message.unwrap_or("无权限访问".to_owned()))
+                ApiResponse::err(4300, self.message.unwrap_or("无权限访问".to_owned()))
             }
-            APIErrorType::ServerAbnormal => APIResponse::err(5000, "内部服务异常".to_owned()),
-            APIErrorType::Database => APIResponse::err(5000, "内部服务异常".to_owned()),
-            APIErrorType::NotFound => APIResponse::err(0, "OK".to_owned()),
+            APIErrorType::ServerAbnormal => ApiResponse::err(5000, "内部服务异常".to_owned()),
+            APIErrorType::Database => ApiResponse::err(5000, "内部服务异常".to_owned()),
+            APIErrorType::NotFound => ApiResponse::err(0, "OK".to_owned()),
         };
         let mut header = HeaderMap::new();
         header.insert(

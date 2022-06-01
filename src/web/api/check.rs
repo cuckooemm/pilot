@@ -184,22 +184,25 @@ pub fn id_str_rule(id: String, field: &str) -> Result<String, APIError> {
     Ok(id)
 }
 
-pub fn id_decode(id: Option<String>, field: &str) -> Result<u64, APIError> {
+pub fn id_decode<T: TryFrom<u64>>(id: Option<String>, field: &str) -> Result<T, APIError> {
     match id {
-        Some(id) => id_decode_rule(&id, field),
+        Some(id) => id_decode_rule::<T>(&id, field),
         None => return Err(APIError::new_param_err(ParamErrType::Required, field)),
     }
 }
 
-pub fn id_decode_rule(id: &String, field: &str) -> Result<u64, APIError> {
+pub fn id_decode_rule<T: TryFrom<u64>>(id: &String, field: &str) -> Result<T, APIError> {
     if id.len() == 0 {
         return Err(APIError::new_param_err(ParamErrType::NotExist, field));
     }
-    let id = entity::utils::decode_i64(&id);
+    let id = entity::utils::decode_u64(id);
     if id == 0 {
         return Err(APIError::new_param_err(ParamErrType::NotExist, field));
     }
-    Ok(id)
+    match T::try_from(id).ok() {
+        Some(x) => return Ok(x),
+        None => return Err(APIError::new_param_err(ParamErrType::NotExist, field)),
+    }
 }
 
 pub fn page(page: Option<String>, page_size: Option<String>) -> (u64, u64) {

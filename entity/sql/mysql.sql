@@ -95,7 +95,6 @@ CREATE TABLE `app` (
     `app_id` varchar(80) NOT NULL COMMENT 'appID',
     `name` varchar(100) NOT NULL COMMENT '应用名',
     `dept_id` int unsigned NOT NULL DEFAULT 0 COMMENT '所属部门ID',
-    `dept_name` varchar(64) NOT NULL DEFAULT '' COMMENT '所属部门名',
     `creator_user` int unsigned DEFAULT 0 NOT NULL COMMENT '创建用户ID',
     `deleted_at` bigint unsigned NOT NULL DEFAULT 0 COMMENT '删除时间 second',
     `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',

@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 #[sea_orm(table_name = "namespace")]
 pub struct Model {
     #[sea_orm(primary_key)]
-    #[serde(serialize_with = "super::grable_id")]
+    #[serde(serialize_with = "super::confuse")]
     pub id: u64,
     pub app_id: String, // app ID
     pub cluster: String,
@@ -31,14 +31,14 @@ impl ActiveModelBehavior for ActiveModel {}
 
 #[derive(FromQueryResult, Serialize, Debug)]
 pub struct NamespaceItem {
-    #[serde(serialize_with = "super::grable_id")]
+    #[serde(serialize_with = "super::confuse")]
     pub id: u64,
     pub namespace: String,
 }
 
 #[derive(FromQueryResult, Serialize, Debug)]
 pub struct NamespaceInfo {
-    #[serde(serialize_with = "super::grable_id")]
+    #[serde(serialize_with = "super::confuse")]
     pub id: u64,
     pub app_id: String, // app ID
     pub cluster: String,

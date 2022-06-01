@@ -1,7 +1,7 @@
 use super::dao::{item, namespace};
 use super::{check, ReqJson, ReqQuery};
 use super::{
-    response::{APIError, APIResponse, ParamErrType},
+    response::{APIError, ApiResponse, ParamErrType},
     APIResult,
 };
 use crate::web::api::permission::accredit;
@@ -25,7 +25,7 @@ pub struct ItemParam {
 pub async fn create(
     ReqJson(param): ReqJson<ItemParam>,
     auth: Claims,
-) -> APIResult<Json<APIResponse<ID>>> {
+) -> APIResult<Json<ApiResponse<ID>>> {
     let ns_id = check::id_decode(param.id, "id")?;
     let key = check::id_str_len(param.key, "key", None, Some(255))?;
     let category: ItemCategory = param.category.unwrap_or_default().into();
@@ -67,13 +67,13 @@ pub async fn create(
     };
 
     let id = item::add(data).await?;
-    Ok(Json(APIResponse::ok_data(ID::new(id))))
+    Ok(Json(ApiResponse::ok_data(ID::new(id))))
 }
 
 pub async fn edit(
     Json(param): Json<ItemParam>,
     auth: Claims,
-) -> APIResult<Json<APIResponse<ItemModel>>> {
+) -> APIResult<Json<ApiResponse<ItemModel>>> {
     let item_id = check::id_decode(param.id, "id")?;
     let version = match param.version {
         Some(version) => {
@@ -140,7 +140,7 @@ pub async fn edit(
     )
     .await?;
     if success {
-        Ok(Json(APIResponse::ok()))
+        Ok(Json(ApiResponse::ok()))
     } else {
         Err(APIError::new_param_err(ParamErrType::Changed, "item"))
     }
@@ -156,7 +156,7 @@ pub struct DetailsParam {
 pub async fn list(
     ReqQuery(param): ReqQuery<DetailsParam>,
     auth: Claims,
-) -> APIResult<Json<APIResponse<Vec<ItemModel>>>> {
+) -> APIResult<Json<ApiResponse<Vec<ItemModel>>>> {
     let ns_id = check::id_decode(param.namespace, "id")?;
     // 校验权限
     let info = namespace::get_app_info(ns_id).await?;
@@ -177,7 +177,7 @@ pub async fn list(
     let (page, page_size) = check::page(param.page, param.page_size);
     let data: Vec<ItemModel> =
         item::find_by_nsid_all(ns_id, (page - 1) * page_size, page_size).await?;
-    let mut rsp = APIResponse::ok_data(data);
+    let mut rsp = ApiResponse::ok_data(data);
     // TODO 更新返回结构 待是否发布标记
     rsp.set_page(page, page_size);
     Ok(Json(rsp))

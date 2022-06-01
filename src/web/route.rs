@@ -26,15 +26,17 @@ pub async fn init_router() -> Router {
         .route("/login", post(users::login))
         .route("/addition", post(users::addition))
         .route("/list", get(users::list))
-        .route("/edit", post(users::edit));
+        .route("/edit", put(users::edit));
 
     let department_group = Router::new()
         .route("/create", post(department::create))
+        .route("/edit", put(department::edit))
         .route("/list", get(department::list))
         .route("/delete", post(department::delete));
 
     let app_group = Router::new()
         .route("/create", post(app::create))
+        .route("/edit", put(app::edit))
         .route("/list", get(app::list))
         .route("/favorite", get(favorite::list))
         .route("/favorite/add", post(favorite::add));
@@ -56,7 +58,7 @@ pub async fn init_router() -> Router {
     let item = Router::new()
         .route("/create", post(item::create))
         .route("/list", get(item::list))
-        .route("/edit", post(item::edit))
+        .route("/edit", put(item::edit))
         .route("/publish/history", get(publication::release_list))
         .route("/publish", post(publication::publish))
         .route("/rollback", post(publication::rollback));

@@ -6,7 +6,7 @@ use crate::web::store::cache::{CacheItem, NamespaceItem};
 use crate::web::{
     extract::{
         query::ReqQuery,
-        response::{APIError, APIResponse, ParamErrType},
+        response::{APIError, ApiResponse, ParamErrType},
     },
     APIResult,
 };
@@ -32,7 +32,7 @@ const DEFAULT_TIMEOUT: Duration = Duration::from_secs(60);
 pub async fn description(
     ReqQuery(param): ReqQuery<DescParam>,
     Extension(cache): Extension<CacheItem>,
-) -> APIResult<Json<APIResponse<NamespaceItem>>> {
+) -> APIResult<Json<ApiResponse<NamespaceItem>>> {
     let app_id = match param.app_id {
         Some(app_id) => {
             if app_id.len() == 0 || app_id.len() > 100 {
@@ -99,20 +99,20 @@ pub async fn description(
     .await;
     if namespace_item.is_err() {
         // 超时 无更新
-        return Ok(Json(APIResponse::ok()));
+        return Ok(Json(ApiResponse::ok()));
     }
     let namespace_item = namespace_item.unwrap();
     if namespace_item.is_none() {
-        return Ok(Json(APIResponse::ok()));
+        return Ok(Json(ApiResponse::ok()));
     }
-    Ok(Json(APIResponse::ok_data(namespace_item.unwrap())))
+    Ok(Json(ApiResponse::ok_data(namespace_item.unwrap())))
 }
 
 // 阻塞链接, 仅更新时返回数据
 pub async fn notifaction(
     ReqQuery(param): ReqQuery<DescParam>,
     Extension(cache): Extension<CacheItem>,
-) -> APIResult<Json<APIResponse<NamespaceItem>>> {
+) -> APIResult<Json<ApiResponse<NamespaceItem>>> {
     let app_id = match param.app_id {
         Some(app_id) => {
             if app_id.len() == 0 || app_id.len() > 100 {
@@ -196,11 +196,11 @@ pub async fn notifaction(
     // let namespace_item = namespace_item.await;
     if namespace_item.is_err() {
         // 超时 无更新
-        return Ok(Json(APIResponse::ok()));
+        return Ok(Json(ApiResponse::ok()));
     }
     let namespace_item = namespace_item.unwrap();
     if namespace_item.is_none() {
-        return Ok(Json(APIResponse::ok()));
+        return Ok(Json(ApiResponse::ok()));
     }
-    Ok(Json(APIResponse::ok_data(namespace_item.unwrap())))
+    Ok(Json(ApiResponse::ok_data(namespace_item.unwrap())))
 }

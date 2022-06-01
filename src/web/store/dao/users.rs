@@ -1,10 +1,15 @@
+use crate::web::api::backend::department::DepartmentParam;
+
 use super::{master, slaver};
 
+use entity::common::Status;
 use entity::orm::{
     ActiveModelTrait, ColumnTrait, DbErr, EntityTrait, QueryFilter, QueryOrder, QuerySelect,
 };
-use entity::users::Status;
-use entity::{UsersActive, UsersColumn, UsersEntity, UsersModel, ID};
+use entity::users::UserItem;
+use entity::{
+    DepartmentColumn, DepartmentEntity, UsersActive, UsersColumn, UsersEntity, UsersModel, ID,
+};
 
 pub async fn add(user: UsersActive) -> Result<u32, DbErr> {
     let r = UsersEntity::insert(user).exec(master()).await?;
@@ -48,8 +53,22 @@ pub async fn get_use_list(
     status: Status,
     offset: u64,
     limit: u64,
-) -> Result<Vec<UsersModel>, DbErr> {
-    let mut stmt = UsersEntity::find().offset(offset).limit(limit);
+) -> Result<Vec<UserItem>, DbErr> {
+    let mut stmt = UsersEntity::find()
+        .select_only()
+        .left_join(DepartmentEntity)
+        .column(UsersColumn::Id)
+        .column(UsersColumn::Account)
+        .column(UsersColumn::Email)
+        .column(UsersColumn::Nickname)
+        .column(UsersColumn::DeptId)
+        .column_as(DepartmentColumn::Name, "dept_name")
+        .column(UsersColumn::Level)
+        .column(UsersColumn::DeletedAt)
+        .column(UsersColumn::CreatedAt)
+        .column(UsersColumn::UpdatedAt)
+        .offset(offset)
+        .limit(limit);
     if let Some(dept) = dept {
         stmt = stmt.filter(UsersColumn::DeptId.eq(dept))
     }
@@ -58,5 +77,8 @@ pub async fn get_use_list(
         Status::Normal => stmt = stmt.filter(UsersColumn::DeletedAt.eq(0_u64)),
         Status::Delete => stmt = stmt.filter(UsersColumn::DeletedAt.ne(0_u64)),
     }
-    stmt.order_by_desc(UsersColumn::Id).all(slaver()).await
+    stmt.order_by_desc(UsersColumn::Id)
+        .into_model::<UserItem>()
+        .all(slaver())
+        .await
 }

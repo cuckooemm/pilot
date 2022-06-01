@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use super::dao::{item, release_history};
-use super::response::{APIError, APIResponse, ParamErrType};
+use super::response::{APIError, ApiResponse, ParamErrType};
 use super::APIResult;
 use super::{check, ReqJson, ReqQuery};
 use crate::web::api::permission::accredit;
@@ -32,7 +32,7 @@ pub struct PublicationParam {
 pub async fn publish(
     ReqJson(param): ReqJson<PublicationParam>,
     auth: Claims,
-) -> APIResult<Json<APIResponse<ID>>> {
+) -> APIResult<Json<ApiResponse<ID>>> {
     if param.items.len() == 0 {
         return Err(APIError::new_param_err(ParamErrType::NotExist, "items"));
     }
@@ -171,7 +171,7 @@ pub async fn publish(
         return Err(APIError::new_param_err(ParamErrType::Changed, "items"));
     }
 
-    Ok(Json(APIResponse::ok()))
+    Ok(Json(ApiResponse::ok()))
 }
 
 #[derive(Deserialize, Serialize)]
@@ -183,7 +183,7 @@ pub struct RollbackParam {
 pub async fn rollback(
     ReqJson(param): ReqJson<RollbackParam>,
     auth: Claims,
-) -> APIResult<Json<APIResponse<ID>>> {
+) -> APIResult<Json<ApiResponse<ID>>> {
     let history_id = check::id_decode(param.id, "id")?;
     let namespace_id = release_history::get_namespace_id(history_id).await?;
     if namespace_id.is_none() {
@@ -209,7 +209,7 @@ pub async fn rollback(
 
     let remark = param.remark.unwrap_or("rollback".to_owned());
     release::rollback_item(history_id, remark).await?;
-    Ok(Json(APIResponse::ok()))
+    Ok(Json(ApiResponse::ok()))
 }
 
 #[derive(Deserialize)]
@@ -222,7 +222,7 @@ pub struct HistoryParam {
 pub async fn release_list(
     ReqQuery(param): ReqQuery<HistoryParam>,
     auth: Claims,
-) -> APIResult<Json<APIResponse<Vec<HistoryItem>>>> {
+) -> APIResult<Json<ApiResponse<Vec<HistoryItem>>>> {
     let namespace_id = check::id_decode(param.id, "id")?;
     // 权限校验
     // 检查 namespace_id 是否存在
@@ -246,7 +246,7 @@ pub async fn release_list(
     let history =
         release_history::get_namespace_history(namespace_id, (page - 1) * page_size, page_size)
             .await?;
-    let mut rsp = APIResponse::ok_data(history);
+    let mut rsp = ApiResponse::ok_data(history);
     rsp.set_page(page, page_size);
     Ok(Json(rsp))
 }

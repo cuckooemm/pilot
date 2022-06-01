@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 #[sea_orm(table_name = "user_favorite")]
 pub struct Model {
     #[sea_orm(primary_key)]
-    #[serde(serialize_with = "super::grable_id")]
+    #[serde(serialize_with = "super::confuse")]
     pub id: u64, // 用户ID
     pub user_id: u32,                     // 登录用户名
     pub app_id: u32,                      // 邮箱

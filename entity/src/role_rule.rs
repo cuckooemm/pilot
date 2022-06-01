@@ -1,5 +1,3 @@
-use crate::grable_id;
-
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 
@@ -7,7 +5,7 @@ use serde::{Deserialize, Serialize};
 #[sea_orm(table_name = "role_rule")]
 pub struct Model {
     #[sea_orm(primary_key)]
-    #[serde(serialize_with = "grable_id")]
+    #[serde(serialize_with = "super::confuse")]
     pub id: u64,
     pub role_id: u32,                     // 角色ID
     pub rule_id: u64,                     // 权限ID

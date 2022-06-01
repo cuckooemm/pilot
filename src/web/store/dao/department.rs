@@ -15,6 +15,15 @@ pub async fn add(name: String) -> Result<u32, DbErr> {
     Ok(r.last_insert_id)
 }
 
+pub async fn update(id: u32, name: String) -> Result<bool, DbErr> {
+    let r = DepartmentEntity::update_many()
+        .col_expr(DepartmentColumn::Name, Expr::value(name))
+        .filter(DepartmentColumn::Id.eq(id))
+        .exec(master())
+        .await?;
+    Ok(r.rows_affected != 0)
+}
+
 pub async fn delete(name: String) -> Result<u64, DbErr> {
     let r = DepartmentEntity::update_many()
         .col_expr(
@@ -26,6 +35,18 @@ pub async fn delete(name: String) -> Result<u64, DbErr> {
         .exec(master())
         .await?;
     Ok(r.rows_affected)
+}
+
+pub async fn is_exist_id(id: u32) -> Result<bool, DbErr> {
+    let model = DepartmentEntity::find()
+        .select_only()
+        .column(DepartmentColumn::Id)
+        .filter(DepartmentColumn::Id.eq(id))
+        .filter(DepartmentColumn::DeletedAt.eq(0_u64))
+        .into_model::<ID>()
+        .one(master())
+        .await?;
+    Ok(model.is_some())
 }
 
 pub async fn is_exist(name: String) -> Result<bool, DbErr> {

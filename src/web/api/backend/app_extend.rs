@@ -1,5 +1,5 @@
 use super::dao::app_extend;
-use super::response::{APIError, APIResponse, ParamErrType};
+use super::response::{APIError, ApiResponse, ParamErrType};
 use super::{check, APIResult};
 use super::{ReqJson, ReqQuery};
 use crate::web::api::permission::accredit;
@@ -22,7 +22,7 @@ pub struct AppExtendParam {
 pub async fn create(
     ReqJson(param): ReqJson<AppExtendParam>,
     auth: Claims,
-) -> APIResult<Json<APIResponse<ID>>> {
+) -> APIResult<Json<ApiResponse<ID>>> {
     let app_id = check::id_str(param.app_id, "app_id")?;
     let namespace_id = check::id_decode(param.namespace_id, "namespace_id")?;
     if !app::is_exist(app_id.clone()).await? {
@@ -57,18 +57,18 @@ pub async fn create(
     };
 
     app_extend::add(data).await?;
-    Ok(Json(APIResponse::ok()))
+    Ok(Json(ApiResponse::ok()))
 }
 
 pub async fn list(
     ReqQuery(param): ReqQuery<AppExtendParam>,
     auth: Claims,
-) -> APIResult<Json<APIResponse<Vec<NamespaceItem>>>> {
+) -> APIResult<Json<ApiResponse<Vec<NamespaceItem>>>> {
     let app_id = check::id_str(param.app_id, "app_id")?;
     // 校验权限 是否拥有 app_id 的创建权限
     if !accredit::accredit(&auth, entity::rule::Verb::VIEW, vec![&app_id]).await? {
         return Err(APIError::new_permission_forbidden());
     }
     let list: Vec<NamespaceItem> = app_extend::get_app_namespace(app_id).await?;
-    Ok(Json(APIResponse::ok_data(list)))
+    Ok(Json(ApiResponse::ok_data(list)))
 }
