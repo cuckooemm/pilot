@@ -8,7 +8,23 @@ Content-Type: application/json
 
 ###
 
-GET http://localhost:8000/api/users/list?status=
+
+POST http://localhost:8000/api/users/edit
+Content-Type: application/json
+Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXB0X2lkIjoxLCJ1c2VyX2xldmVsIjoiZGVwdF9hZG1pbiIsImV4cCI6MTY1NDEzNDQ5OH0.nDqZPR0_v9sYLxiOdKhtgKXOlYVbi0lLfevl5-sYlGo
+
+{
+    "id": "KxWLzJGe9GBvdDV5",
+    "dept_id": "Wan6xZgDR29Y1b73",
+    "nickname": "部门管理员",
+    "level": "normal",
+    "status": "normal"
+}
+
+
+###
+
+GET http://localhost:8000/api/users/list?status
 Content-Type: application/json
 Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXB0X2lkIjoxLCJ1c2VyX2xldmVsIjoiZGVwdF9hZG1pbiIsImV4cCI6MTY1NDEzNDQ5OH0.nDqZPR0_v9sYLxiOdKhtgKXOlYVbi0lLfevl5-sYlGo
 
