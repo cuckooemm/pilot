@@ -100,7 +100,7 @@ pub async fn list(
     if list.is_empty() {
         return Ok(Json(APIResponse::ok_data(list)));
     }
-    if accredit::acc_admin(&auth.user_level, Some(app_id.clone())) {
+    if accredit::acc_admin(&auth, Some(app_id.clone())) {
         return Ok(Json(APIResponse::ok_data(list)));
     }
     // 获取用户角色ID

@@ -1,4 +1,40 @@
-Get http://localhost:8000
+POST http://localhost:8000/api/users/login
+Content-Type: application/json
+
+{
+    "account": "admin",
+    "password": "111111"
+}
+
+###
+
+GET http://localhost:8000/api/users/list?status=
+Content-Type: application/json
+Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXB0X2lkIjoxLCJ1c2VyX2xldmVsIjoiZGVwdF9hZG1pbiIsImV4cCI6MTY1NDEzNDQ5OH0.nDqZPR0_v9sYLxiOdKhtgKXOlYVbi0lLfevl5-sYlGo
+
+###
+
+POST http://localhost:8000/api/users/addition HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXB0X2lkIjoxLCJ1c2VyX2xldmVsIjoiRGVwdEFkbWluIiwiZXhwIjoxNjU0MDczMDkwfQ.GpKwKePL-PLPRzOJjb9ck2HMKgruhQ6QHA6QStW_8SU
+
+{
+    "account": "admin4",
+    "password": "111111",
+    "nickname": "管理员",
+    "email": "12122@qq.com",
+    "dept_id": "Wan6xZgDR29Y1b73",
+    "level": "admin"
+}
+###
+
+POST http://localhost:8000/api/department/delete HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJvcmdfaWQiOjAsInVzZXJfbGV2ZWwiOiJBZG1pbiIsImV4cCI6MTY1NDA2MjY4NX0.-4nVYIa2XgLmFMkNalNjerXfwS1hPCFJ_Haec0wPmDI
+
+{
+    "name": "admin"
+}
 ###
 
 # 创建应用
@@ -133,3 +169,4 @@ GET http://localhost:8000/api/config/desc?app_id=app_new_id&cluster=app_new_clus
 GET http://localhost:8000/api/config/notifaction?app_id=app_new_id&cluster=app_new_cluster&namespace=namespaces&secret=0fd1ea91af6b81e27c7a7f780c76724c&version=1acb427448fc584a130b2a30f5ce84f1&timeout=10
 
 ###
+

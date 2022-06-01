@@ -11,21 +11,23 @@ CREATE TABLE `users` (
     `email` varchar(64) NOT NULL DEFAULT '' COMMENT '邮箱地址',
     `nickname` varchar(64) NOT NULL DEFAULT '' COMMENT '用户名称',
     `password` varchar(512) NOT NULL COMMENT '密码',
-    `org_id` int unsigned NOT NULL DEFAULT 0 COMMENT '用户所属部门',
+    `dept_id` int unsigned NOT NULL DEFAULT 0 COMMENT '所属部门ID',
+    `dept_name` varchar(64) NOT NULL DEFAULT '' COMMENT '所属部门名',
     `level` smallint unsigned NOT NULL DEFAULT 0 COMMENT '管理员等级 100:超级管理员 10:部门管理员',
     `deleted_at` bigint unsigned NOT NULL DEFAULT 0 COMMENT '删除时间 second',
     `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_account` (`account`),
-    UNIQUE KEY `uk_email` (`email`)
+    UNIQUE KEY `uk_email` (`email`),
+    key `ix_dept_id` (`dept_id`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT = '用户';
 
 DROP TABLE IF EXISTS `department`;
 
 CREATE TABLE `department` (
     `id` int unsigned NOT NULL AUTO_INCREMENT COMMENT '主键,部门ID',
-    `name` varchar(64) NOT NULL DEFAULT '' COMMENT '部门名称',
+    `name` varchar(128) NOT NULL DEFAULT '' COMMENT '部门名称',
     `deleted_at` bigint unsigned NOT NULL DEFAULT 0 COMMENT '删除时间 second',
     `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
@@ -92,8 +94,8 @@ CREATE TABLE `app` (
     `id` int unsigned AUTO_INCREMENT COMMENT '主键',
     `app_id` varchar(80) NOT NULL COMMENT 'appID',
     `name` varchar(100) NOT NULL COMMENT '应用名',
-    `org_id` int unsigned DEFAULT 0 NOT NULL COMMENT '部门ID',
-    `org_name` varchar(60) DEFAULT '' NOT NULL COMMENT '部门名',
+    `dept_id` int unsigned NOT NULL DEFAULT 0 COMMENT '所属部门ID',
+    `dept_name` varchar(64) NOT NULL DEFAULT '' COMMENT '所属部门名',
     `creator_user` int unsigned DEFAULT 0 NOT NULL COMMENT '创建用户ID',
     `deleted_at` bigint unsigned NOT NULL DEFAULT 0 COMMENT '删除时间 second',
     `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
@@ -115,7 +117,6 @@ CREATE TABLE `user_favorite` (
     primary key (`id`),
     unique key `uk_user_app` (`user_id`, `app_id`, `deleted_at`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT = '应用收藏';
-
 
 -- app 集群环境
 DROP TABLE IF EXISTS `cluster`;

@@ -8,16 +8,20 @@ use crate::web::{
 use entity::{rule::Verb, users::UserLevel};
 
 #[inline]
-pub fn acc_admin(user_level: &UserLevel, app_id: Option<String>) -> bool {
-    match user_level {
+pub fn acc_admin(auth: &Claims, app_id: Option<String>) -> bool {
+    match auth.user_level {
         // 是否超级管理员
         UserLevel::Admin => true,
-        UserLevel::OrgAdmin => {
-            // 判断资源是否属同一部门
-            // auth.org_id == resource.org_id
-            false
+        UserLevel::DeptAdmin => {
+            return match app_id {
+                Some(id) => {
+                    // 判断资源是否属同一部门
+                    // auth.org_id == resource.org_id
+                    false
+                }
+                None => false,
+            };
         }
-        // 继续向下判断
         UserLevel::Normal => false,
     }
 }
@@ -26,10 +30,7 @@ pub async fn accredit(auth: &Claims, verb: Verb, resource: Vec<&str>) -> Result<
     if resource.len() == 0 {
         return Ok(false);
     }
-    if acc_admin(
-        &auth.user_level,
-        resource.first().and_then(|x| Some(x.to_string())),
-    ) {
+    if acc_admin(auth, resource.first().and_then(|x| Some(x.to_string()))) {
         return Ok(true);
     }
     // 获得用户的角色ID

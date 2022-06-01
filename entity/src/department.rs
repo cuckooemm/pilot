@@ -1,5 +1,3 @@
-use crate::grable_id_u32;
-
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 
@@ -7,7 +5,6 @@ use serde::{Deserialize, Serialize};
 #[sea_orm(table_name = "department")]
 pub struct Model {
     #[sea_orm(primary_key)]
-    #[serde(serialize_with = "grable_id_u32")]
     pub id: u32,
     pub name: String,                     // 部门名
     pub deleted_at: u64,                  // 删除时间 为0则未删除

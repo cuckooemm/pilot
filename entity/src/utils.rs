@@ -1,6 +1,7 @@
+use chrono::{DateTime, Local, TimeZone};
 use harsh::Harsh;
 use once_cell::sync::OnceCell;
-use serde::Serializer;
+use serde::{Serializer, ser::Error};
 
 static HARSH: OnceCell<Harsh> = OnceCell::new();
 
@@ -37,4 +38,15 @@ pub fn decode_i64(id: &String) -> u64 {
         return id;
     }
     0
+}
+
+pub fn format_time<S>(id: &u64, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    if 0 == *id {
+        return serializer.serialize_char('0');
+    }
+    let dt: DateTime<Local> = Local.timestamp((*id) as i64, 0);
+    serializer.serialize_str(&dt.to_rfc3339())
 }

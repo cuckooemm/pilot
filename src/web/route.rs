@@ -23,7 +23,14 @@ pub async fn init_router() -> Router {
 
     let users_group = Router::new()
         .route("/register", post(users::register))
-        .route("/login", post(users::login));
+        .route("/login", post(users::login))
+        .route("/addition", post(users::addition))
+        .route("/list",get(users::list));
+
+    let department_group = Router::new()
+        .route("/create", post(department::create))
+        .route("/list", get(department::list))
+        .route("/delete", post(department::delete));
 
     let app_group = Router::new()
         .route("/create", post(app::create))
@@ -56,6 +63,7 @@ pub async fn init_router() -> Router {
     let api_group = Router::new()
         .nest("/config", config_group)
         .nest("/app", app_group)
+        .nest("/department", department_group)
         .nest("/users", users_group)
         .nest("/cluster", cluster)
         .nest("/namespace", namespace)

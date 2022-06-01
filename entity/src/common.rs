@@ -5,22 +5,6 @@ use std::fmt::Display;
 use sea_orm::{entity::prelude::*, FromQueryResult};
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, PartialEq, EnumIter, DeriveActiveEnum, Deserialize, Serialize)]
-#[sea_orm(rs_type = "u16", db_type = "Integer")]
-pub enum Status {
-    #[sea_orm(num_value = 0)]
-    Normal,
-    #[sea_orm(num_value = 1)]
-    Publication,
-    #[sea_orm(num_value = 2)]
-    Delete,
-}
-
-impl Default for Status {
-    fn default() -> Self {
-        Status::Normal
-    }
-}
 
 #[derive(Debug, Clone, PartialEq, EnumIter, DeriveActiveEnum, Deserialize, Serialize)]
 #[sea_orm(rs_type = "String", db_type = "String(Some(20))")]
@@ -92,6 +76,25 @@ impl From<String> for Scope {
 pub struct IDu32 {
     #[serde(serialize_with = "grable_id_u32")]
     pub id: u32,
+}
+
+#[derive(FromQueryResult, Default, Debug, Clone, Serialize)]
+pub struct Name {
+    pub name: String,
+}
+
+#[derive(FromQueryResult, Default, Debug, Clone, Serialize)]
+pub struct Id32Name {
+    #[serde(serialize_with = "grable_id_u32")]
+    pub id: u32,
+    pub name: String,
+}
+
+#[derive(FromQueryResult, Default, Debug, Clone, Serialize)]
+pub struct Id64Name {
+    #[serde(serialize_with = "grable_id")]
+    pub id: u64,
+    pub name: String,
 }
 
 #[derive(FromQueryResult, Default, Debug, Clone, Serialize)]
