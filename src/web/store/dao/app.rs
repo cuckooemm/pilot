@@ -18,7 +18,7 @@ pub async fn add(app_id: String, name: String, auth: &Claims) -> Result<(), DbEr
     let app = AppActive {
         app_id: Set(app_id.clone()),
         name: Set(name),
-        org_id: Set(auth.org_id),
+        dept_id: Set(auth.dept_id),
         creator_user: Set(auth.user_id),
         ..Default::default()
     };

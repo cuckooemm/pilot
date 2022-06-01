@@ -8,6 +8,9 @@ use entity::orm::DbErr;
 use serde::Serialize;
 
 #[derive(Debug, Serialize, Default)]
+pub struct Empty {}
+
+#[derive(Debug, Serialize, Default)]
 pub struct APIResponse<T: Serialize> {
     #[serde(rename(serialize = "code"))]
     pub code: i32,

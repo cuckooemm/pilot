@@ -21,6 +21,7 @@ pub use sea_orm as orm;
 
 pub use utils::grable_id;
 pub use utils::grable_id_u32;
+pub use utils::format_time;
 
 pub use cluster::SecretData;
 pub use common::{IDu32, ItemCategory, Scope, ID};

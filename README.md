@@ -1,4 +1,4 @@
-# Primordial
+# Pilot
 
 ## 配置中心服务
 
@@ -17,6 +17,7 @@ TODO
 - [x] 发布回退
 - [x] API获取配置
 - [x] 长轮询监听
+- [x] 接入prometheus监控
 - [ ] SDK
 
 [API接口](https://www.apifox.cn/apidoc/shared-1f61bd34-1153-43ff-8f26-689388d384ba)

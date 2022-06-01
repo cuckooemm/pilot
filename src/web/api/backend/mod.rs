@@ -6,6 +6,7 @@ pub mod namespace;
 pub mod publication;
 pub mod users;
 pub mod favorite;
+pub mod department;
 
 use super::super::extract::response;
 use super::super::APIResult;

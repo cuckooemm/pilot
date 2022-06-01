@@ -25,7 +25,7 @@ static JWT_ENCODE: Lazy<EncodingKey> =
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct Claims {
     pub user_id: u32,
-    pub org_id: u32,
+    pub dept_id: u32,
     pub user_level: UserLevel,
     pub exp: i64,
 }
@@ -62,12 +62,12 @@ where
 #[inline]
 pub fn auth_token(
     user_id: u32,
-    org_id: u32,
+    dept_id: u32,
     user_level: UserLevel,
 ) -> Result<String, jsonwebtoken::errors::Error> {
     let claim = Claims {
         user_id,
-        org_id,
+        dept_id,
         user_level,
         exp: Local::now().timestamp() + 86400,
     };
