@@ -4,7 +4,7 @@ use crate::web::{
         json::ReqJson,
         jwt::Claims,
         query::ReqQuery,
-        response::{APIError, APIResponse, ParamErrType},
+        response::{APIError, ApiResponse, ParamErrType},
     },
     store::dao::{app, favorite},
     APIResult,
@@ -22,7 +22,7 @@ pub struct FavoriteParam {
 pub async fn add(
     ReqJson(param): ReqJson<FavoriteParam>,
     auth: Claims,
-) -> APIResult<Json<APIResponse<ID>>> {
+) -> APIResult<Json<ApiResponse<ID>>> {
     let app_id = check::id_str(param.app_id, "app_id")?;
 
     // 查看 app_id 是否存在
@@ -37,7 +37,7 @@ pub async fn add(
     // 查看是否已经存在此收藏记录
     favorite::add(app_id, auth.user_id).await?;
 
-    Ok(Json(APIResponse::ok()))
+    Ok(Json(ApiResponse::ok()))
 }
 
 #[derive(Deserialize)]
@@ -50,11 +50,11 @@ pub struct QueryParam {
 pub async fn list(
     ReqQuery(param): ReqQuery<QueryParam>,
     auth: Claims,
-) -> APIResult<Json<APIResponse<Vec<AppItem>>>> {
+) -> APIResult<Json<ApiResponse<Vec<AppItem>>>> {
     let (page, page_size) = check::page(param.page, param.page_size);
 
     let list = favorite::get_app(auth.user_id, (page - 1) * page_size, page_size).await?;
-    let mut rsp = APIResponse::ok_data(list);
+    let mut rsp = ApiResponse::ok_data(list);
     rsp.set_page(page, page_size);
     Ok(Json(rsp))
 }

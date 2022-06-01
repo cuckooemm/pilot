@@ -1,34 +1,47 @@
-use sea_orm::entity::prelude::*;
+use sea_orm::{entity::prelude::*, FromQueryResult};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Deserialize, Serialize)]
 #[sea_orm(table_name = "users")]
 pub struct Model {
     #[sea_orm(primary_key)]
-    #[serde(serialize_with = "super::grable_id_u32")]
+    #[serde(serialize_with = "super::confuse")]
     pub id: u32, // 用户ID
     pub account: String,  // 登录用户名
     pub email: String,    // 邮箱
     pub nickname: String, // 用户名
     #[serde(skip)]
     pub password: String, // 密码
-    #[serde(serialize_with = "super::grable_id_u32")]
+    #[serde(serialize_with = "super::confuse")]
     pub dept_id: u32, // 部门
-    pub dept_name: String, // 部门名称
     pub level: UserLevel, // 帐号等级
-    #[serde(serialize_with = "super::format_time")]
-    //     skip_serializing_if = "super::is_zero"
+    #[serde(
+        serialize_with = "super::format_time",
+        skip_serializing_if = "super::is_zero"
+    )]
     pub deleted_at: u64, // 删除时间
     pub created_at: DateTimeWithTimeZone, // 创建时间
     pub updated_at: DateTimeWithTimeZone, // 更新时间
 }
 
 #[derive(Copy, Clone, Debug, EnumIter)]
-pub enum Relation {}
+pub enum Relation {
+    Department,
+}
 
 impl RelationTrait for Relation {
     fn def(&self) -> RelationDef {
-        panic!("No RelationDef")
+        match self {
+            Self::Department => Entity::belongs_to(super::DepartmentEntity)
+                .from(Column::DeptId)
+                .to(super::DepartmentColumn::Id)
+                .into(),
+        }
+    }
+}
+impl Related<super::DepartmentEntity> for Entity {
+    fn to() -> RelationDef {
+        Relation::Department.def()
     }
 }
 
@@ -60,24 +73,23 @@ impl From<String> for UserLevel {
     }
 }
 
-pub enum Status {
-    Normal,
-    Delete,
-    Other,
-}
 
-impl From<String> for Status {
-    fn from(str: String) -> Self {
-        match str.trim().to_lowercase().as_str() {
-            "delete" => Self::Delete,
-            "normal" => Self::Normal,
-            _ => Self::Other,
-        }
-    }
-}
-
-impl Default for Status {
-    fn default() -> Self {
-        Status::Normal
-    }
+#[derive(FromQueryResult, Clone, Debug, PartialEq, Deserialize, Serialize)]
+pub struct UserItem {
+    #[serde(serialize_with = "super::confuse")]
+    pub id: u32, // 用户ID
+    pub account: String,  // 登录用户名
+    pub email: String,    // 邮箱
+    pub nickname: String, // 用户名
+    #[serde(serialize_with = "super::confuse")]
+    pub dept_id: u32, // 部门
+    pub dept_name: String,
+    pub level: UserLevel, // 帐号等级
+    #[serde(
+        serialize_with = "super::format_time",
+        skip_serializing_if = "super::is_zero"
+    )]
+    pub deleted_at: u64, // 删除时间
+    pub created_at: DateTimeWithTimeZone, // 创建时间
+    pub updated_at: DateTimeWithTimeZone, // 更新时间
 }

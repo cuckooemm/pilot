@@ -4,7 +4,7 @@ use crate::web::{
         json::ReqJson,
         jwt::{self, Claims},
         query::ReqQuery,
-        response::{APIError, APIResponse, Empty, ParamErrType},
+        response::{APIError, ApiResponse, Empty, ParamErrType},
     },
     store::dao::{self, department, users},
     APIResult,
@@ -14,8 +14,8 @@ use axum::Json;
 use chrono::Local;
 use entity::{
     orm::{ActiveModelTrait, IntoActiveModel, Set},
-    users::{Status, UserLevel},
-    UsersActive, UsersModel, ID,
+    users::{UserItem, UserLevel},
+    UsersActive, UsersModel, ID, common::Status,
 };
 use headers::HeaderMap;
 use serde::{Deserialize, Serialize};
@@ -34,20 +34,17 @@ pub struct RegisterParam {
 pub async fn addition(
     ReqJson(param): ReqJson<RegisterParam>,
     auth: Claims,
-) -> APIResult<Json<APIResponse<Empty>>> {
+) -> APIResult<Json<ApiResponse<Empty>>> {
     let account = check::account(param.account)?;
     let password = check::password(param.password)?;
     let email = check::email(param.email)?;
     let nickname = check::nickname(param.nickname)?.unwrap_or(account.clone());
     let level: UserLevel = param.level.unwrap_or_default().into();
     let mut dept_id = 0;
-    let mut dept_name = None;
     if level != UserLevel::Admin {
         // 如果添加的帐号为超级管理员则无需填写部门ID
-        dept_id = check::id_decode(param.dept_id, "dept_id")? as u32;
-        // 获取部门名
-        dept_name = department::get_department_name(dept_id).await?;
-        if dept_name.is_none() {
+        dept_id = check::id_decode::<u32>(param.dept_id, "dept_id")?;
+        if !department::is_exist_id(dept_id).await? {
             return Err(APIError::new_param_err(ParamErrType::NotExist, "dept_id"));
         }
     }
@@ -84,12 +81,11 @@ pub async fn addition(
         password: Set(password.unwrap()),
         nickname: Set(nickname),
         dept_id: Set(dept_id),
-        dept_name: Set(dept_name.unwrap_or_default()),
         level: Set(level),
         ..Default::default()
     };
     dao::users::add(user).await?;
-    Ok(Json(APIResponse::ok()))
+    Ok(Json(ApiResponse::ok()))
 }
 
 #[derive(Debug, Deserialize)]
@@ -107,8 +103,8 @@ pub struct UpdateParam {
 pub async fn edit(
     ReqJson(param): ReqJson<UpdateParam>,
     auth: Claims,
-) -> APIResult<Json<APIResponse<UsersModel>>> {
-    let id = check::id_decode(param.id, "id")? as u32;
+) -> APIResult<Json<ApiResponse<UsersModel>>> {
+    let id = check::id_decode::<u32>(param.id, "id")?;
 
     // 找到此ID的用户信息
     let user = users::get_info(id).await?;
@@ -159,8 +155,12 @@ pub async fn edit(
     };
     let dept_id = match param.dept_id {
         Some(dept) => {
-            let dept = check::id_decode_rule(&dept, "dept_id")? as u32;
+            let dept = check::id_decode_rule::<u32>(&dept, "dept_id")?;
             if user.dept_id != dept {
+                // 检查部门ID是否存在
+                if !department::is_exist_id(dept).await? {
+                    return Err(APIError::new_param_err(ParamErrType::NotExist, "dept_id"));
+                }
                 Some(dept)
             } else {
                 None
@@ -252,7 +252,6 @@ pub async fn edit(
             return Err(APIError::new_param_err(ParamErrType::Exist, "email"));
         }
         active.dept_id = Set(dept_id);
-        active.dept_name = Set(name.unwrap());
     }
 
     // 更新密码
@@ -275,10 +274,10 @@ pub async fn edit(
         active.deleted_at = Set(delete);
     }
     if !active.is_changed() {
-        return Ok(Json(APIResponse::ok_data(user)));
+        return Ok(Json(ApiResponse::ok_data(user)));
     }
     let model = users::update(active).await?;
-    Ok(Json(APIResponse::ok_data(model)))
+    Ok(Json(ApiResponse::ok_data(model)))
 }
 
 #[derive(Deserialize)]
@@ -290,7 +289,7 @@ pub struct QueryParam {
 pub async fn list(
     ReqQuery(param): ReqQuery<QueryParam>,
     auth: Claims,
-) -> APIResult<Json<APIResponse<Vec<UsersModel>>>> {
+) -> APIResult<Json<ApiResponse<Vec<UserItem>>>> {
     // 默认获取状态正常用户
     let status = match param.status {
         Some(s) => Status::from(s),
@@ -309,12 +308,12 @@ pub async fn list(
     }
 
     let list = users::get_use_list(dept, status, (page - 1) * page_size, page_size).await?;
-    let mut response = APIResponse::ok_data(list);
+    let mut response = ApiResponse::ok_data(list);
     response.set_page(page, page_size);
     Ok(Json(response))
 }
 
-pub async fn register(ReqJson(param): ReqJson<RegisterParam>) -> APIResult<Json<APIResponse<ID>>> {
+pub async fn register(ReqJson(param): ReqJson<RegisterParam>) -> APIResult<Json<ApiResponse<ID>>> {
     let account = check::account(param.account)?;
     let password = check::password(param.password)?;
     let email = check::email(param.email)?;
@@ -343,7 +342,7 @@ pub async fn register(ReqJson(param): ReqJson<RegisterParam>) -> APIResult<Json<
         ..Default::default()
     };
     dao::users::add(user).await?;
-    Ok(Json(APIResponse::ok()))
+    Ok(Json(ApiResponse::ok()))
 }
 
 #[derive(Deserialize)]
@@ -359,7 +358,7 @@ pub struct AuthResponse {
 
 pub async fn login(
     ReqJson(param): ReqJson<LoginParam>,
-) -> APIResult<(HeaderMap, Json<APIResponse<AuthResponse>>)> {
+) -> APIResult<(HeaderMap, Json<ApiResponse<AuthResponse>>)> {
     let account = check::account(param.account)?;
     let password = check::password(param.password)?;
 
@@ -388,5 +387,5 @@ pub async fn login(
     let token = auth.unwrap();
     let header = jwt::set_cookie(&token);
     // 返回session
-    Ok((header, Json(APIResponse::ok_data(AuthResponse { token }))))
+    Ok((header, Json(ApiResponse::ok_data(AuthResponse { token }))))
 }

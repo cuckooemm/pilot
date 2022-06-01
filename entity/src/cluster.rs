@@ -33,7 +33,7 @@ pub struct SecretData {
 
 #[derive(FromQueryResult, Serialize, Debug)]
 pub struct ClusterItem {
-    #[serde(serialize_with = "super::grable_id")]
+    #[serde(serialize_with = "super::confuse")]
     pub id: u64,
     pub name: String,
 }
