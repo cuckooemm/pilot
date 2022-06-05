@@ -31,9 +31,7 @@ pub async fn init_router() -> Router {
     let department_group = Router::new()
         .route("/create", post(department::create))
         .route("/edit", put(department::edit))
-        .route("/list", get(department::list))
-        .route("/delete", post(department::delete));
-
+        .route("/list", get(department::list));
     let app_group = Router::new()
         .route("/create", post(app::create))
         .route("/edit", put(app::edit))

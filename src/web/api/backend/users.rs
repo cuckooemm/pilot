@@ -13,9 +13,10 @@ use crate::web::{
 use axum::Json;
 use chrono::Local;
 use entity::{
+    common::Status,
     orm::{ActiveModelTrait, IntoActiveModel, Set},
     users::{UserItem, UserLevel},
-    UsersActive, UsersModel, ID, common::Status,
+    UsersActive, UsersModel, ID,
 };
 use headers::HeaderMap;
 use serde::{Deserialize, Serialize};
@@ -247,9 +248,8 @@ pub async fn edit(
     }
     // 检查部门是否存在 并更新
     if let Some(dept_id) = dept_id {
-        let name = department::get_department_name(dept_id).await?;
-        if name.is_none() {
-            return Err(APIError::new_param_err(ParamErrType::Exist, "email"));
+        if !department::is_exist_id(dept_id).await? {
+            return Err(APIError::new_param_err(ParamErrType::NotExist, "email"));
         }
         active.dept_id = Set(dept_id);
     }
@@ -291,10 +291,7 @@ pub async fn list(
     auth: Claims,
 ) -> APIResult<Json<ApiResponse<Vec<UserItem>>>> {
     // 默认获取状态正常用户
-    let status = match param.status {
-        Some(s) => Status::from(s),
-        None => Status::Other,
-    };
+    let status: Status = param.status.unwrap_or_default().into();
 
     let (page, page_size) = check::page(param.page, param.page_size);
     let mut dept = None;

@@ -6,6 +6,7 @@ use super::APIResult;
 use super::{check, ReqJson, ReqQuery};
 use crate::web::api::permission::accredit;
 use crate::web::extract::jwt::Claims;
+use crate::web::extract::response::Empty;
 use crate::web::store::dao::{app, rule, user_role};
 
 use axum::extract::Json;
@@ -28,7 +29,7 @@ pub struct ClusterParam {
 pub async fn create(
     ReqJson(param): ReqJson<ClusterParam>,
     auth: Claims,
-) -> APIResult<Json<ApiResponse<ID>>> {
+) -> APIResult<Json<ApiResponse<Empty>>> {
     // check param
     let cluster = check::id_str(param.cluster, "cluster")?;
     let app_id = check::id_str(param.app_id, "app_id")?;
@@ -56,11 +57,19 @@ pub async fn create(
     Ok(Json(ApiResponse::ok()))
 }
 
+pub async fn edit(
+    ReqJson(param): ReqJson<ClusterParam>,
+    auth: Claims,
+) -> APIResult<Json<ApiResponse<Empty>>> {
+
+    Ok(Json(ApiResponse::ok())) 
+}
+
 // 重置密钥接口
 pub async fn reset_secret(
     ReqJson(param): ReqJson<ClusterParam>,
     auth: Claims,
-) -> APIResult<Json<ApiResponse<ID>>> {
+) -> APIResult<Json<ApiResponse<Empty>>> {
     let cluster = check::id_str(param.cluster, "cluster")?;
     let app_id = check::id_str(param.app_id, "app_id")?;
     // 校验权限
