@@ -1,10 +1,12 @@
 use super::{master, slaver};
 
 use chrono::Local;
-use entity::common::{Id32Name, Name};
+use entity::common::{Id32Name, Name, Status};
 use entity::orm::sea_query::Expr;
-use entity::orm::{ColumnTrait, DbErr, EntityTrait, QueryFilter, QuerySelect, Set};
-use entity::{DepartmentActive, DepartmentColumn, DepartmentEntity, ID};
+use entity::orm::{
+    ActiveModelTrait, ColumnTrait, DbErr, EntityTrait, QueryFilter, QueryOrder, QuerySelect, Set,
+};
+use entity::{DepartmentActive, DepartmentColumn, DepartmentEntity, DepartmentModel, ID};
 
 pub async fn add(name: String) -> Result<u32, DbErr> {
     let active = DepartmentActive {
@@ -15,13 +17,8 @@ pub async fn add(name: String) -> Result<u32, DbErr> {
     Ok(r.last_insert_id)
 }
 
-pub async fn update(id: u32, name: String) -> Result<bool, DbErr> {
-    let r = DepartmentEntity::update_many()
-        .col_expr(DepartmentColumn::Name, Expr::value(name))
-        .filter(DepartmentColumn::Id.eq(id))
-        .exec(master())
-        .await?;
-    Ok(r.rows_affected != 0)
+pub async fn update(active: DepartmentActive) -> Result<DepartmentModel, DbErr> {
+    active.update(master()).await
 }
 
 pub async fn delete(name: String) -> Result<u64, DbErr> {
@@ -61,6 +58,9 @@ pub async fn is_exist(name: String) -> Result<bool, DbErr> {
     Ok(model.is_some())
 }
 
+pub async fn get_info(id: u32) -> Result<Option<DepartmentModel>, DbErr> {
+    DepartmentEntity::find_by_id(id).one(master()).await
+}
 pub async fn get_department_name(id: u32) -> Result<Option<String>, DbErr> {
     let r = DepartmentEntity::find()
         .select_only()
@@ -73,16 +73,29 @@ pub async fn get_department_name(id: u32) -> Result<Option<String>, DbErr> {
     Ok(r.and_then(|s| Some(s.name)))
 }
 
-pub async fn search_department(name: Option<String>) -> Result<Vec<Id32Name>, DbErr> {
+pub async fn search_department(
+    name: Option<String>,
+    status: Status,
+    offset: u64,
+    limit: u64,
+) -> Result<Vec<Id32Name>, DbErr> {
     let mut stmt = DepartmentEntity::find()
         .select_only()
         .column(DepartmentColumn::Id)
-        .column(DepartmentColumn::Name);
+        .column(DepartmentColumn::Name)
+        .offset(offset)
+        .limit(limit);
     if let Some(n) = name {
         stmt = stmt.filter(DepartmentColumn::Name.contains(&n));
     }
+    match status {
+        // 默认仅展示 正常状态的部门
+        Status::Other => stmt = stmt.filter(DepartmentColumn::DeletedAt.eq(0_u64)),
+        Status::Normal => stmt = stmt.filter(DepartmentColumn::DeletedAt.eq(0_u64)),
+        Status::Delete => stmt = stmt.filter(DepartmentColumn::DeletedAt.ne(0_u64)),
+    }
     let r = stmt
-        .filter(DepartmentColumn::DeletedAt.eq(0_u64))
+        .order_by_desc(DepartmentColumn::Id)
         .into_model::<Id32Name>()
         .all(slaver())
         .await?;

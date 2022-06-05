@@ -11,7 +11,13 @@ use crate::web::{
 };
 
 use axum::Json;
-use entity::{common::Id32Name, users::UserLevel, ID};
+use chrono::Local;
+use entity::{
+    common::{Id32Name, Status},
+    orm::{ActiveModelTrait, IntoActiveModel, Set},
+    users::UserLevel,
+    DepartmentModel, ID,
+};
 use serde::Deserialize;
 
 #[derive(Deserialize)]
@@ -49,17 +55,18 @@ pub async fn create(
     Ok(Json(ApiResponse::ok_data(Id32Name { id, name })))
 }
 
+#[derive(Deserialize)]
+pub struct EditDepartmentParam {
+    pub id: Option<String>,
+    pub name: Option<String>,
+    pub status: Option<String>,
+}
 // 更新部门信息
 pub async fn edit(
-    ReqJson(param): ReqJson<DepartmentParam>,
+    ReqJson(param): ReqJson<EditDepartmentParam>,
     auth: Claims,
-) -> APIResult<Json<ApiResponse<Id32Name>>> {
+) -> APIResult<Json<ApiResponse<DepartmentModel>>> {
     let id = check::id_decode::<u32>(param.id, "id")?;
-    let dept_name = department::get_department_name(id).await?;
-    if dept_name.is_none() {
-        return Err(APIError::new_param_err(ParamErrType::NotExist, "id"));
-    }
-    let mut dept_name = dept_name.unwrap();
     match auth.user_level {
         UserLevel::Admin => (),
         UserLevel::DeptAdmin => {
@@ -70,24 +77,54 @@ pub async fn edit(
         }
         UserLevel::Normal => return Err(APIError::new_permission_forbidden()),
     }
+    let dept = department::get_info(id).await?;
+    if dept.is_none() {
+        return Err(APIError::new_param_err(ParamErrType::NotExist, "id"));
+    }
+    let dept = dept.unwrap();
+    let mut active = dept.clone().into_active_model();
     if let Some(name) = param.name {
         let name = check::trim(name);
         if name.len() == 0 || name.len() > 128 {
             return Err(APIError::new_param_err(ParamErrType::Len(1, 128), "name"));
         }
-        if name != dept_name {
-            department::update(id, name.clone()).await?;
-            dept_name = name;
+        if name != dept.name {
+            active.name = Set(name);
         }
     }
-    Ok(Json(ApiResponse::ok_data(Id32Name {
-        id,
-        name: dept_name,
-    })))
+    if let Some(status) = param.status {
+        match Status::from(status) {
+            Status::Other => (),
+            Status::Normal => {
+                // 状态为delete 更改为正常
+                if dept.deleted_at != 0 {
+                    active.deleted_at = Set(0);
+                }
+            }
+            Status::Delete => {
+                if dept.deleted_at == 0 {
+                    active.deleted_at = Set(Local::now().timestamp() as u64);
+                }
+            }
+        }
+    }
+    if !active.is_changed() {
+        return Ok(Json(ApiResponse::ok_data(dept)));
+    }
+    let model = department::update(active).await?;
+    Ok(Json(ApiResponse::ok_data(model)))
+}
+
+#[derive(Deserialize)]
+pub struct QueryParam {
+    pub name: Option<String>,
+    pub status: Option<String>,
+    pub page: Option<String>,
+    pub page_size: Option<String>,
 }
 
 pub async fn list(
-    ReqQuery(param): ReqQuery<DepartmentParam>,
+    ReqQuery(param): ReqQuery<QueryParam>,
     _: Claims,
 ) -> APIResult<Json<ApiResponse<Vec<Id32Name>>>> {
     let name = match param.name {
@@ -104,32 +141,10 @@ pub async fn list(
         }
         None => None,
     };
-    let list = department::search_department(name).await?;
+    let (page, page_size) = check::page(param.page, param.page_size);
+
+    let status: Status = param.status.unwrap_or_default().into();
+    let list =
+        department::search_department(name, status, (page - 1) * page_size, page_size).await?;
     Ok(Json(ApiResponse::ok_data(list)))
-}
-
-pub async fn delete(
-    ReqJson(param): ReqJson<DepartmentParam>,
-    auth: Claims,
-) -> APIResult<Json<ApiResponse<Empty>>> {
-    let name = match param.name {
-        Some(name) => {
-            let name = check::trim(name);
-            if name.len() == 0 || name.len() > 128 {
-                return Err(APIError::new_param_err(ParamErrType::Len(1, 128), "name"));
-            }
-            name
-        }
-        None => return Err(APIError::new_param_err(ParamErrType::Required, "name")),
-    };
-
-    // 仅超级管理员可操作
-    if !accredit::acc_admin(&auth, None) {
-        return Err(APIError::new_permission_forbidden());
-    }
-    let row = department::delete(name).await?;
-    if row == 0 {
-        return Err(APIError::new_param_err(ParamErrType::NotExist, "name"));
-    }
-    Ok(Json(ApiResponse::ok()))
 }
