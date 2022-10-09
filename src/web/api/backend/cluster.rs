@@ -57,12 +57,16 @@ pub async fn create(
     Ok(Json(ApiResponse::ok()))
 }
 
+#[derive(Deserialize, Debug)]
+pub struct EditParam {
+    pub id: Option<String>,
+    pub secret: Option<String>,
+}
 pub async fn edit(
-    ReqJson(param): ReqJson<ClusterParam>,
+    ReqJson(param): ReqJson<EditParam>,
     auth: Claims,
 ) -> APIResult<Json<ApiResponse<Empty>>> {
-
-    Ok(Json(ApiResponse::ok())) 
+    Ok(Json(ApiResponse::ok()))
 }
 
 // 重置密钥接口

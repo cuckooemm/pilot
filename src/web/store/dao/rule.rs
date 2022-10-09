@@ -5,7 +5,7 @@ use entity::rule::Verb;
 use entity::user_role::{RoleResource, UserRoleID};
 use entity::{RoleRuleColumn, RoleRuleEntity, RuleColumn, RuleEntity};
 
-const RESOURCE_PAT: &str = "/";
+const RESOURCE_PAT: &str = ".";
 
 #[inline]
 pub fn combination_resource(resource: Vec<&str>) -> Vec<String> {
