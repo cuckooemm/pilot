@@ -13,7 +13,7 @@ use crate::web::{
 use axum::Json;
 use chrono::Local;
 use entity::{
-    common::Status,
+    enums::Status,
     orm::{ActiveModelTrait, IntoActiveModel, Set},
     users::{UserItem, UserLevel},
     UsersActive, UsersModel, ID,
@@ -346,11 +346,16 @@ pub async fn register(ReqJson(param): ReqJson<RegisterParam>) -> APIResult<Json<
 pub struct LoginParam {
     pub account: Option<String>,
     pub password: Option<String>,
+    pub remember: Option<bool>,
 }
 
 #[derive(Serialize)]
 pub struct AuthResponse {
+    pub nickname: String,
     pub token: String,
+    #[serde(serialize_with = "entity::confuse")]
+    pub dept_id: u32,
+    pub level: UserLevel,
 }
 
 pub async fn login(
@@ -358,7 +363,6 @@ pub async fn login(
 ) -> APIResult<(HeaderMap, Json<ApiResponse<AuthResponse>>)> {
     let account = check::account(param.account)?;
     let password = check::password(param.password)?;
-
     // 根据帐号获取信息
     let user_info = dao::users::get_info_by_account(account).await?;
     if user_info.is_none() {
@@ -367,7 +371,7 @@ pub async fn login(
     let user_info = user_info.unwrap();
     // 校验密码失败
     if !bcrypt::verify(password, &user_info.password).unwrap_or_default() {
-        return Err(APIError::new_param_err(ParamErrType::Invalid, "account"));
+        return Err(APIError::new_param_err(ParamErrType::Invalid, "password"));
     }
 
     // 判断帐号状态
@@ -376,13 +380,26 @@ pub async fn login(
     }
 
     // 生成认证信息
-    let auth = jwt::auth_token(user_info.id, user_info.dept_id, user_info.level);
+    let auth = jwt::auth_token(
+        user_info.id,
+        user_info.dept_id,
+        user_info.level,
+        param.remember.unwrap_or_default(),
+    );
     if auth.is_err() {
         tracing::error!("Token generation failure. err: {:?}", &auth);
         return Err(APIError::new_server_error());
     }
     let token = auth.unwrap();
-    let header = jwt::set_cookie(&token);
+    let header = jwt::set_cookie(&token,param.remember.unwrap_or_default());
     // 返回session
-    Ok((header, Json(ApiResponse::ok_data(AuthResponse { token }))))
+    Ok((
+        header,
+        Json(ApiResponse::ok_data(AuthResponse {
+            token,
+            nickname: user_info.nickname,
+            dept_id: user_info.dept_id,
+            level: user_info.level,
+        })),
+    ))
 }

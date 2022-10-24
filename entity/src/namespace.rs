@@ -1,4 +1,4 @@
-use super::common::Scope;
+use super::enums::Scope;
 
 use sea_orm::{entity::prelude::*, FromQueryResult};
 use serde::{Deserialize, Serialize};

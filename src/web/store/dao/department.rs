@@ -1,7 +1,8 @@
 use super::{master, slaver};
 
 use chrono::Local;
-use entity::common::{Id32Name, Name, Status};
+use entity::common::{Id32Name, Name};
+use entity::enums::Status;
 use entity::orm::sea_query::Expr;
 use entity::orm::{
     ActiveModelTrait, ColumnTrait, DbErr, EntityTrait, QueryFilter, QueryOrder, QuerySelect, Set,

@@ -9,9 +9,9 @@ use crate::web::APIResult;
 
 use axum::extract::Json;
 use chrono::Local;
-use entity::common::Status;
+use entity::enums::Status;
 use entity::orm::{ActiveModelTrait, IntoActiveModel, Set};
-use entity::{AppActive, AppModel, ID};
+use entity::AppModel;
 use serde::Deserialize;
 
 #[derive(Deserialize)]

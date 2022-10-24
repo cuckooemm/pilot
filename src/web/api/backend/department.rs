@@ -13,7 +13,8 @@ use crate::web::{
 use axum::Json;
 use chrono::Local;
 use entity::{
-    common::{Id32Name, Status},
+    common::Id32Name,
+    enums::Status,
     orm::{ActiveModelTrait, IntoActiveModel, Set},
     users::UserLevel,
     DepartmentModel, ID,

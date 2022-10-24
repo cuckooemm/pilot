@@ -5,6 +5,8 @@ pub mod cluster;
 pub mod common;
 pub mod constant;
 pub mod department;
+pub mod enums;
+pub mod favorite;
 pub mod item;
 pub mod namespace;
 pub mod release;
@@ -15,17 +17,16 @@ pub mod rule;
 pub mod user_role;
 pub mod users;
 pub mod utils;
-pub mod favorite;
 
 pub use sea_orm as orm;
 
+pub use utils::confuse;
 pub use utils::format_time;
 pub use utils::is_zero;
-pub use utils::confuse;
 
 pub use cluster::SecretData;
-pub use common::{IDu32, ItemCategory, Scope, ID};
-
+pub use common::{IDu32, ID};
+pub use enums::{ItemCategory, Scope};
 pub use users::ActiveModel as UsersActive;
 pub use users::Column as UsersColumn;
 pub use users::Entity as UsersEntity;

@@ -2,7 +2,7 @@ use std::future::ready;
 
 use super::{
     api::{backend::*, forent::*},
-    middleware::metrics,
+    middleware::{metrics, middleware},
     store::cache::CacheItem,
 };
 
@@ -32,6 +32,7 @@ pub async fn init_router() -> Router {
         .route("/create", post(department::create))
         .route("/edit", put(department::edit))
         .route("/list", get(department::list));
+        
     let app_group = Router::new()
         .route("/create", post(app::create))
         .route("/edit", put(app::edit))
@@ -72,14 +73,14 @@ pub async fn init_router() -> Router {
         .nest("/item", item);
 
     let recorder_handle = metrics::setup_metrics_recorder();
-
     Router::new()
-        .route("/", get(root))
+        // .route("/", get(root))
         .route("/metrics", get(move || ready(recorder_handle.render())))
         .fallback(not_found.into_service())
         .nest("/api", api_group)
         // .layer(Extension(store))
         .layer(Extension(CacheItem::new()))
+        .layer(middleware().into_inner())
         .route_layer(middleware::from_fn(metrics::track_metrics))
 }
 

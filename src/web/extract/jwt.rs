@@ -1,6 +1,5 @@
-use crate::config;
-
 use super::response::APIError;
+use crate::config;
 
 use axum::{
     async_trait,
@@ -64,18 +63,30 @@ pub fn auth_token(
     user_id: u32,
     dept_id: u32,
     user_level: UserLevel,
+    remember: bool,
 ) -> Result<String, jsonwebtoken::errors::Error> {
+    let mut expire = 3600;
+    if remember {
+        expire = 86400 * 3;
+    }
     let claim = Claims {
         user_id,
         dept_id,
         user_level,
-        exp: Local::now().timestamp() + 86400,
+        exp: Local::now().timestamp() + expire,
     };
     encode(&Header::default(), &claim, &JWT_ENCODE)
 }
 
-pub fn set_cookie(value: &str) -> HeaderMap {
-    let c = format!("{}={}", AUTH_COOKIE_NAME, value);
+pub fn set_cookie(value: &str, remember: bool) -> HeaderMap {
+    let mut c = format!("{}={}", AUTH_COOKIE_NAME, value);
+    c.push_str("; Path=/");
+    if remember {
+        c.push_str(&format!(
+            "; Expires={}",
+            (Local::now().timestamp() + (86400_i64 * 3)).to_string()
+        ))
+    }
     let mut hm = HeaderMap::with_capacity(2);
     hm.insert(axum::http::header::SET_COOKIE, (&c).parse().unwrap());
     hm

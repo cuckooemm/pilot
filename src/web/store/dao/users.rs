@@ -2,7 +2,7 @@ use crate::web::api::backend::department::DepartmentParam;
 
 use super::{master, slaver};
 
-use entity::common::Status;
+use entity::enums::Status;
 use entity::orm::{
     ActiveModelTrait, ColumnTrait, DbErr, EntityTrait, QueryFilter, QueryOrder, QuerySelect,
 };
