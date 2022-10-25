@@ -5,15 +5,15 @@ use super::response::{APIError, ApiResponse, ParamErrType};
 use super::APIResult;
 use super::{check, ReqJson, ReqQuery};
 use crate::web::api::permission::accredit;
-use crate::web::extract::jwt::Claims;
 use crate::web::store::dao::{namespace, release};
 
 use ahash::RandomState;
+use axum::Extension;
 use axum::extract::Json;
 use entity::item::ItemDesc;
 use entity::release::ReleaseItemVersion;
 use entity::release_history::HistoryItem;
-use entity::ID;
+use entity::{ID, UserAuth};
 use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize, Serialize)]
@@ -31,7 +31,7 @@ pub struct PublicationParam {
 
 pub async fn publish(
     ReqJson(param): ReqJson<PublicationParam>,
-    auth: Claims,
+    Extension(auth): Extension<UserAuth>
 ) -> APIResult<Json<ApiResponse<ID>>> {
     if param.items.len() == 0 {
         return Err(APIError::new_param_err(ParamErrType::NotExist, "items"));
@@ -163,7 +163,7 @@ pub async fn publish(
         remark,
         release_config,
         db_items_desc,
-        auth.user_id,
+        auth.id,
     )
     .await?
     {
@@ -182,7 +182,7 @@ pub struct RollbackParam {
 
 pub async fn rollback(
     ReqJson(param): ReqJson<RollbackParam>,
-    auth: Claims,
+    Extension(auth): Extension<UserAuth>
 ) -> APIResult<Json<ApiResponse<ID>>> {
     let history_id = check::id_decode(param.id, "id")?;
     let namespace_id = release_history::get_namespace_id(history_id).await?;
@@ -221,7 +221,7 @@ pub struct HistoryParam {
 // 获取item 发布记录
 pub async fn release_list(
     ReqQuery(param): ReqQuery<HistoryParam>,
-    auth: Claims,
+    Extension(auth): Extension<UserAuth>
 ) -> APIResult<Json<ApiResponse<Vec<HistoryItem>>>> {
     let namespace_id = check::id_decode(param.id, "id")?;
     // 权限校验

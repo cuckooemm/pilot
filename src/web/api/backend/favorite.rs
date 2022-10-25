@@ -2,7 +2,6 @@ use crate::web::{
     api::check,
     extract::{
         json::ReqJson,
-        jwt::Claims,
         query::ReqQuery,
         response::{APIError, ApiResponse, ParamErrType},
     },
@@ -10,8 +9,8 @@ use crate::web::{
     APIResult,
 };
 
-use axum::Json;
-use entity::{app::AppItem, ID};
+use axum::{Json, Extension};
+use entity::{app::AppItem, ID, UserAuth};
 use serde::Deserialize;
 
 #[derive(Deserialize)]
@@ -21,7 +20,7 @@ pub struct FavoriteParam {
 
 pub async fn add(
     ReqJson(param): ReqJson<FavoriteParam>,
-    auth: Claims,
+    Extension(auth): Extension<UserAuth>
 ) -> APIResult<Json<ApiResponse<ID>>> {
     let app_id = check::id_str(param.app_id, "app_id")?;
 
@@ -31,11 +30,11 @@ pub async fn add(
         return Err(APIError::new_param_err(ParamErrType::NotExist, "app_id"));
     }
     let app_id = app_id.unwrap();
-    if favorite::is_exist(app_id, auth.user_id).await? {
+    if favorite::is_exist(app_id, auth.id).await? {
         return Err(APIError::new_param_err(ParamErrType::Exist, "app_id"));
     }
     // 查看是否已经存在此收藏记录
-    favorite::add(app_id, auth.user_id).await?;
+    favorite::add(app_id, auth.id).await?;
 
     Ok(Json(ApiResponse::ok()))
 }
@@ -49,11 +48,11 @@ pub struct QueryParam {
 // 获取用户收藏App
 pub async fn list(
     ReqQuery(param): ReqQuery<QueryParam>,
-    auth: Claims,
+    Extension(auth): Extension<UserAuth>
 ) -> APIResult<Json<ApiResponse<Vec<AppItem>>>> {
     let (page, page_size) = check::page(param.page, param.page_size);
 
-    let list = favorite::get_app(auth.user_id, (page - 1) * page_size, page_size).await?;
+    let list = favorite::get_app(auth.id, (page - 1) * page_size, page_size).await?;
     let mut rsp = ApiResponse::ok_data(list);
     rsp.set_page(page, page_size);
     Ok(Json(rsp))

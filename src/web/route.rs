@@ -2,7 +2,7 @@ use std::future::ready;
 
 use super::{
     api::{backend::*, forent::*},
-    middleware::{cros, metrics},
+    middleware::{cros, metrics, jwt::auth},
     store::cache::CacheItem,
 };
 
@@ -18,13 +18,7 @@ use tower::ServiceBuilder;
 use tower_http::trace::TraceLayer;
 
 pub async fn init_router() -> Router {
-    let config_group = Router::new()
-        .route("/desc", get(config::description))
-        .route("/notifaction", get(config::notifaction));
-
     let users_group = Router::new()
-        .route("/register", post(users::register))
-        .route("/login", post(users::login))
         .route("/addition", post(users::addition))
         .route("/list", get(users::list))
         .route("/edit", put(users::edit));
@@ -63,15 +57,27 @@ pub async fn init_router() -> Router {
         .route("/publish", post(publication::publish))
         .route("/rollback", post(publication::rollback));
 
-    let api_group = Router::new()
-        .nest("/config", config_group)
+    let auth_api = Router::new()
         .nest("/app", app_group)
-        .nest("/department", department_group)
-        .nest("/users", users_group)
         .nest("/cluster", cluster)
         .nest("/namespace", namespace)
         .nest("/app_extend", app_extend)
-        .nest("/item", item);
+        .nest("/users", users_group)
+        .nest("/department", department_group)
+        .nest("/item", item)
+        .layer(middleware::from_fn(auth));
+
+    let auth_group = Router::new()
+        .route("/register", post(users::register))
+        .route("/login", post(users::login));
+    let config_group = Router::new()
+        .route("/desc", get(config::description))
+        .route("/notifaction", get(config::notifaction));
+
+    let api_group = Router::new()
+        .nest("/config", config_group)
+        .nest("/users", auth_group)
+        .merge(auth_api);
 
     let mid = ServiceBuilder::new()
         .layer(TraceLayer::new_for_http())

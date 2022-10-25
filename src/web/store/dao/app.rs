@@ -1,7 +1,6 @@
 use std::str::FromStr;
 
 use super::master;
-use crate::web::extract::jwt::Claims;
 
 use entity::orm::{
     ActiveModelTrait, ColumnTrait, DbErr, EntityTrait, Iterable, QueryFilter, QuerySelect, Set,
@@ -10,16 +9,16 @@ use entity::orm::{
 use entity::rule::Verb;
 use entity::{
     AppActive, AppColumn, AppEntity, AppModel, IDu32, RoleActive, RoleEntity, RoleRuleActive,
-    RoleRuleEntity, RuleActive, RuleEntity, UserRoleActive, UserRoleEntity, ID,
+    RoleRuleEntity, RuleActive, RuleEntity, UserAuth, UserRoleActive, UserRoleEntity, ID,
 };
 
-pub async fn add(app_id: String, name: String, dept_id: u32, auth: &Claims) -> Result<(), DbErr> {
+pub async fn add(app_id: String, name: String, dept_id: u32, auth: &UserAuth) -> Result<(), DbErr> {
     // 构造应用数据
     let app = AppActive {
         app_id: Set(app_id.clone()),
         name: Set(name),
         dept_id: Set(dept_id),
-        creator_user: Set(auth.user_id),
+        creator_user: Set(auth.id),
         ..Default::default()
     };
     // 构造默认角色
@@ -29,7 +28,7 @@ pub async fn add(app_id: String, name: String, dept_id: u32, auth: &Claims) -> R
     };
     // 构造用户角色
     let mut user_bind = UserRoleActive {
-        user_id: Set(auth.user_id),
+        user_id: Set(auth.id),
         ..Default::default()
     };
     let verb_len = Verb::iter().len();

@@ -1,17 +1,17 @@
 use crate::web::api::check;
 use crate::web::api::permission::accredit;
 use crate::web::extract::json::ReqJson;
-use crate::web::extract::jwt::Claims;
 use crate::web::extract::query::ReqQuery;
 use crate::web::extract::response::{APIError, ApiResponse, Empty, ParamErrType};
 use crate::web::store::dao::{app, department};
 use crate::web::APIResult;
 
+use axum::Extension;
 use axum::extract::Json;
 use chrono::Local;
 use entity::enums::Status;
 use entity::orm::{ActiveModelTrait, IntoActiveModel, Set};
-use entity::AppModel;
+use entity::{AppModel, UserAuth};
 use serde::Deserialize;
 
 #[derive(Deserialize)]
@@ -24,7 +24,7 @@ pub struct AppParam {
 // 创建APP
 pub async fn create(
     ReqJson(param): ReqJson<AppParam>,
-    auth: Claims,
+    Extension(auth): Extension<UserAuth>,
 ) -> APIResult<Json<ApiResponse<Empty>>> {
     let app_id = check::id_str(param.app_id, "app_id")?;
     let name = match param.name {
@@ -58,7 +58,7 @@ pub struct EditParam {
 
 pub async fn edit(
     ReqJson(param): ReqJson<EditParam>,
-    auth: Claims,
+    Extension(auth): Extension<UserAuth>
 ) -> APIResult<Json<ApiResponse<AppModel>>> {
     let app_id = check::id_str(param.app_id, "app_id")?;
     let info = app::get_info(app_id.clone()).await?;
@@ -122,7 +122,7 @@ pub struct QueryParam {
 // 获取用户APP
 pub async fn list(
     ReqQuery(param): ReqQuery<QueryParam>,
-    _: Claims,
+    Extension(auth): Extension<UserAuth>
 ) -> APIResult<Json<ApiResponse<Vec<AppModel>>>> {
     // accredit::accredit(&auth, Verb::VIEW, vec!["some_app"]).await?;
     let (page, page_size) = check::page(param.page, param.page_size);

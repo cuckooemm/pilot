@@ -76,7 +76,6 @@ impl From<String> for UserLevel {
     }
 }
 
-
 #[derive(FromQueryResult, Clone, Debug, PartialEq, Deserialize, Serialize)]
 pub struct UserItem {
     #[serde(serialize_with = "super::confuse")]
@@ -97,10 +96,20 @@ pub struct UserItem {
     pub updated_at: DateTimeWithTimeZone, // 更新时间
 }
 
-
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Serialize, Deserialize, Default)]
 pub struct Claims {
-    pub user_id: u32,
+    pub uid: u32,
     pub renewal: i64,
-    pub expired: i64,
+    pub exp: i64,
+}
+
+#[derive(FromQueryResult, Clone, Debug, PartialEq, Deserialize, Serialize)]
+pub struct UserAuth {
+    pub id: u32,          // 用户ID
+    pub account: String,  // 登录用户名
+    pub email: String,    // 邮箱
+    pub nickname: String, // 用户名
+    pub dept_id: u32,     // 部门
+    pub level: UserLevel, // 帐号
+    pub deleted_at: u64, // 删除时间
 }

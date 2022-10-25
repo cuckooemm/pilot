@@ -6,7 +6,7 @@ use entity::enums::Status;
 use entity::orm::{
     ActiveModelTrait, ColumnTrait, DbErr, EntityTrait, QueryFilter, QueryOrder, QuerySelect,
 };
-use entity::users::UserItem;
+use entity::users::{UserAuth, UserItem};
 use entity::{
     DepartmentColumn, DepartmentEntity, UsersActive, UsersColumn, UsersEntity, UsersModel, ID,
 };
@@ -44,8 +44,19 @@ pub async fn get_info_by_account(account: String) -> Result<Option<UsersModel>, 
     stmt.one(master()).await
 }
 
-pub async fn get_user_info(id: u32) -> Result<Option<UsersModel>,DbErr> {
-    UsersEntity::find_by_id(id).one(slaver()).await
+pub async fn get_user_info(id: u32) -> Result<Option<UserAuth>, DbErr> {
+    return UsersEntity::find_by_id(id)
+        .select_only()
+        .column(UsersColumn::Id)
+        .column(UsersColumn::Account)
+        .column(UsersColumn::Email)
+        .column(UsersColumn::Nickname)
+        .column(UsersColumn::DeptId)
+        .column(UsersColumn::Level)
+        .column(UsersColumn::DeletedAt)
+        .into_model::<UserAuth>()
+        .one(slaver())
+        .await;
 }
 
 pub async fn get_info(id: u32) -> Result<Option<UsersModel>, DbErr> {

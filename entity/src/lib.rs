@@ -27,10 +27,13 @@ pub use utils::is_zero;
 pub use cluster::SecretData;
 pub use common::{IDu32, ID};
 pub use enums::{ItemCategory, Scope};
+
 pub use users::ActiveModel as UsersActive;
 pub use users::Column as UsersColumn;
 pub use users::Entity as UsersEntity;
 pub use users::Model as UsersModel;
+pub use users::Claims;
+pub use users::UserAuth;
 
 pub use department::ActiveModel as DepartmentActive;
 pub use department::Column as DepartmentColumn;

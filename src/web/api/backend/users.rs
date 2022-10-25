@@ -288,14 +288,14 @@ pub struct QueryParam {
 }
 pub async fn list(
     ReqQuery(param): ReqQuery<QueryParam>,
-    Extension(user): Extension<UsersModel>,
+    Extension(auth): Extension<UsersModel>,
 ) -> APIResult<Json<ApiResponse<Vec<UserItem>>>> {
     // 默认获取状态正常用户
     let status: Status = param.status.unwrap_or_default().into();
 
     let (page, page_size) = check::page(param.page, param.page_size);
     let mut dept = None;
-    match user.level {
+    match auth.level {
         // 获取所有帐号
         UserLevel::Admin => (),
         // 获取本部门帐号
@@ -352,10 +352,11 @@ pub struct LoginParam {
 #[derive(Serialize)]
 pub struct AuthResponse {
     pub nickname: String,
-    pub token: String,
     #[serde(serialize_with = "entity::confuse")]
     pub dept_id: u32,
     pub level: UserLevel,
+    pub token: String,
+    pub exp: i64,
 }
 
 pub async fn login(
@@ -375,18 +376,18 @@ pub async fn login(
     }
 
     // 判断帐号状态
-    if user_info.deleted_at > 0 {
+    if user_info.deleted_at > 0 || user_info.level == UserLevel::Ban {
         return Err(APIError::new_param_err(ParamErrType::Invalid, "account"));
     }
     let mut renewal = 3600;
     if param.remember.unwrap_or_default() {
-        renewal = 86400 * 3;
+        renewal = 86400 * 7;
     }
     let token = jwt::auth_token(user_info.id, renewal).map_err(|e| {
         tracing::error!("Token generation failure. err: {:?}", e);
         APIError::new_server_error()
     })?;
-    let header = crate::web::extract::jwt::set_cookie(&token, param.remember.unwrap_or_default());
+    let header = jwt::set_cookie(&token, param.remember.unwrap_or_default());
     // 返回session
     Ok((
         header,
@@ -395,6 +396,7 @@ pub async fn login(
             nickname: user_info.nickname,
             dept_id: user_info.dept_id,
             level: user_info.level,
+            exp: Local::now().timestamp() + renewal,
         })),
     ))
 }

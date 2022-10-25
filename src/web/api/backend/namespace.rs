@@ -5,14 +5,14 @@ use super::response::{APIError, ApiResponse, ParamErrType};
 use super::APIResult;
 use super::{check, ReqJson, ReqQuery};
 use crate::web::api::permission::accredit;
-use crate::web::extract::jwt::Claims;
 use crate::web::store::dao::{rule, user_role};
 
+use axum::Extension;
 use axum::extract::Json;
 use entity::namespace::{NamespaceInfo, NamespaceItem};
 use entity::orm::Set;
 use entity::rule::Verb;
-use entity::{NamespaceActive, Scope, ID};
+use entity::{NamespaceActive, Scope, ID, UserAuth};
 use serde::Deserialize;
 
 #[derive(Deserialize)]
@@ -25,7 +25,7 @@ pub struct NamespaceParam {
 
 pub async fn create(
     ReqJson(param): ReqJson<NamespaceParam>,
-    auth: Claims,
+    Extension(auth): Extension<UserAuth>
 ) -> APIResult<Json<ApiResponse<ID>>> {
     let namespace = check::id_str(param.namespace, "namespace")?;
     let app_id = check::id_str(param.app_id, "app_id")?;
@@ -64,7 +64,7 @@ pub async fn create(
         cluster: Set(cluster),
         namespace: Set(namespace),
         scope: Set(scope),
-        creator_user: Set(auth.user_id),
+        creator_user: Set(auth.id),
         ..Default::default()
     };
 
@@ -82,7 +82,7 @@ pub struct NamespaceQueryParam {
 
 pub async fn list(
     ReqQuery(param): ReqQuery<NamespaceQueryParam>,
-    auth: Claims,
+    Extension(auth): Extension<UserAuth>
 ) -> APIResult<Json<ApiResponse<Vec<NamespaceItem>>>> {
     let app_id = check::id_str(param.app_id, "app_id")?;
     let cluster = check::id_str(param.cluster, "cluster")?;
@@ -96,7 +96,7 @@ pub async fn list(
         return Ok(Json(ApiResponse::ok_data(list)));
     }
     // 获取用户角色ID
-    let user_roles = user_role::get_user_role(auth.user_id).await?;
+    let user_roles = user_role::get_user_role(auth.id).await?;
     if user_roles.is_empty() {
         // 返回空
         return Ok(Json(ApiResponse::ok_data(vec![])));
@@ -153,7 +153,7 @@ pub struct PublucNamespaceQueryParam {
 // 获取公共的namespace
 pub async fn list_public(
     ReqQuery(param): ReqQuery<PublucNamespaceQueryParam>,
-    auth: Claims,
+    Extension(auth): Extension<UserAuth>
 ) -> APIResult<Json<ApiResponse<Vec<NamespaceInfo>>>> {
     let namespace = check::id_str(param.namespace, "namespace")?;
 

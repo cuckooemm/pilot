@@ -1,15 +1,15 @@
 use std::collections::HashSet;
 
 use crate::web::{
-    extract::{jwt::Claims, response::APIError},
+    extract::response::APIError,
     store::dao::{rule, user_role},
 };
 
-use entity::{rule::Verb, users::UserLevel};
+use entity::{rule::Verb, users::UserLevel, UserAuth};
 
 #[inline]
-pub fn acc_admin(auth: &Claims, app_id: Option<String>) -> bool {
-    match auth.user_level {
+pub fn acc_admin(auth: &UserAuth, app_id: Option<String>) -> bool {
+    match auth.level {
         // 是否超级管理员
         UserLevel::Admin => true,
         UserLevel::DeptAdmin => {
@@ -26,7 +26,7 @@ pub fn acc_admin(auth: &Claims, app_id: Option<String>) -> bool {
     }
 }
 
-pub async fn accredit(auth: &Claims, verb: Verb, resource: Vec<&str>) -> Result<bool, APIError> {
+pub async fn accredit(auth: &UserAuth, verb: Verb, resource: Vec<&str>) -> Result<bool, APIError> {
     if resource.len() == 0 {
         return Ok(false);
     }
@@ -34,7 +34,7 @@ pub async fn accredit(auth: &Claims, verb: Verb, resource: Vec<&str>) -> Result<
         return Ok(true);
     }
     // 获得用户的角色ID
-    let user_roles = user_role::get_user_role(auth.user_id).await?;
+    let user_roles = user_role::get_user_role(auth.id).await?;
     if user_roles.is_empty() {
         return Ok(false);
     }

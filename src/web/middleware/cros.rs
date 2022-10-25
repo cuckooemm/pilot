@@ -11,5 +11,5 @@ pub fn cros() -> CorsLayer {
         .allow_origin(origin)
         .allow_methods([Method::GET, Method::POST,Method::PUT,Method::OPTIONS])
         .allow_headers(Any)
-        .max_age(std::time::Duration::from_secs(86400));
+        .max_age(std::time::Duration::from_secs(3600));
 }

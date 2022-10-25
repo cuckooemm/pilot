@@ -5,11 +5,11 @@ use super::{
     APIResult,
 };
 use crate::web::api::permission::accredit;
-use crate::web::extract::jwt::Claims;
 
+use axum::Extension;
 use axum::extract::Json;
 use entity::orm::Set;
-use entity::{ItemActive, ItemCategory, ItemModel, ID};
+use entity::{ItemActive, ItemCategory, ItemModel, ID, UserAuth};
 use serde::Deserialize;
 
 #[derive(Deserialize)]
@@ -24,7 +24,7 @@ pub struct ItemParam {
 
 pub async fn create(
     ReqJson(param): ReqJson<ItemParam>,
-    auth: Claims,
+    Extension(auth): Extension<UserAuth>
 ) -> APIResult<Json<ApiResponse<ID>>> {
     let ns_id = check::id_decode(param.id, "id")?;
     let key = check::id_str_len(param.key, "key", None, Some(255))?;
@@ -62,7 +62,7 @@ pub async fn create(
         category: Set(category),
         remark: Set(remark),
         version: Set(1u64),
-        modify_user_id: Set(auth.user_id),
+        modify_user_id: Set(auth.id),
         ..Default::default()
     };
 
@@ -72,7 +72,7 @@ pub async fn create(
 
 pub async fn edit(
     Json(param): Json<ItemParam>,
-    auth: Claims,
+    Extension(auth): Extension<UserAuth>
 ) -> APIResult<Json<ApiResponse<ItemModel>>> {
     let item_id = check::id_decode(param.id, "id")?;
     let version = match param.version {
@@ -136,7 +136,7 @@ pub async fn edit(
         param.category,
         param.remark,
         version,
-        auth.user_id,
+        auth.id,
     )
     .await?;
     if success {
@@ -155,7 +155,7 @@ pub struct DetailsParam {
 
 pub async fn list(
     ReqQuery(param): ReqQuery<DetailsParam>,
-    auth: Claims,
+    Extension(auth): Extension<UserAuth>
 ) -> APIResult<Json<ApiResponse<Vec<ItemModel>>>> {
     let ns_id = check::id_decode(param.namespace, "id")?;
     // 校验权限
