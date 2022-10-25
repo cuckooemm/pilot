@@ -27,15 +27,9 @@ pub fn setup_metrics_recorder() -> PrometheusHandle {
 
 pub async fn track_metrics<B>(req: Request<B>, next: Next<B>) -> impl IntoResponse {
     let start = Instant::now();
-    let path = if let Some(matched_path) = req.extensions().get::<MatchedPath>() {
-        matched_path.as_str().to_owned()
-    } else {
-        req.uri().path().to_owned()
-    };
+    let path = req.uri().path().to_owned();
     let method = req.method().clone();
-
     let response = next.run(req).await;
-
     let latency = start.elapsed().as_secs_f64();
     let code: String;
     let status = response.status().as_u16();

@@ -36,7 +36,7 @@ fn main() {
             .http1_keepalive(true)
             .tcp_keepalive(Some(Duration::from_secs(90)))
             .serve(router.into_make_service())
-            // .with_graceful_shutdown(shutdown_signal())
+            .with_graceful_shutdown(shutdown_signal())
             .await
             .unwrap();
 

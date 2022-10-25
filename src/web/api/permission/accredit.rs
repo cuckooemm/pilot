@@ -22,7 +22,7 @@ pub fn acc_admin(auth: &Claims, app_id: Option<String>) -> bool {
                 None => false,
             };
         }
-        UserLevel::Normal => false,
+        _ => false,
     }
 }
 

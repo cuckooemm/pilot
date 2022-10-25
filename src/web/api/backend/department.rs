@@ -76,7 +76,7 @@ pub async fn edit(
                 return Err(APIError::new_permission_forbidden());
             }
         }
-        UserLevel::Normal => return Err(APIError::new_permission_forbidden()),
+        _ => return Err(APIError::new_permission_forbidden()),
     }
     let dept = department::get_info(id).await?;
     if dept.is_none() {

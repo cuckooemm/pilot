@@ -2,7 +2,7 @@ use std::future::ready;
 
 use super::{
     api::{backend::*, forent::*},
-    middleware::{metrics, middleware},
+    middleware::{cros, metrics},
     store::cache::CacheItem,
 };
 
@@ -11,10 +11,11 @@ use axum::{
     handler::Handler,
     http::StatusCode,
     middleware,
-    response::Html,
     routing::{get, post, put},
     Router,
 };
+use tower::ServiceBuilder;
+use tower_http::trace::TraceLayer;
 
 pub async fn init_router() -> Router {
     let config_group = Router::new()
@@ -32,7 +33,7 @@ pub async fn init_router() -> Router {
         .route("/create", post(department::create))
         .route("/edit", put(department::edit))
         .route("/list", get(department::list));
-        
+
     let app_group = Router::new()
         .route("/create", post(app::create))
         .route("/edit", put(app::edit))
@@ -72,22 +73,19 @@ pub async fn init_router() -> Router {
         .nest("/app_extend", app_extend)
         .nest("/item", item);
 
+    let mid = ServiceBuilder::new()
+        .layer(TraceLayer::new_for_http())
+        .layer(cros::cros())
+        .layer(middleware::from_fn(metrics::track_metrics))
+        .into_inner();
     let recorder_handle = metrics::setup_metrics_recorder();
     Router::new()
-        // .route("/", get(root))
         .route("/metrics", get(move || ready(recorder_handle.render())))
         .fallback(not_found.into_service())
         .nest("/api", api_group)
         // .layer(Extension(store))
         .layer(Extension(CacheItem::new()))
-        .layer(middleware().into_inner())
-        .route_layer(middleware::from_fn(metrics::track_metrics))
-}
-
-// basic handler that responds with a static string
-async fn root() -> Html<&'static str> {
-    tracing::debug!("receive request path: / ");
-    Html("<h1>Hello, World!</h1>")
+        .layer(mid)
 }
 
 async fn not_found() -> StatusCode {

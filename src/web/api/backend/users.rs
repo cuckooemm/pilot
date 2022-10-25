@@ -2,15 +2,15 @@ use crate::web::{
     api::check,
     extract::{
         json::ReqJson,
-        jwt::{self, Claims},
         query::ReqQuery,
         response::{APIError, ApiResponse, Empty, ParamErrType},
     },
+    middleware::jwt,
     store::dao::{self, department, users},
     APIResult,
 };
 
-use axum::Json;
+use axum::{Extension, Json};
 use chrono::Local;
 use entity::{
     enums::Status,
@@ -34,7 +34,7 @@ pub struct RegisterParam {
 // 添加用户 管理员权限
 pub async fn addition(
     ReqJson(param): ReqJson<RegisterParam>,
-    auth: Claims,
+    Extension(auth): Extension<UsersModel>,
 ) -> APIResult<Json<ApiResponse<Empty>>> {
     let account = check::account(param.account)?;
     let password = check::password(param.password)?;
@@ -49,7 +49,7 @@ pub async fn addition(
             return Err(APIError::new_param_err(ParamErrType::NotExist, "dept_id"));
         }
     }
-    match auth.user_level {
+    match auth.level {
         UserLevel::Admin => (),
         // 仅可添加本部门帐号
         UserLevel::DeptAdmin => {
@@ -59,7 +59,7 @@ pub async fn addition(
             }
         }
         // 无权限
-        UserLevel::Normal => return Err(APIError::new_permission_forbidden()),
+        _ => return Err(APIError::new_permission_forbidden()),
     }
 
     // 检查帐号是否存在
@@ -103,7 +103,7 @@ pub struct UpdateParam {
 
 pub async fn edit(
     ReqJson(param): ReqJson<UpdateParam>,
-    auth: Claims,
+    Extension(auth): Extension<UsersModel>,
 ) -> APIResult<Json<ApiResponse<UsersModel>>> {
     let id = check::id_decode::<u32>(param.id, "id")?;
 
@@ -203,7 +203,7 @@ pub async fn edit(
         None => None,
     };
 
-    match auth.user_level {
+    match auth.level {
         UserLevel::Admin => (),
         // 仅可添加本部门帐号
         UserLevel::DeptAdmin => {
@@ -225,7 +225,7 @@ pub async fn edit(
             }
         }
         // 无权限
-        UserLevel::Normal => return Err(APIError::new_permission_forbidden()),
+        _ => return Err(APIError::new_permission_forbidden()),
     }
 
     let mut active = user.clone().into_active_model();
@@ -288,20 +288,20 @@ pub struct QueryParam {
 }
 pub async fn list(
     ReqQuery(param): ReqQuery<QueryParam>,
-    auth: Claims,
+    Extension(user): Extension<UsersModel>,
 ) -> APIResult<Json<ApiResponse<Vec<UserItem>>>> {
     // 默认获取状态正常用户
     let status: Status = param.status.unwrap_or_default().into();
 
     let (page, page_size) = check::page(param.page, param.page_size);
     let mut dept = None;
-    match auth.user_level {
+    match user.level {
         // 获取所有帐号
         UserLevel::Admin => (),
         // 获取本部门帐号
         UserLevel::DeptAdmin => dept = Some(auth.dept_id),
         // 无权限
-        UserLevel::Normal => return Err(APIError::new_permission_forbidden()),
+        _ => return Err(APIError::new_permission_forbidden()),
     }
 
     let list = users::get_use_list(dept, status, (page - 1) * page_size, page_size).await?;
@@ -378,20 +378,15 @@ pub async fn login(
     if user_info.deleted_at > 0 {
         return Err(APIError::new_param_err(ParamErrType::Invalid, "account"));
     }
-
-    // 生成认证信息
-    let auth = jwt::auth_token(
-        user_info.id,
-        user_info.dept_id,
-        user_info.level,
-        param.remember.unwrap_or_default(),
-    );
-    if auth.is_err() {
-        tracing::error!("Token generation failure. err: {:?}", &auth);
-        return Err(APIError::new_server_error());
+    let mut renewal = 3600;
+    if param.remember.unwrap_or_default() {
+        renewal = 86400 * 3;
     }
-    let token = auth.unwrap();
-    let header = jwt::set_cookie(&token,param.remember.unwrap_or_default());
+    let token = jwt::auth_token(user_info.id, renewal).map_err(|e| {
+        tracing::error!("Token generation failure. err: {:?}", e);
+        APIError::new_server_error()
+    })?;
+    let header = crate::web::extract::jwt::set_cookie(&token, param.remember.unwrap_or_default());
     // 返回session
     Ok((
         header,

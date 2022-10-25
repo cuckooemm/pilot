@@ -54,6 +54,9 @@ impl ActiveModelBehavior for ActiveModel {}
 pub enum UserLevel {
     #[sea_orm(num_value = 0)]
     #[serde(rename = "normal")]
+    Ban,
+    #[sea_orm(num_value = 1)]
+    #[serde(rename = "normal")]
     Normal,
     #[sea_orm(num_value = 10)]
     #[serde(rename = "dept_admin")]
@@ -92,4 +95,12 @@ pub struct UserItem {
     pub deleted_at: u64, // 删除时间
     pub created_at: DateTimeWithTimeZone, // 创建时间
     pub updated_at: DateTimeWithTimeZone, // 更新时间
+}
+
+
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+pub struct Claims {
+    pub user_id: u32,
+    pub renewal: i64,
+    pub expired: i64,
 }

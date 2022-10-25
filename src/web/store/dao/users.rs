@@ -44,6 +44,10 @@ pub async fn get_info_by_account(account: String) -> Result<Option<UsersModel>, 
     stmt.one(master()).await
 }
 
+pub async fn get_user_info(id: u32) -> Result<Option<UsersModel>,DbErr> {
+    UsersEntity::find_by_id(id).one(slaver()).await
+}
+
 pub async fn get_info(id: u32) -> Result<Option<UsersModel>, DbErr> {
     UsersEntity::find_by_id(id).one(master()).await
 }
