@@ -5,15 +5,15 @@ use super::response::{APIError, ApiResponse, ParamErrType};
 use super::APIResult;
 use super::{check, ReqJson, ReqQuery};
 use crate::web::api::permission::accredit;
-use crate::web::extract::jwt::Claims;
 use crate::web::extract::response::Empty;
 use crate::web::store::dao::{app, rule, user_role};
 
 use axum::extract::Json;
+use axum::Extension;
 use entity::cluster::ClusterItem;
 use entity::orm::Set;
 use entity::rule::Verb;
-use entity::{ClusterActive, ID};
+use entity::{ClusterActive, UserAuth, ID};
 use rand::{distributions::Alphanumeric, Rng};
 use serde::Deserialize;
 
@@ -28,7 +28,7 @@ pub struct ClusterParam {
 // 创建app集群
 pub async fn create(
     ReqJson(param): ReqJson<ClusterParam>,
-    auth: Claims,
+    Extension(auth): Extension<UserAuth>,
 ) -> APIResult<Json<ApiResponse<Empty>>> {
     // check param
     let cluster = check::id_str(param.cluster, "cluster")?;
@@ -50,7 +50,7 @@ pub async fn create(
         app_id: Set(app_id),
         name: Set(cluster),
         secret: Set(general_rand_secret()),
-        creator_user: Set(auth.user_id),
+        creator_user: Set(auth.id),
         ..Default::default()
     };
     cluster::add(data).await?;
@@ -64,7 +64,7 @@ pub struct EditParam {
 }
 pub async fn edit(
     ReqJson(param): ReqJson<EditParam>,
-    auth: Claims,
+    Extension(auth): Extension<UserAuth>,
 ) -> APIResult<Json<ApiResponse<Empty>>> {
     Ok(Json(ApiResponse::ok()))
 }
@@ -72,7 +72,7 @@ pub async fn edit(
 // 重置密钥接口
 pub async fn reset_secret(
     ReqJson(param): ReqJson<ClusterParam>,
-    auth: Claims,
+    Extension(auth): Extension<UserAuth>,
 ) -> APIResult<Json<ApiResponse<Empty>>> {
     let cluster = check::id_str(param.cluster, "cluster")?;
     let app_id = check::id_str(param.app_id, "app_id")?;
@@ -103,7 +103,7 @@ pub struct ClusterQueryParam {
 
 pub async fn list(
     ReqQuery(param): ReqQuery<ClusterQueryParam>,
-    auth: Claims,
+    Extension(auth): Extension<UserAuth>,
 ) -> APIResult<Json<ApiResponse<Vec<ClusterItem>>>> {
     let app_id = check::id_str(param.app_id, "app_id")?;
 
@@ -117,7 +117,7 @@ pub async fn list(
         return Ok(Json(ApiResponse::ok_data(list)));
     }
     // 获取用户角色ID
-    let user_roles = user_role::get_user_role(auth.user_id).await?;
+    let user_roles = user_role::get_user_role(auth.id).await?;
     if user_roles.is_empty() {
         // 返回空
         return Ok(Json(ApiResponse::ok_data(vec![])));

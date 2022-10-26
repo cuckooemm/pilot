@@ -3,13 +3,13 @@ use super::response::{APIError, ApiResponse, ParamErrType};
 use super::{check, APIResult};
 use super::{ReqJson, ReqQuery};
 use crate::web::api::permission::accredit;
-use crate::web::extract::jwt::Claims;
 use crate::web::store::dao::{app, namespace};
 
+use axum::Extension;
 use axum::extract::Json;
 use entity::namespace::NamespaceItem;
 use entity::orm::Set;
-use entity::AppExtendActive;
+use entity::{AppExtendActive, UserAuth};
 use entity::ID;
 use serde::Deserialize;
 
@@ -21,7 +21,7 @@ pub struct AppExtendParam {
 
 pub async fn create(
     ReqJson(param): ReqJson<AppExtendParam>,
-    auth: Claims,
+    Extension(auth): Extension<UserAuth>
 ) -> APIResult<Json<ApiResponse<ID>>> {
     let app_id = check::id_str(param.app_id, "app_id")?;
     let namespace_id = check::id_decode(param.namespace_id, "namespace_id")?;
@@ -52,7 +52,7 @@ pub async fn create(
         app_id: Set(app_id),
         namespace_id: Set(namespace_id),
         namespace_name: Set(namespace_name),
-        creator_user: Set(auth.user_id),
+        creator_user: Set(auth.id),
         ..Default::default()
     };
 
@@ -62,7 +62,7 @@ pub async fn create(
 
 pub async fn list(
     ReqQuery(param): ReqQuery<AppExtendParam>,
-    auth: Claims,
+    Extension(auth): Extension<UserAuth>
 ) -> APIResult<Json<ApiResponse<Vec<NamespaceItem>>>> {
     let app_id = check::id_str(param.app_id, "app_id")?;
     // 校验权限 是否拥有 app_id 的创建权限

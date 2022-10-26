@@ -12,7 +12,6 @@ CREATE TABLE `users` (
     `nickname` varchar(64) NOT NULL DEFAULT '' COMMENT '用户名称',
     `password` varchar(512) NOT NULL COMMENT '密码',
     `dept_id` int unsigned NOT NULL DEFAULT 0 COMMENT '所属部门ID',
-    `dept_name` varchar(64) NOT NULL DEFAULT '' COMMENT '所属部门名',
     `level` smallint unsigned NOT NULL DEFAULT 0 COMMENT '管理员等级 100:超级管理员 10:部门管理员',
     `deleted_at` bigint unsigned NOT NULL DEFAULT 0 COMMENT '删除时间 second',
     `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
@@ -66,11 +65,8 @@ CREATE TABLE `rule` (
     `id` bigint unsigned NOT NULL AUTO_INCREMENT COMMENT '主键',
     `verb` varchar(32) NOT NULL DEFAULT '' COMMENT '权限类型',
     `resource` varchar(255) NOT NULL DEFAULT '' COMMENT '资源',
-    `deleted_at` bigint unsigned NOT NULL DEFAULT 0 COMMENT '删除时间 second',
-    `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     PRIMARY KEY (`id`),
-    UNIQUE KEY `uk_resource_verb` (`resource`, `verb`, `deleted_at`)
+    UNIQUE KEY `uk_resource_verb` (`resource`, `verb`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT = '权限';
 
 DROP TABLE IF EXISTS `role_rule`;

@@ -37,7 +37,10 @@ pub async fn create(
         }
         None => app_id.clone(),
     };
-    let dept_id = check::id_decode::<u32>(param.dept_id, "dept_id")?;
+    let dept_id = match param.dept_id {
+        Some(id) => check::id_decode_rule::<u32>(&id, "dept_id")?,
+        None => auth.dept_id,
+    };
     if !department::is_exist_id(dept_id).await? {
         return Err(APIError::new_param_err(ParamErrType::NotExist, "dept_id"));
     }

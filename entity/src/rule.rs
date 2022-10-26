@@ -8,10 +8,7 @@ pub struct Model {
     #[serde(skip)]
     pub id: u64,
     pub verb: Verb,                       // 权限类型
-    pub resource: String,                 // 目标
-    pub deleted_at: u64,                  // 删除时间 为0则未删除
-    pub created_at: DateTimeWithTimeZone, // 创建时间
-    pub updated_at: DateTimeWithTimeZone, // 更新时间
+    pub resource: String,                 // 资源
 }
 
 #[derive(Copy, Clone, Debug, EnumIter)]
@@ -34,25 +31,26 @@ impl Related<super::RoleRuleEntity> for Entity {
 }
 
 // impl Related<super::RoleEntity> for Entity {
-    // fn to() -> RelationDef {
-        // Relation::RoleRule.def()
-    // }
+// fn to() -> RelationDef {
+// Relation::RoleRule.def()
 // }
-
+// }
 
 impl ActiveModelBehavior for ActiveModel {}
 
 #[derive(Debug, Clone, PartialEq, EnumIter, DeriveActiveEnum, Deserialize, Serialize)]
 #[sea_orm(rs_type = "String", db_type = "SmallUnsigned")]
 pub enum Verb {
+    // 创建
     #[sea_orm(string_value = "Create")]
-    Create, // 创建
+    Create,
+    // 修改
     #[sea_orm(string_value = "Modify")]
-    Modify, // 修改
+    Modify,
+    // 查看
     #[sea_orm(string_value = "View")]
-    VIEW, // 查看
-    #[sea_orm(string_value = "Assign")]
-    ASSIGN, // 授权
+    VIEW,
+    // 发布
     #[sea_orm(string_value = "Publish")]
-    Publish, // 发布
+    Publish,
 }

@@ -2,7 +2,6 @@ use crate::web::{
     api::{check, permission::accredit},
     extract::{
         json::ReqJson,
-        jwt::Claims,
         query::ReqQuery,
         response::{APIError, ApiResponse, Empty, ParamErrType},
     },
@@ -10,14 +9,14 @@ use crate::web::{
     APIResult,
 };
 
-use axum::Json;
+use axum::{Json, Extension};
 use chrono::Local;
 use entity::{
     common::Id32Name,
     enums::Status,
     orm::{ActiveModelTrait, IntoActiveModel, Set},
     users::UserLevel,
-    DepartmentModel, ID,
+    DepartmentModel, ID, UserAuth,
 };
 use serde::Deserialize;
 
@@ -29,7 +28,7 @@ pub struct DepartmentParam {
 
 pub async fn create(
     ReqJson(param): ReqJson<DepartmentParam>,
-    auth: Claims,
+    Extension(auth): Extension<UserAuth>
 ) -> APIResult<Json<ApiResponse<Id32Name>>> {
     let name = match param.name {
         Some(name) => {
@@ -65,10 +64,10 @@ pub struct EditDepartmentParam {
 // 更新部门信息
 pub async fn edit(
     ReqJson(param): ReqJson<EditDepartmentParam>,
-    auth: Claims,
+    Extension(auth): Extension<UserAuth>
 ) -> APIResult<Json<ApiResponse<DepartmentModel>>> {
     let id = check::id_decode::<u32>(param.id, "id")?;
-    match auth.user_level {
+    match auth.level {
         UserLevel::Admin => (),
         UserLevel::DeptAdmin => {
             // 不能修改其他部门的信息
@@ -126,7 +125,7 @@ pub struct QueryParam {
 
 pub async fn list(
     ReqQuery(param): ReqQuery<QueryParam>,
-    _: Claims,
+    Extension(auth): Extension<UserAuth>
 ) -> APIResult<Json<ApiResponse<Vec<Id32Name>>>> {
     let name = match param.name {
         Some(name) => {

@@ -23,7 +23,7 @@ pub async fn add(app_id: String, name: String, dept_id: u32, auth: &UserAuth) ->
     };
     // 构造默认角色
     let role = RoleActive {
-        name: Set(String::from_str("Master/").unwrap() + &app_id),
+        name: Set(String::from_str("Main").unwrap() + &app_id),
         ..Default::default()
     };
     // 构造用户角色
@@ -31,9 +31,8 @@ pub async fn add(app_id: String, name: String, dept_id: u32, auth: &UserAuth) ->
         user_id: Set(auth.id),
         ..Default::default()
     };
-    let verb_len = Verb::iter().len();
     // 构造权限
-    let mut rules: Vec<RuleActive> = Vec::with_capacity(verb_len);
+    let mut rules: Vec<RuleActive> = Vec::with_capacity(Verb::iter().len());
     for v in Verb::iter() {
         let rule = RuleActive {
             verb: Set(v),
@@ -42,9 +41,9 @@ pub async fn add(app_id: String, name: String, dept_id: u32, auth: &UserAuth) ->
         };
         rules.push(rule);
     }
-    let mut binds: Vec<RoleRuleActive> = Vec::with_capacity(verb_len);
+    let mut binds: Vec<RoleRuleActive> = Vec::with_capacity(rules.len());
 
-    let transaction = master()
+    return master()
         .transaction::<_, (), DbErr>(|tx| {
             Box::pin(async move {
                 // 创建应用
@@ -52,16 +51,16 @@ pub async fn add(app_id: String, name: String, dept_id: u32, auth: &UserAuth) ->
                 // 创建角色
                 let role_id = RoleEntity::insert(role).exec(tx).await?.last_insert_id;
                 // 创建权限
+                let rule_count = rules.len() as u64;
                 let rule_id = RuleEntity::insert_many(rules)
                     .exec(tx)
                     .await?
                     .last_insert_id;
-                let last_rule_id = rule_id as usize + verb_len;
                 // 角色绑定权限
-                for id in rule_id as usize..last_rule_id {
+                for id in rule_id..(rule_id + rule_count) {
                     let bind = RoleRuleActive {
                         role_id: Set(role_id),
-                        rule_id: Set(id as u64),
+                        rule_id: Set(id),
                         ..Default::default()
                     };
                     binds.push(bind);
@@ -73,18 +72,15 @@ pub async fn add(app_id: String, name: String, dept_id: u32, auth: &UserAuth) ->
                 Ok(())
             })
         })
-        .await;
-    if let Err(e) = transaction {
-        match e {
+        .await
+        .map_err(|e| match e {
             TransactionError::Connection(err) => {
-                return Err(err);
+                return err;
             }
             TransactionError::Transaction(err) => {
-                return Err(DbErr::Exec(err.to_string()));
+                return DbErr::Exec(err.to_string());
             }
-        }
-    }
-    Ok(())
+        });
 }
 
 pub async fn update(app: AppActive) -> Result<AppModel, DbErr> {
