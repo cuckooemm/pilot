@@ -1,4 +1,4 @@
-use sea_orm::entity::prelude::*;
+use sea_orm::{entity::prelude::*, strum::Display};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Deserialize, Serialize)]
@@ -7,8 +7,8 @@ pub struct Model {
     #[sea_orm(primary_key)]
     #[serde(skip)]
     pub id: u64,
-    pub verb: Verb,                       // 权限类型
-    pub resource: String,                 // 资源
+    pub verb: Verb,       // 权限类型
+    pub resource: String, // 资源
 }
 
 #[derive(Copy, Clone, Debug, EnumIter)]
@@ -38,7 +38,7 @@ impl Related<super::RoleRuleEntity> for Entity {
 
 impl ActiveModelBehavior for ActiveModel {}
 
-#[derive(Debug, Clone, PartialEq, EnumIter, DeriveActiveEnum, Deserialize, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, EnumIter, DeriveActiveEnum, Deserialize, Serialize)]
 #[sea_orm(rs_type = "String", db_type = "SmallUnsigned")]
 pub enum Verb {
     // 创建

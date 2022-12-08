@@ -39,7 +39,7 @@ pub fn format_time<S>(id: &u64, serializer: S) -> Result<S::Ok, S::Error>
 where
     S: Serializer,
 {
-    let dt: DateTime<Local> = Local.timestamp((*id) as i64, 0);
+    let dt: DateTime<Local> = Local.timestamp_opt((*id) as i64, 0).unwrap();
     serializer.serialize_str(&dt.to_rfc3339())
 }
 

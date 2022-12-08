@@ -1,5 +1,4 @@
 use axum::{
-    extract::MatchedPath,
     http::{header::HeaderName, Request},
     middleware::Next,
     response::IntoResponse,

@@ -1,5 +1,6 @@
-use std::env;
+use std::{env, time::Duration};
 
+use entity::orm::ConnectOptions;
 use once_cell::sync::OnceCell;
 
 static CONF: OnceCell<Config> = OnceCell::new();
@@ -51,6 +52,7 @@ impl Config {
         let slaver_db_host = env::var("PILOT_DB_SLAVER_HOST")
             .map(|s| {
                 s.split(",")
+                    .filter(|&c| c.len() != 0)
                     .collect::<Vec<&str>>()
                     .into_iter()
                     .map(|s| s.to_string())
@@ -64,21 +66,23 @@ impl Config {
         let max_lifetime = env::var("PILOT_MAX_LIFETIME")
             .map(|s| s.parse::<u64>().unwrap_or(300))
             .unwrap_or(300);
-
+        let db_log = env::var("PILOT_DB_LOG")
+            .map(|v| v.parse::<bool>().unwrap_or(false))
+            .unwrap_or(false);
         let hasher_slat =
             env::var("PILOT_HASHER_SLAT").unwrap_or("qpwoeirutyalskdjfhgmznxbcv".to_owned());
         let jwt_secret =
             env::var("PILOT_JWT_SECRET").unwrap_or("qpwoeirutyalskdjfhgmznxbcv".to_owned());
-
         let conf = Self {
             server: ServerConfig { addr },
             log: LogConfig { level: log_level },
             store: StoreConfig {
-                database: DatabaseCluster {
+                database: DatabaseConfig {
                     main: main_db_host,
                     slaver: slaver_db_host,
                     min_connections,
                     max_lifetime,
+                    log: db_log,
                 },
             },
             harsh: HarshConfig {
@@ -105,15 +109,28 @@ pub struct HarshConfig {
 
 #[derive(Debug, Clone)]
 pub struct StoreConfig {
-    pub database: DatabaseCluster,
+    pub database: DatabaseConfig,
 }
 
 #[derive(Debug, Clone, Default)]
-pub struct DatabaseCluster {
+pub struct DatabaseConfig {
     pub main: String,
     pub slaver: Vec<String>,
     pub min_connections: u32,
     pub max_lifetime: u64,
+    pub log: bool,
+}
+impl DatabaseConfig {
+    pub fn get_connect_options(&self, url: String) -> ConnectOptions {
+        let mut opt = ConnectOptions::new(url);
+        opt.connect_timeout(Duration::from_secs(3))
+            .min_connections(self.min_connections)
+            .idle_timeout(Duration::from_secs(90))
+            .acquire_timeout(Duration::from_secs(3))
+            .max_lifetime(Duration::from_secs(self.max_lifetime))
+            .sqlx_logging(self.log);
+        opt
+    }
 }
 
 #[derive(Debug, Clone)]

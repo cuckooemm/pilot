@@ -4,4 +4,4 @@ pub mod middleware;
 pub mod route;
 pub mod store;
 
-type APIResult<T> = std::result::Result<T, extract::response::APIError>;
+type APIResult<T> = std::result::Result<T, extract::error::APIError>;

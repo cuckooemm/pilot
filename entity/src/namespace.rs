@@ -1,3 +1,4 @@
+use crate::enums::Status;
 use super::enums::Scope;
 
 use sea_orm::{entity::prelude::*, FromQueryResult};
@@ -9,12 +10,11 @@ pub struct Model {
     #[sea_orm(primary_key)]
     #[serde(serialize_with = "super::confuse")]
     pub id: u64,
-    pub app_id: String, // app ID
+    pub app: String, // app ID
     pub cluster: String,
     pub namespace: String,
     pub scope: Scope,
-    pub creator_user: u32,
-    pub deleted_at: u64,
+    pub status: Status,
     pub created_at: DateTimeWithTimeZone, // 创建时间
     pub updated_at: DateTimeWithTimeZone, // 更新时间
 }

@@ -1,34 +1,36 @@
 use std::collections::HashSet;
 
-use super::dao::{cluster, namespace};
-use super::response::{APIError, ApiResponse, ParamErrType};
-use super::APIResult;
-use super::{check, ReqJson, ReqQuery};
+use crate::web::api::check;
 use crate::web::api::permission::accredit;
-use crate::web::store::dao::{rule, user_role};
+use crate::web::extract::error::{APIError, ParamErrType};
+use crate::web::extract::request::{ReqJson, ReqQuery};
+use crate::web::extract::response::APIResponse;
+use crate::web::store::dao::{rule, Dao};
+use crate::web::APIResult;
 
+use axum::extract::State;
 use axum::Extension;
-use axum::extract::Json;
 use entity::namespace::{NamespaceInfo, NamespaceItem};
 use entity::orm::Set;
 use entity::rule::Verb;
-use entity::{NamespaceActive, Scope, ID, UserAuth};
+use entity::{NamespaceActive, NamespaceModel, Scope, UserAuth};
 use serde::Deserialize;
 
 #[derive(Deserialize)]
 pub struct NamespaceParam {
-    pub app_id: Option<String>,
+    pub app: Option<String>,
     pub cluster: Option<String>,
     pub namespace: Option<String>,
     pub scope: Option<String>,
 }
 
 pub async fn create(
+    Extension(auth): Extension<UserAuth>,
+    State(ref dao): State<Dao>,
     ReqJson(param): ReqJson<NamespaceParam>,
-    Extension(auth): Extension<UserAuth>
-) -> APIResult<Json<ApiResponse<ID>>> {
+) -> APIResult<APIResponse<NamespaceModel>> {
     let namespace = check::id_str(param.namespace, "namespace")?;
-    let app_id = check::id_str(param.app_id, "app_id")?;
+    let app = check::id_str(param.app, "app")?;
     let scope = Scope::from(param.scope.unwrap_or_default());
     let cluster = match scope {
         // 私有的 集群字段必填
@@ -42,39 +44,41 @@ pub async fn create(
             }
         }
     }?;
-    // 校验权限
-    if !accredit::accredit(&auth, entity::rule::Verb::Create, vec![&app_id, &cluster]).await? {
-        return Err(APIError::new_permission_forbidden());
+    let resource = vec![app.as_str(), cluster.as_str()];
+    if !accredit::accredit(&auth, entity::rule::Verb::Create, &vec![&app, &cluster]).await? {
+        return Err(APIError::forbidden_resource(
+            crate::web::extract::error::ForbiddenType::Operate,
+            &resource,
+        ));
     }
     // 查看当前 app_id cluster 是否存在
-    if !cluster::is_exist(app_id.clone(), cluster.clone()).await? {
-        return Err(APIError::new_param_err(
-            ParamErrType::NotExist,
-            "app_id, cluster",
-        ));
+    if !dao.cluster.is_exist(app.clone(), cluster.clone()).await? {
+        return Err(APIError::param_err(ParamErrType::NotExist, "app, cluster"));
     }
 
     // 查看是否已存在此 namespace
-    if namespace::is_exist(app_id.clone(), cluster.clone(), namespace.clone()).await? {
-        return Err(APIError::new_param_err(ParamErrType::Exist, "namespace"));
+    if dao
+        .namespace
+        .is_exist(app.clone(), cluster.clone(), namespace.clone())
+        .await?
+    {
+        return Err(APIError::param_err(ParamErrType::Exist, "namespace"));
     }
 
-    let data = NamespaceActive {
-        app_id: Set(app_id),
+    let active = NamespaceActive {
+        app: Set(app),
         cluster: Set(cluster),
         namespace: Set(namespace),
         scope: Set(scope),
-        creator_user: Set(auth.id),
         ..Default::default()
     };
-
-    namespace::add(data).await?;
-    Ok(Json(ApiResponse::ok()))
+    let data = dao.namespace.addition(active).await?;
+    Ok(APIResponse::ok_data(data))
 }
 
 #[derive(Deserialize)]
 pub struct NamespaceQueryParam {
-    pub app_id: Option<String>,
+    pub app: Option<String>,
     pub cluster: Option<String>,
     pub page: Option<String>,
     pub page_size: Option<String>,
@@ -82,40 +86,48 @@ pub struct NamespaceQueryParam {
 
 pub async fn list(
     ReqQuery(param): ReqQuery<NamespaceQueryParam>,
-    Extension(auth): Extension<UserAuth>
-) -> APIResult<Json<ApiResponse<Vec<NamespaceItem>>>> {
-    let app_id = check::id_str(param.app_id, "app_id")?;
+    State(ref dao): State<Dao>,
+    Extension(auth): Extension<UserAuth>,
+) -> APIResult<APIResponse<Vec<NamespaceItem>>> {
+    let app = check::id_str(param.app, "app")?;
     let cluster = check::id_str(param.cluster, "cluster")?;
-    let list: Vec<NamespaceItem> =
-        namespace::get_namespace_by_appcluster(app_id.clone(), cluster.clone()).await?;
+    let list: Vec<NamespaceItem> = dao
+        .namespace
+        .get_namespace_by_appcluster(app.clone(), cluster.clone())
+        .await?;
     if list.is_empty() {
-        return Ok(Json(ApiResponse::ok_data(list)));
+        return Ok(APIResponse::ok_data(list));
     }
     // 校验
-    if accredit::acc_admin(&auth, Some(app_id.clone())) {
-        return Ok(Json(ApiResponse::ok_data(list)));
+    if accredit::acc_admin(&auth, Some(app.clone())).await? {
+        return Ok(APIResponse::ok_data(list));
     }
     // 获取用户角色ID
-    let user_roles = user_role::get_user_role(auth.id).await?;
+    let user_roles = dao.user_role.get_user_role(auth.id).await?;
     if user_roles.is_empty() {
         // 返回空
-        return Ok(Json(ApiResponse::ok_data(vec![])));
+        return Ok(APIResponse::ok_data(vec![]));
     }
     let user_role_set: HashSet<u32> = HashSet::from_iter(user_roles.into_iter());
 
     // 获取上级资源权限 如果有则返回
-    let role = rule::get_resource_role(Verb::VIEW, vec![app_id.clone(), cluster.clone()]).await?;
+    let role = dao
+        .rule
+        .get_resource_role(Verb::VIEW, vec![app.clone(), cluster.clone()])
+        .await?;
     for r_id in role.iter() {
         // 拥有上级资源权限角色  直接返回
         if user_role_set.contains(r_id) {
-            return Ok(Json(ApiResponse::ok_data(list)));
+            return Ok(APIResponse::ok_data(list));
         }
     }
     // 获取此资源下级拥有View权限的所有角色
-    let role =
-        rule::get_resource_prefix_role(Verb::VIEW, app_id.clone(), Some(cluster.clone())).await?;
+    let role = dao
+        .rule
+        .get_resource_prefix_role(Verb::VIEW, app.clone(), Some(cluster.clone()))
+        .await?;
     if role.is_empty() {
-        return Ok(Json(ApiResponse::ok_data(vec![])));
+        return Ok(APIResponse::ok_data(vec![]));
     }
 
     let mut rules = HashSet::with_capacity(role.len());
@@ -124,6 +136,7 @@ pub async fn list(
             // 用户无此角色
             continue;
         }
+
         let mut rk = rule::parse_resource_kind(r.resource);
         // 仅3级权限资源有权限 1 2级资源权限之前已经校验
         // app_id  app_id/cluster app_id/cluster/namespace 拥有权限
@@ -136,14 +149,14 @@ pub async fn list(
     }
     if rules.is_empty() {
         // 无相关权限
-        return Ok(Json(ApiResponse::ok_data(vec![])));
+        return Ok(APIResponse::ok_data(vec![]));
     }
 
     let list: Vec<NamespaceItem> = list
         .into_iter()
         .filter(|c| rules.contains(&c.namespace))
         .collect();
-    Ok(Json(ApiResponse::ok_data(list)))
+    Ok(APIResponse::ok_data(list))
 }
 
 #[derive(Deserialize)]
@@ -152,11 +165,11 @@ pub struct PublucNamespaceQueryParam {
 }
 // 获取公共的namespace
 pub async fn list_public(
+    Extension(auth): Extension<UserAuth>,
+    State(ref dao): State<Dao>,
     ReqQuery(param): ReqQuery<PublucNamespaceQueryParam>,
-    Extension(auth): Extension<UserAuth>
-) -> APIResult<Json<ApiResponse<Vec<NamespaceInfo>>>> {
+) -> APIResult<APIResponse<Vec<NamespaceInfo>>> {
     let namespace = check::id_str(param.namespace, "namespace")?;
-
-    let list = namespace::get_public_namespace_info(namespace).await?;
-    Ok(Json(ApiResponse::ok_data(list)))
+    let list = dao.namespace.get_public_namespace_info(namespace).await?;
+    Ok(APIResponse::ok_data(list))
 }

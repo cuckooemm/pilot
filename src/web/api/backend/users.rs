@@ -1,25 +1,27 @@
 use crate::web::{
-    api::check,
+    api::{check, helper},
     extract::{
-        json::ReqJson,
-        query::ReqQuery,
-        response::{APIError, ApiResponse, Empty, ParamErrType},
+        error::{APIError, ForbiddenType, ParamErrType},
+        request::ReqJson,
+        request::ReqQuery,
+        response::APIResponse,
     },
     middleware::jwt,
-    store::dao::{self, department, users},
+    store::dao::Dao,
     APIResult,
 };
 
-use axum::{Extension, Json};
+use axum::{extract::State, Extension};
 use chrono::Local;
 use entity::{
     enums::Status,
     orm::{ActiveModelTrait, IntoActiveModel, Set},
     users::{UserItem, UserLevel},
-    UsersActive, UsersModel, ID,
+    UsersActive, UsersModel,
 };
 use headers::HeaderMap;
 use serde::{Deserialize, Serialize};
+use tracing::instrument;
 
 #[derive(Debug, Deserialize)]
 pub struct RegisterParam {
@@ -33,9 +35,10 @@ pub struct RegisterParam {
 
 // 添加用户 管理员权限
 pub async fn addition(
-    ReqJson(param): ReqJson<RegisterParam>,
     Extension(auth): Extension<UsersModel>,
-) -> APIResult<Json<ApiResponse<Empty>>> {
+    State(ref dao): State<Dao>,
+    ReqJson(param): ReqJson<RegisterParam>,
+) -> APIResult<APIResponse<UsersModel>> {
     let account = check::account(param.account)?;
     let password = check::password(param.password)?;
     let email = check::email(param.email)?;
@@ -45,8 +48,8 @@ pub async fn addition(
     if level != UserLevel::Admin {
         // 如果添加的帐号为超级管理员则无需填写部门ID
         dept_id = check::id_decode::<u32>(param.dept_id, "dept_id")?;
-        if !department::is_exist_id(dept_id).await? {
-            return Err(APIError::new_param_err(ParamErrType::NotExist, "dept_id"));
+        if !dao.department.is_exist_id(dept_id).await? {
+            return Err(APIError::param_err(ParamErrType::NotExist, "dept_id"));
         }
     }
     match auth.level {
@@ -55,38 +58,34 @@ pub async fn addition(
         UserLevel::DeptAdmin => {
             // 添加不是同一部门用户 或者 添加的帐号权限大于当前权限
             if dept_id != auth.dept_id || level > UserLevel::DeptAdmin {
-                return Err(APIError::new_permission_forbidden());
+                return Err(APIError::forbidden_err(ForbiddenType::Operate, "add user"));
             }
         }
         // 无权限
-        _ => return Err(APIError::new_permission_forbidden()),
+        _ => return Err(APIError::forbidden_err(ForbiddenType::Operate, "add user")),
     }
 
-    // 检查帐号是否存在
-    let pwd = dao::users::is_exist_account_email(account.clone()).await?;
-    if pwd.is_some() {
-        return Err(APIError::new_param_err(ParamErrType::Exist, "account"));
+    if dao.users.is_exist_account_email(account.clone()).await? {
+        return Err(APIError::param_err(ParamErrType::Exist, "account"));
     }
-    let pwd = dao::users::is_exist_account_email(email.clone()).await?;
-    if pwd.is_some() {
-        return Err(APIError::new_param_err(ParamErrType::Exist, "email"));
+    if dao.users.is_exist_account_email(email.clone()).await? {
+        return Err(APIError::param_err(ParamErrType::Exist, "email"));
     }
-    let password = bcrypt::hash(password, bcrypt::DEFAULT_COST);
-    if password.is_err() {
-        tracing::error!("password encryption failure: {:?}", password);
-        return Err(APIError::new_server_error());
-    }
+    let password = bcrypt::hash(password, bcrypt::DEFAULT_COST).map_err(|e| {
+        tracing::error!("password encryption failure: {:?}", e);
+        APIError::service_error()
+    })?;
     let user = UsersActive {
         account: Set(account),
         email: Set(email),
-        password: Set(password.unwrap()),
         nickname: Set(nickname),
+        password: Set(password),
         dept_id: Set(dept_id),
         level: Set(level),
         ..Default::default()
     };
-    dao::users::add(user).await?;
-    Ok(Json(ApiResponse::ok()))
+    let data = dao.users.addition(user).await?;
+    Ok(APIResponse::ok_data(data))
 }
 
 #[derive(Debug, Deserialize)]
@@ -102,182 +101,114 @@ pub struct UpdateParam {
 }
 
 pub async fn edit(
-    ReqJson(param): ReqJson<UpdateParam>,
+    State(ref dao): State<Dao>,
     Extension(auth): Extension<UsersModel>,
-) -> APIResult<Json<ApiResponse<UsersModel>>> {
-    let id = check::id_decode::<u32>(param.id, "id")?;
+    ReqQuery(param): ReqQuery<UpdateParam>,
+) -> APIResult<APIResponse<UsersModel>> {
+    let id = match param.id {
+        Some(id) => check::id_decode_rule::<u32>(&id, "id")?,
+        None => auth.id,
+    };
 
     // 找到此ID的用户信息
-    let user = users::get_info(id).await?;
-    if user.is_none() {
-        return Err(APIError::new_param_err(ParamErrType::NotExist, "id"));
-    }
-    let user = user.unwrap();
-
-    let account = match param.account {
-        Some(account) => {
-            check::account_rule(&account)?;
-            if user.account != account {
-                Some(account)
-            } else {
-                None
-            }
-        }
-        None => None,
-    };
-    let password = match param.password {
-        Some(password) => {
-            check::password_rule(&password)?;
-            Some(password)
-        }
-        None => None,
-    };
-    let email = match param.email {
-        Some(email) => {
-            check::email_rule(&email)?;
-            if user.email != email {
-                Some(email)
-            } else {
-                None
-            }
-        }
-        None => None,
-    };
-    let nickname = match param.nickname {
-        Some(nickname) => {
-            let nm = check::nickname_rule(nickname)?;
-            if user.nickname != nm {
-                Some(nm)
-            } else {
-                None
-            }
-        }
-        None => None,
-    };
-    let dept_id = match param.dept_id {
-        Some(dept) => {
-            let dept = check::id_decode_rule::<u32>(&dept, "dept_id")?;
-            if user.dept_id != dept {
-                // 检查部门ID是否存在
-                if !department::is_exist_id(dept).await? {
-                    return Err(APIError::new_param_err(ParamErrType::NotExist, "dept_id"));
-                }
-                Some(dept)
-            } else {
-                None
-            }
-        }
-        None => None,
-    };
-    let level = match param.level {
-        Some(level) => {
-            let level = UserLevel::from(level);
-            if user.level != level {
-                Some(level)
-            } else {
-                None
-            }
-        }
-        None => None,
-    };
-    let delete = match param.status {
-        Some(s) => match Status::from(s) {
-            Status::Other => None,
-            Status::Normal => {
-                // 本身状态正常 无需更改
-                if user.deleted_at == 0 {
-                    None
-                } else {
-                    // 状态为delete 更改为正常
-                    Some(0)
-                }
-            }
-            Status::Delete => {
-                if user.deleted_at != 0 {
-                    None
-                } else {
-                    Some(Local::now().timestamp() as u64)
-                }
-            }
-        },
-        None => None,
-    };
+    let user = dao
+        .users
+        .get_info(id)
+        .await?
+        .ok_or(APIError::param_err(ParamErrType::NotExist, "user"))?;
 
     match auth.level {
         UserLevel::Admin => (),
-        // 仅可添加本部门帐号
         UserLevel::DeptAdmin => {
-            // 判断帐号是否同属于一个部门
             if user.dept_id != auth.dept_id {
-                return Err(APIError::new_permission_forbidden());
-            }
-            // 判断修改的账户等级是否大于当前账户权限等级
-            if let Some(level) = level {
-                if level > UserLevel::DeptAdmin {
-                    return Err(APIError::new_permission_forbidden());
-                }
-            }
-            // 阻止跨部门的修改
-            if let Some(id) = dept_id {
-                if id != auth.dept_id {
-                    return Err(APIError::new_permission_forbidden());
-                }
+                return Err(APIError::forbidden_resource(
+                    ForbiddenType::Operate,
+                    &vec!["edit", "users"],
+                ));
             }
         }
-        // 无权限
-        _ => return Err(APIError::new_permission_forbidden()),
+        _ => {
+            if user.id != auth.id {
+                return Err(APIError::forbidden_resource(
+                    ForbiddenType::Operate,
+                    &vec!["edit", "users"],
+                ));
+            }
+        }
     }
-
     let mut active = user.clone().into_active_model();
 
-    // 检查帐号是否存在 并更新
-    if let Some(account) = account {
-        let id = dao::users::is_exist_account_email(account.clone()).await?;
-        if id.is_some() {
-            return Err(APIError::new_param_err(ParamErrType::Exist, "account"));
+    if let Some(account) = param.account {
+        if user.account != account {
+            check::account_rule(&account)?;
+            if dao.users.is_exist_account_email(account.clone()).await? {
+                return Err(APIError::param_err(ParamErrType::Exist, "account"));
+            }
+            active.account = Set(account);
         }
-        active.account = Set(account);
     }
-    // 检查 email 是否存在 并更新
-    if let Some(email) = email {
-        let id = dao::users::is_exist_account_email(email.clone()).await?;
-        if id.is_some() {
-            return Err(APIError::new_param_err(ParamErrType::Exist, "email"));
-        }
-        active.email = Set(email);
+    if let Some(password) = param.password {
+        check::password_rule(&password)?;
+        let password = bcrypt::hash(password, bcrypt::DEFAULT_COST).map_err(|e| {
+            tracing::error!("password encryption failure: {:?}", e);
+            APIError::service_error()
+        })?;
+        active.password = Set(password);
     }
-    // 检查部门是否存在 并更新
-    if let Some(dept_id) = dept_id {
-        if !department::is_exist_id(dept_id).await? {
-            return Err(APIError::new_param_err(ParamErrType::NotExist, "email"));
+    if let Some(email) = param.email {
+        if user.email != email {
+            check::email_rule(&email)?;
+            if dao.users.is_exist_account_email(email.clone()).await? {
+                return Err(APIError::param_err(ParamErrType::Exist, "email"));
+            }
+            active.email = Set(email);
         }
-        active.dept_id = Set(dept_id);
+    }
+    if let Some(nickname) = param.nickname {
+        let change_nickname = check::nickname_rule(nickname)?;
+        if user.nickname != change_nickname {
+            active.nickname = Set(change_nickname);
+        }
+    }
+    if let Some(dept_id) = param.dept_id {
+        let dept = check::id_decode_rule::<u32>(&dept_id, "dept_id")?;
+        if user.dept_id != dept {
+            if auth.level != UserLevel::Admin {
+                return Err(APIError::forbidden_resource(
+                    ForbiddenType::Operate,
+                    &vec!["change", "department"],
+                ));
+            }
+            if !dao.department.is_exist_id(dept).await? {
+                return Err(APIError::param_err(ParamErrType::NotExist, "dept_id"));
+            }
+            active.dept_id = Set(dept);
+        }
+    }
+    if let Some(level) = param.level {
+        let change_level = UserLevel::from(level);
+        if change_level > auth.level {
+            return Err(APIError::forbidden_resource(
+                ForbiddenType::Operate,
+                &vec!["edit", "users"],
+            ));
+        }
+        if user.level != change_level {
+            active.level = Set(change_level);
+        }
     }
 
-    // 更新密码
-    if let Some(password) = password {
-        let password = bcrypt::hash(password, bcrypt::DEFAULT_COST);
-        if password.is_err() {
-            tracing::error!("password encryption failure: {:?}", password);
-            return Err(APIError::new_server_error());
+    if let Some(status) = param.status.and_then(|s| s.try_into().ok()) {
+        if status != user.status {
+            active.status = Set(status);
         }
-        active.password = Set(password.unwrap())
     }
-    // 更新 nickname
-    if let Some(nickname) = nickname {
-        active.nickname = Set(nickname);
-    }
-    if let Some(level) = level {
-        active.level = Set(level);
-    }
-    if let Some(delete) = delete {
-        active.deleted_at = Set(delete);
-    }
+
     if !active.is_changed() {
-        return Ok(Json(ApiResponse::ok_data(user)));
+        return Ok(APIResponse::ok_data(user));
     }
-    let model = users::update(active).await?;
-    Ok(Json(ApiResponse::ok_data(model)))
+    let model = dao.users.update(active).await?;
+    Ok(APIResponse::ok_data(model))
 }
 
 #[derive(Deserialize)]
@@ -287,13 +218,13 @@ pub struct QueryParam {
     pub page_size: Option<String>,
 }
 pub async fn list(
-    ReqQuery(param): ReqQuery<QueryParam>,
+    State(ref dao): State<Dao>,
     Extension(auth): Extension<UsersModel>,
-) -> APIResult<Json<ApiResponse<Vec<UserItem>>>> {
-    // 默认获取状态正常用户
-    let status: Status = param.status.unwrap_or_default().into();
+    ReqQuery(param): ReqQuery<QueryParam>,
+) -> APIResult<APIResponse<Vec<UserItem>>> {
+    let status: Option<Status> = param.status.and_then(|s| s.try_into().ok());
 
-    let (page, page_size) = check::page(param.page, param.page_size);
+    let (page, page_size) = helper::page(param.page, param.page_size);
     let mut dept = None;
     match auth.level {
         // 获取所有帐号
@@ -301,48 +232,51 @@ pub async fn list(
         // 获取本部门帐号
         UserLevel::DeptAdmin => dept = Some(auth.dept_id),
         // 无权限
-        _ => return Err(APIError::new_permission_forbidden()),
+        _ => return Err(APIError::forbidden_err(ForbiddenType::Access, "users")),
     }
 
-    let list = users::get_use_list(dept, status, (page - 1) * page_size, page_size).await?;
-    let mut response = ApiResponse::ok_data(list);
+    let list = dao
+        .users
+        .get_user_list(dept, status, helper::page_to_limit(page, page_size))
+        .await?;
+    let mut response = APIResponse::ok_data(list);
     response.set_page(page, page_size);
-    Ok(Json(response))
+    Ok(response)
 }
 
-pub async fn register(ReqJson(param): ReqJson<RegisterParam>) -> APIResult<Json<ApiResponse<ID>>> {
+pub async fn register(
+    State(ref dao): State<Dao>,
+    ReqJson(param): ReqJson<RegisterParam>,
+) -> APIResult<APIResponse<()>> {
     let account = check::account(param.account)?;
     let password = check::password(param.password)?;
     let email = check::email(param.email)?;
     let nickname = check::nickname(param.nickname)?.unwrap_or(account.clone());
 
     // 检查帐号是否存在
-    let pwd = dao::users::is_exist_account_email(account.clone()).await?;
-    if pwd.is_some() {
-        return Err(APIError::new_param_err(ParamErrType::Exist, "account"));
+    if dao.users.is_exist_account_email(account.clone()).await? {
+        return Err(APIError::param_err(ParamErrType::Exist, "account"));
     }
-    let pwd = dao::users::is_exist_account_email(email.clone()).await?;
-    if pwd.is_some() {
-        return Err(APIError::new_param_err(ParamErrType::Exist, "email"));
+    if dao.users.is_exist_account_email(email.clone()).await? {
+        return Err(APIError::param_err(ParamErrType::Exist, "email"));
     }
-    let password = bcrypt::hash(password, bcrypt::DEFAULT_COST);
-    if password.is_err() {
-        tracing::error!("password encryption failure: {:?}", password);
-        return Err(APIError::new_server_error());
-    }
-    let password = password.unwrap();
+    let password = bcrypt::hash(password, bcrypt::DEFAULT_COST).map_err(|e| {
+        tracing::error!("password encryption failure: {:?}", e);
+        APIError::service_error()
+    })?;
+
     let user = UsersActive {
         account: Set(account),
         email: Set(email),
-        password: Set(password),
         nickname: Set(nickname),
+        password: Set(password),
         ..Default::default()
     };
-    dao::users::add(user).await?;
-    Ok(Json(ApiResponse::ok()))
+    dao.users.addition(user).await?;
+    Ok(APIResponse::ok())
 }
 
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 pub struct LoginParam {
     pub account: Option<String>,
     pub password: Option<String>,
@@ -359,25 +293,27 @@ pub struct AuthResponse {
     pub exp: i64,
 }
 
+#[instrument]
 pub async fn login(
+    State(ref dao): State<Dao>,
     ReqJson(param): ReqJson<LoginParam>,
-) -> APIResult<(HeaderMap, Json<ApiResponse<AuthResponse>>)> {
+) -> APIResult<(HeaderMap, APIResponse<AuthResponse>)> {
     let account = check::account(param.account)?;
     let password = check::password(param.password)?;
     // 根据帐号获取信息
-    let user_info = dao::users::get_info_by_account(account).await?;
-    if user_info.is_none() {
-        return Err(APIError::new_param_err(ParamErrType::Invalid, "account"));
-    }
-    let user_info = user_info.unwrap();
+    let user_info = dao
+        .users
+        .get_info_by_account(account)
+        .await?
+        .ok_or(APIError::param_err(ParamErrType::Invalid, "account"))?;
     // 校验密码失败
     if !bcrypt::verify(password, &user_info.password).unwrap_or_default() {
-        return Err(APIError::new_param_err(ParamErrType::Invalid, "password"));
+        return Err(APIError::param_err(ParamErrType::Invalid, "password"));
     }
 
     // 判断帐号状态
-    if user_info.deleted_at > 0 || user_info.level == UserLevel::Ban {
-        return Err(APIError::new_param_err(ParamErrType::Invalid, "account"));
+    if user_info.status == Status::Band || user_info.status == Status::Delete {
+        return Err(APIError::param_err(ParamErrType::Invalid, "account"));
     }
     let mut renewal = 3600;
     if param.remember.unwrap_or_default() {
@@ -385,18 +321,18 @@ pub async fn login(
     }
     let token = jwt::auth_token(user_info.id, renewal).map_err(|e| {
         tracing::error!("Token generation failure. err: {:?}", e);
-        APIError::new_server_error()
+        APIError::service_error()
     })?;
     let header = jwt::set_cookie(&token, param.remember.unwrap_or_default());
     // 返回session
     Ok((
         header,
-        Json(ApiResponse::ok_data(AuthResponse {
+        APIResponse::ok_data(AuthResponse {
             token,
             nickname: user_info.nickname,
             dept_id: user_info.dept_id,
             level: user_info.level,
             exp: Local::now().timestamp() + renewal,
-        })),
+        }),
     ))
 }

@@ -1,6 +1,8 @@
 use sea_orm::{entity::prelude::*, FromQueryResult};
 use serde::{Deserialize, Serialize};
 
+use crate::enums::Status;
+
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Deserialize, Serialize)]
 #[sea_orm(table_name = "release")]
 pub struct Model {
@@ -13,8 +15,7 @@ pub struct Model {
     pub remark: String, // 备注
     pub configurations: String,
     pub is_abandoned: Effective, // 是否有效
-    pub publish_user_id: u32,
-    pub deleted_at: u64,
+    pub status: Status,
     pub created_at: DateTimeWithTimeZone, // 创建时间
     pub updated_at: DateTimeWithTimeZone, // 更新时间
 }

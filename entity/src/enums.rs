@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::{error::Error, string::ParseError};
 
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
@@ -21,17 +21,6 @@ impl Default for ItemCategory {
         Self::Text
     }
 }
-impl Display for ItemCategory {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let s = match self {
-            &Self::Text => "text",
-            &Self::Json => "json",
-            &Self::Toml => "toml",
-            &Self::Yaml => "yaml",
-        };
-        write!(f, "{}", s)
-    }
-}
 
 impl From<String> for ItemCategory {
     fn from(str: String) -> Self {
@@ -44,18 +33,25 @@ impl From<String> for ItemCategory {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, EnumIter, DeriveActiveEnum, Deserialize, Serialize)]
+#[sea_orm(rs_type = "u8", db_type = "TinyUnsigned")]
 pub enum Status {
+    #[sea_orm(num_value = 0)]
     Normal,
+    #[sea_orm(num_value = 2)]
+    Band,
+    #[sea_orm(num_value = 10)]
     Delete,
-    Other,
 }
 
-impl From<String> for Status {
-    fn from(str: String) -> Self {
-        match str.trim().to_lowercase().as_str() {
-            "delete" => Self::Delete,
-            "normal" => Self::Normal,
-            _ => Self::Other,
+impl TryFrom<String> for Status {
+    type Error = ();
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        match value.trim().to_lowercase().as_str() {
+            "delete" => Ok(Self::Delete),
+            "normal" => Ok(Self::Normal),
+            "band" => Ok(Self::Band),
+            _ => Err(()),
         }
     }
 }

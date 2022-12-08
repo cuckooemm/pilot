@@ -1,18 +1,15 @@
 use std::time::Duration;
 
-use super::dao::{cluster, namespace};
+use super::dao::namespace;
+use crate::web::extract::error::{APIError, ParamErrType};
+use crate::web::extract::request::ReqQuery;
+use crate::web::extract::response::APIResponse;
 use crate::web::extract::utils;
 use crate::web::store::cache::{CacheItem, NamespaceItem};
-use crate::web::{
-    extract::{
-        query::ReqQuery,
-        response::{APIError, ApiResponse, ParamErrType},
-    },
-    APIResult,
-};
+use crate::web::store::dao::Dao;
+use crate::web::APIResult;
 
-use axum::extract::Extension;
-use axum::Json;
+use axum::extract::State;
 use serde::{Deserialize, Serialize};
 use tokio::time;
 
@@ -30,63 +27,69 @@ const DEFAULT_TIMEOUT: Duration = Duration::from_secs(60);
 
 // 全量获取配置数据
 pub async fn description(
+    State(cache): State<CacheItem>,
+    State(ref dao): State<Dao>,
     ReqQuery(param): ReqQuery<DescParam>,
-    Extension(cache): Extension<CacheItem>,
-) -> APIResult<Json<ApiResponse<NamespaceItem>>> {
+) -> APIResult<APIResponse<NamespaceItem>> {
     let app_id = match param.app_id {
         Some(app_id) => {
-            if app_id.len() == 0 || app_id.len() > 100 {
-                return Err(APIError::new_param_err(ParamErrType::NotExist, "app_id"));
+            if app_id.len() == 0 || app_id.len() > 64 {
+                return Err(APIError::param_err(ParamErrType::NotExist, "app_id"));
             }
             app_id
         }
-        None => return Err(APIError::new_param_err(ParamErrType::Required, "app_id")),
+        None => return Err(APIError::param_err(ParamErrType::Required, "app_id")),
     };
     let cluster = match param.cluster {
         Some(cluster) => {
-            if cluster.len() == 0 || cluster.len() > 100 {
-                return Err(APIError::new_param_err(ParamErrType::NotExist, "cluster"));
+            if cluster.len() == 0 || cluster.len() > 64 {
+                return Err(APIError::param_err(ParamErrType::NotExist, "cluster"));
             }
             cluster
         }
-        None => return Err(APIError::new_param_err(ParamErrType::Required, "cluster")),
+        None => return Err(APIError::param_err(ParamErrType::Required, "cluster")),
     };
     let namespace = match &param.namespace {
         Some(ns) => {
-            if ns.len() == 0 || ns.len() > 100 {
-                return Err(APIError::new_param_err(ParamErrType::NotExist, "namespace"));
+            if ns.len() == 0 || ns.len() > 64 {
+                return Err(APIError::param_err(ParamErrType::NotExist, "namespace"));
             }
             ns
         }
-        None => return Err(APIError::new_param_err(ParamErrType::Required, "namespace")),
+        None => return Err(APIError::param_err(ParamErrType::Required, "namespace")),
     };
     let encode_secret = match param.secret {
         Some(secret) => {
             if secret.len() != 32 {
-                return Err(APIError::new_param_err(ParamErrType::Invalid, "secret"));
+                return Err(APIError::param_err(ParamErrType::Invalid, "secret"));
             }
             secret
         }
-        None => return Err(APIError::new_param_err(ParamErrType::Required, "secret")),
+        None => return Err(APIError::param_err(ParamErrType::Required, "secret")),
     };
     // 查看 cluster 是否存在 且获取到 secret
-    match cluster::get_secret_by_cluster(&app_id, &cluster).await? {
+    match dao
+        .cluster
+        .get_secret_by_cluster(app_id.clone(), cluster.clone())
+        .await?
+    {
         Some(secret) => {
             // 校验secret
             if encode_secret
                 != utils::hex_md5(format!("{}-{}-{}", &app_id, &cluster, &secret.secret))
             {
-                return Err(APIError::new_param_err(ParamErrType::Invalid, "secret"));
+                return Err(APIError::param_err(ParamErrType::Invalid, "secret"));
             }
         }
-        None => return Err(APIError::new_param_err(ParamErrType::NotExist, "app_id")),
+        None => return Err(APIError::param_err(ParamErrType::NotExist, "app_id")),
     };
 
     // 获取到 namespace_id
-    let namespace_id =
-        namespace::get_namespace_id(app_id.clone(), cluster.clone(), namespace.clone()).await?;
+    let namespace_id = namespace::Namespace
+        .get_namespace_id(app_id.clone(), cluster.clone(), namespace.clone())
+        .await?;
     if namespace_id.is_none() {
-        return Err(APIError::new_param_err(ParamErrType::NotExist, "namespace"));
+        return Err(APIError::param_err(ParamErrType::NotExist, "namespace"));
     }
     // 如果有没有获取到 namespace_id 的 namespace, 根据扩展 namespace 字段,寻找关联的 app_namespace
     // 默认如果此 app_id 包含同名 namespace, 则优先使用本 app_id 的 namespace， 覆盖关联的 app_namespace
@@ -99,64 +102,65 @@ pub async fn description(
     .await;
     if namespace_item.is_err() {
         // 超时 无更新
-        return Ok(Json(ApiResponse::ok()));
+        return Ok(APIResponse::ok());
     }
     let namespace_item = namespace_item.unwrap();
     if namespace_item.is_none() {
-        return Ok(Json(ApiResponse::ok()));
+        return Ok(APIResponse::ok());
     }
-    Ok(Json(ApiResponse::ok_data(namespace_item.unwrap())))
+    Ok(APIResponse::ok_data(namespace_item.unwrap()))
 }
 
 // 阻塞链接, 仅更新时返回数据
 pub async fn notifaction(
+    State(cache): State<CacheItem>,
+    State(ref dao): State<Dao>,
     ReqQuery(param): ReqQuery<DescParam>,
-    Extension(cache): Extension<CacheItem>,
-) -> APIResult<Json<ApiResponse<NamespaceItem>>> {
+) -> APIResult<APIResponse<NamespaceItem>> {
     let app_id = match param.app_id {
         Some(app_id) => {
             if app_id.len() == 0 || app_id.len() > 100 {
-                return Err(APIError::new_param_err(ParamErrType::NotExist, "app_id"));
+                return Err(APIError::param_err(ParamErrType::NotExist, "app_id"));
             }
             app_id
         }
-        None => return Err(APIError::new_param_err(ParamErrType::Required, "app_id")),
+        None => return Err(APIError::param_err(ParamErrType::Required, "app_id")),
     };
     let cluster = match param.cluster {
         Some(cluster) => {
             if cluster.len() == 0 || cluster.len() > 100 {
-                return Err(APIError::new_param_err(ParamErrType::NotExist, "cluster"));
+                return Err(APIError::param_err(ParamErrType::NotExist, "cluster"));
             }
             cluster
         }
-        None => return Err(APIError::new_param_err(ParamErrType::Required, "cluster")),
+        None => return Err(APIError::param_err(ParamErrType::Required, "cluster")),
     };
     let namespace = match &param.namespace {
         Some(ns) => {
             if ns.len() == 0 || ns.len() > 100 {
-                return Err(APIError::new_param_err(ParamErrType::NotExist, "namespace"));
+                return Err(APIError::param_err(ParamErrType::NotExist, "namespace"));
             }
             ns
         }
-        None => return Err(APIError::new_param_err(ParamErrType::Required, "namespace")),
+        None => return Err(APIError::param_err(ParamErrType::Required, "namespace")),
     };
     let encode_secret = match param.secret {
         Some(secret) => {
             if secret.len() != 32 {
-                return Err(APIError::new_param_err(ParamErrType::Invalid, "secret"));
+                return Err(APIError::param_err(ParamErrType::Invalid, "secret"));
             }
             secret
         }
-        None => return Err(APIError::new_param_err(ParamErrType::Required, "secret")),
+        None => return Err(APIError::param_err(ParamErrType::Required, "secret")),
     };
     let version = match param.version {
         Some(version) => {
             if version == 0 {
-                return Err(APIError::new_param_err(ParamErrType::NotExist, "version"));
+                return Err(APIError::param_err(ParamErrType::NotExist, "version"));
             }
             version
         }
-        None => return Err(APIError::new_param_err(ParamErrType::Required, "version")),
+        None => return Err(APIError::param_err(ParamErrType::Required, "version")),
     };
     let timeout = match param.timeout {
         Some(tm) => {
@@ -170,22 +174,27 @@ pub async fn notifaction(
         None => DEFAULT_TIMEOUT,
     };
     // 查看 cluster 是否存在 且获取到 secret
-    match cluster::get_secret_by_cluster(&app_id, &cluster).await? {
+    match dao
+        .cluster
+        .get_secret_by_cluster(app_id.clone(), cluster.clone())
+        .await?
+    {
         Some(secret) => {
             // 校验secret
             if encode_secret
                 != utils::hex_md5(format!("{}-{}-{}", &app_id, &cluster, &secret.secret))
             {
-                return Err(APIError::new_param_err(ParamErrType::Invalid, "secret"));
+                return Err(APIError::param_err(ParamErrType::Invalid, "secret"));
             }
         }
-        None => return Err(APIError::new_param_err(ParamErrType::NotExist, "app_id")),
+        None => return Err(APIError::param_err(ParamErrType::NotExist, "app_id")),
     };
     // 获取到 namespace_id
-    let namespace_id =
-        namespace::get_namespace_id(app_id.clone(), cluster.clone(), namespace.clone()).await?;
+    let namespace_id = namespace::Namespace
+        .get_namespace_id(app_id.clone(), cluster.clone(), namespace.clone())
+        .await?;
     if namespace_id.is_none() {
-        return Err(APIError::new_param_err(ParamErrType::NotExist, "namespace"));
+        return Err(APIError::param_err(ParamErrType::NotExist, "namespace"));
     }
 
     let namespace_item = time::timeout(
@@ -196,11 +205,11 @@ pub async fn notifaction(
     // let namespace_item = namespace_item.await;
     if namespace_item.is_err() {
         // 超时 无更新
-        return Ok(Json(ApiResponse::ok()));
+        return Ok(APIResponse::ok());
     }
     let namespace_item = namespace_item.unwrap();
     if namespace_item.is_none() {
-        return Ok(Json(ApiResponse::ok()));
+        return Ok(APIResponse::ok());
     }
-    Ok(Json(ApiResponse::ok_data(namespace_item.unwrap())))
+    Ok(APIResponse::ok_data(namespace_item.unwrap()))
 }

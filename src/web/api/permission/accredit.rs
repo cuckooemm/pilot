@@ -1,45 +1,50 @@
 use std::collections::HashSet;
 
 use crate::web::{
-    extract::response::APIError,
-    store::dao::{rule, user_role},
+    extract::error::APIError,
+    store::dao::{app, rule, user_role},
 };
 
 use entity::{rule::Verb, users::UserLevel, UserAuth};
 
 #[inline]
-pub fn acc_admin(auth: &UserAuth, app_id: Option<String>) -> bool {
+pub async fn acc_admin(auth: &UserAuth, app_id: Option<String>) -> Result<bool, APIError> {
     match auth.level {
         // 是否超级管理员
-        UserLevel::Admin => true,
+        UserLevel::Admin => Ok(true),
         UserLevel::DeptAdmin => {
             return match app_id {
                 Some(id) => {
-                    // 判断资源是否属同一部门
-                    // auth.org_id == resource.org_id
-                    false
+                    // same department
+                    Ok(app::App
+                        .get_app_department_by_id(id)
+                        .await?
+                        .unwrap_or_default()
+                        == auth.dept_id)
                 }
-                None => false,
+                None => Ok(false),
             };
         }
-        _ => false,
+        _ => Ok(false),
     }
 }
 
-pub async fn accredit(auth: &UserAuth, verb: Verb, resource: Vec<&str>) -> Result<bool, APIError> {
+pub async fn accredit(auth: &UserAuth, verb: Verb, resource: &Vec<&str>) -> Result<bool, APIError> {
     if resource.len() == 0 {
         return Ok(false);
     }
-    if acc_admin(auth, resource.first().and_then(|x| Some(x.to_string()))) {
+    if acc_admin(auth, resource.first().and_then(|x| Some(x.to_string()))).await? {
         return Ok(true);
     }
     // 获得用户的角色ID
-    let user_roles = user_role::get_user_role(auth.id).await?;
+    let user_roles = user_role::UserRule.get_user_role(auth.id).await?;
     if user_roles.is_empty() {
         return Ok(false);
     }
     // 获取授权资源的角色ID
-    let auth_roles = rule::get_resource_role(verb, rule::combination_resource(resource)).await?;
+    let auth_roles = rule::Rule
+        .get_resource_role(verb, rule::combination_resource(resource))
+        .await?;
     if auth_roles.is_empty() {
         return Ok(false);
     }

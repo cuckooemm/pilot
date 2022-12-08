@@ -6,7 +6,7 @@ pub mod common;
 pub mod constant;
 pub mod department;
 pub mod enums;
-pub mod favorite;
+pub mod collection;
 pub mod item;
 pub mod namespace;
 pub mod release;
@@ -65,10 +65,10 @@ pub use app::Column as AppColumn;
 pub use app::Entity as AppEntity;
 pub use app::Model as AppModel;
 
-pub use favorite::ActiveModel as FavoriteActive;
-pub use favorite::Column as FavoriteColumn;
-pub use favorite::Entity as FavoriteEntity;
-pub use favorite::Model as FavoriteModel;
+pub use collection::ActiveModel as CollectionActive;
+pub use collection::Column as CollectionColumn;
+pub use collection::Entity as CollectionEntity;
+pub use collection::Model as CollectionModel;
 
 pub use cluster::ActiveModel as ClusterActive;
 pub use cluster::Column as ClusterColumn;

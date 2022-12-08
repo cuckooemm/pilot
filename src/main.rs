@@ -5,8 +5,6 @@ use config::Config;
 use std::{io, net::SocketAddr, time::Duration};
 use tokio::signal;
 
-use crate::web::store::store::init_store;
-
 fn main() {
     dotenv::dotenv().ok();
     Config::init_env();
@@ -25,8 +23,6 @@ fn main() {
         .unwrap();
 
     rumtime.block_on(async {
-        init_store(&config::get_store()).await;
-
         let router = web::route::init_router().await;
         let svc = config::get_server();
         let addr: SocketAddr = svc.addr.parse().unwrap();

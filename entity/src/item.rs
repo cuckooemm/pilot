@@ -1,3 +1,5 @@
+use crate::enums::Status;
+
 use super::enums::ItemCategory;
 
 use sea_orm::{entity::prelude::*, FromQueryResult};
@@ -14,12 +16,11 @@ pub struct Model {
     pub key: String,
     pub value: String,
     pub category: ItemCategory,
-    pub remark: String, // 注释
+    pub remark: String,
     pub version: u64,
-    pub modify_user_id: u32, // 最后修改人
-    pub deleted_at: u64,
-    pub created_at: DateTimeWithTimeZone, // 创建时间
-    pub updated_at: DateTimeWithTimeZone, // 更新时间
+    pub status: Status,
+    pub created_at: DateTimeWithTimeZone,
+    pub updated_at: DateTimeWithTimeZone,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter)]
@@ -57,5 +58,4 @@ pub struct ItemData {
     pub value: String,
     pub category: ItemCategory,
     pub version: u64,
-    pub deleted_at: u64,
 }

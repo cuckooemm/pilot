@@ -1,6 +1,6 @@
 use crate::{
     config,
-    web::{extract::response::APIError, store::dao::users::get_user_info},
+    web::{extract::error::APIError, store::dao::users},
 };
 
 use axum::{
@@ -9,7 +9,10 @@ use axum::{
     response::IntoResponse,
 };
 use chrono::Local;
-use entity::users::{Claims, UserLevel};
+use entity::{
+    enums::Status,
+    users::{Claims, UserLevel},
+};
 use headers::HeaderMap;
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
 use once_cell::sync::Lazy;
@@ -25,25 +28,29 @@ static JWT_DECODE: Lazy<DecodingKey> =
 pub async fn auth<B>(mut req: Request<B>, next: Next<B>) -> impl IntoResponse {
     let token = get_token(req.headers()).ok_or((
         StatusCode::OK,
-        APIError::new_auth_invalid("Authentication failed".to_owned()),
+        APIError::auth_invalid("Authentication failed".to_owned()),
     ))?;
     let mut claims = decode::<Claims>(&token, &JWT_DECODE, &Validation::default())
         .map_err(|e| {
             tracing::error!("failed to decode token [{}]. err: {:?}", token, e);
             (
                 StatusCode::OK,
-                APIError::new_auth_invalid("Authentication failed".to_owned()),
+                APIError::auth_invalid("Authentication failed".to_owned()),
             )
         })?
         .claims;
-    let user = get_user_info(claims.uid).await.unwrap_or_default().ok_or((
-        StatusCode::OK,
-        APIError::new_auth_invalid("Authentication failed".to_owned()),
-    ))?;
-    if user.deleted_at > 0 || user.level == UserLevel::Ban {
+    let user = users::Users
+        .get_user_info(claims.uid)
+        .await
+        .unwrap_or_default()
+        .ok_or((
+            StatusCode::OK,
+            APIError::auth_invalid("Authentication failed".to_owned()),
+        ))?;
+    if user.status != Status::Normal {
         return Err((
             StatusCode::OK,
-            APIError::new_auth_invalid("Invalid account".to_owned()),
+            APIError::auth_invalid("Invalid account".to_owned()),
         ));
     }
     let curtime = Local::now().timestamp();
@@ -51,7 +58,7 @@ pub async fn auth<B>(mut req: Request<B>, next: Next<B>) -> impl IntoResponse {
         // expire
         return Err((
             StatusCode::OK,
-            APIError::new_auth_invalid("Authentication expired".to_owned()),
+            APIError::auth_invalid("Authentication expired".to_owned()),
         ));
     }
 
@@ -61,12 +68,14 @@ pub async fn auth<B>(mut req: Request<B>, next: Next<B>) -> impl IntoResponse {
     if claims.renewal > 0 && claims.exp - curtime < std::cmp::max(claims.renewal / 5, 86400) {
         // auto refresh token
         claims.exp = curtime + claims.renewal;
-        encode(&Header::default(), &claims, &JWT_ENCODE).and_then(|token| {
-            response
-                .headers_mut()
-                .insert("Refresh-Token", token.parse().unwrap());
-            Ok(())
-        }).ok();
+        encode(&Header::default(), &claims, &JWT_ENCODE)
+            .and_then(|token| {
+                let header = response.headers_mut();
+                header.insert("Refresh-Token", token.parse().unwrap());
+                header.insert("Token-Expire", claims.exp.to_string().parse().unwrap());
+                Ok(())
+            })
+            .ok();
     }
     Ok(response)
 }

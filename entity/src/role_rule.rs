@@ -1,3 +1,5 @@
+use crate::enums::Status;
+
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 
@@ -7,11 +9,9 @@ pub struct Model {
     #[sea_orm(primary_key)]
     #[serde(serialize_with = "super::confuse")]
     pub id: u64,
-    pub role_id: u32,                     // 角色ID
-    pub rule_id: u64,                     // 权限ID
-    pub deleted_at: u64,                  // 删除时间
-    pub created_at: DateTimeWithTimeZone, // 创建时间
-    pub updated_at: DateTimeWithTimeZone, // 更新时间
+    pub role_id: u32,
+    pub rule_id: u64,
+    pub status: Status,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter)]

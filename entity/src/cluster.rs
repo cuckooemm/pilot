@@ -1,19 +1,21 @@
 use sea_orm::{entity::prelude::*, FromQueryResult};
 use serde::{Deserialize, Serialize};
 
+use crate::enums::Status;
+
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Deserialize, Serialize)]
 #[sea_orm(table_name = "cluster")]
 pub struct Model {
     #[sea_orm(primary_key)]
-    #[serde(skip)]
+    #[serde(serialize_with = "super::confuse")]
     pub id: u64,
-    pub app_id: String, // app 唯一 ID
-    pub name: String,   // cluster name
-    pub secret: String, // 连接 secret
-    pub creator_user: u32,
-    pub deleted_at: u64,
-    pub created_at: DateTimeWithTimeZone, // 创建时间
-    pub updated_at: DateTimeWithTimeZone, // 更新时间
+    pub app: String,
+    pub cluster: String,
+    pub describe: String,
+    pub secret: String,
+    pub status: Status,
+    pub created_at: DateTimeWithTimeZone,
+    pub updated_at: DateTimeWithTimeZone,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter)]
@@ -36,4 +38,5 @@ pub struct ClusterItem {
     #[serde(serialize_with = "super::confuse")]
     pub id: u64,
     pub name: String,
+    pub describe: String,
 }

@@ -1,25 +1,22 @@
 use sea_orm::{entity::prelude::*, FromQueryResult};
 use serde::{Deserialize, Serialize};
 
+use crate::enums::Status;
+
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Deserialize, Serialize)]
-#[sea_orm(table_name = "app")]
+#[sea_orm(table_name = "apps")]
 pub struct Model {
     #[sea_orm(primary_key)]
     #[serde(skip)]
     pub id: u32,
-    pub app_id: String, // app 唯一 ID
-    pub name: String,   // app name
+    pub app: String, // app 唯一 ID
+    pub name: String,
+    pub describe: String, // maxLen=200
     #[serde(serialize_with = "super::confuse")]
-    pub dept_id: u32, // 部门 ID
-    #[serde(serialize_with = "super::confuse")]
-    pub creator_user: u32, // 创建者ID
-    #[serde(
-        serialize_with = "super::format_time",
-        skip_serializing_if = "super::is_zero"
-    )]
-    pub deleted_at: u64, // 删除时间 为0则未删除
-    pub created_at: DateTimeWithTimeZone, // 创建时间
-    pub updated_at: DateTimeWithTimeZone, // 更新时间
+    pub dept_id: u32,
+    pub status: Status,
+    pub created_at: DateTimeWithTimeZone,
+    pub updated_at: DateTimeWithTimeZone,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter)]
@@ -36,4 +33,10 @@ impl ActiveModelBehavior for ActiveModel {}
 pub struct AppItem {
     pub app_id: String,
     pub name: String,
+    pub describe: String,
+}
+
+#[derive(FromQueryResult, Default, Debug, Clone)]
+pub struct DepartmentID {
+    pub dept_id: u32,
 }

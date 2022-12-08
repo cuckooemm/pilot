@@ -1,25 +1,23 @@
 use sea_orm::{entity::prelude::*, FromQueryResult};
 use serde::{Deserialize, Serialize};
 
+use crate::enums::Status;
+
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Deserialize, Serialize)]
 #[sea_orm(table_name = "users")]
 pub struct Model {
     #[sea_orm(primary_key)]
     #[serde(serialize_with = "super::confuse")]
     pub id: u32, // 用户ID
-    pub account: String,  // 登录用户名
-    pub email: String,    // 邮箱
-    pub nickname: String, // 用户名
+    pub account: String,  // 账号 maxLen=64
+    pub email: String,    // 邮箱 maxLen=64
+    pub nickname: String, // 用户名 maxLen=32
     #[serde(skip)]
     pub password: String, // 密码
     #[serde(serialize_with = "super::confuse")]
     pub dept_id: u32, // 部门
     pub level: UserLevel, // 帐号等级
-    #[serde(
-        serialize_with = "super::format_time",
-        skip_serializing_if = "super::is_zero"
-    )]
-    pub deleted_at: u64, // 删除时间
+    pub status: Status,   // 删除时间
     pub created_at: DateTimeWithTimeZone, // 创建时间
     pub updated_at: DateTimeWithTimeZone, // 更新时间
 }
@@ -53,9 +51,6 @@ impl ActiveModelBehavior for ActiveModel {}
 #[sea_orm(rs_type = "u16", db_type = "SmallUnsigned")]
 pub enum UserLevel {
     #[sea_orm(num_value = 0)]
-    #[serde(rename = "normal")]
-    Ban,
-    #[sea_orm(num_value = 1)]
     #[serde(rename = "normal")]
     Normal,
     #[sea_orm(num_value = 10)]
@@ -111,5 +106,5 @@ pub struct UserAuth {
     pub nickname: String, // 用户名
     pub dept_id: u32,     // 部门
     pub level: UserLevel, // 帐号
-    pub deleted_at: u64, // 删除时间
+    pub status: Status,
 }

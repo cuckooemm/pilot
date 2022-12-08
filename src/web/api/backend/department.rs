@@ -1,22 +1,21 @@
 use crate::web::{
-    api::{check, permission::accredit},
+    api::{check, helper, permission::accredit},
     extract::{
-        json::ReqJson,
-        query::ReqQuery,
-        response::{APIError, ApiResponse, Empty, ParamErrType},
+        error::{APIError, ParamErrType},
+        request::{ReqJson, ReqQuery},
+        response::APIResponse,
     },
-    store::dao::department,
+    store::dao::Dao,
     APIResult,
 };
 
-use axum::{Json, Extension};
-use chrono::Local;
+use axum::{extract::State, Extension};
 use entity::{
     common::Id32Name,
     enums::Status,
     orm::{ActiveModelTrait, IntoActiveModel, Set},
     users::UserLevel,
-    DepartmentModel, ID, UserAuth,
+    DepartmentModel, UserAuth,
 };
 use serde::Deserialize;
 
@@ -27,32 +26,34 @@ pub struct DepartmentParam {
 }
 
 pub async fn create(
+    Extension(auth): Extension<UserAuth>,
+    State(ref dao): State<Dao>,
     ReqJson(param): ReqJson<DepartmentParam>,
-    Extension(auth): Extension<UserAuth>
-) -> APIResult<Json<ApiResponse<Id32Name>>> {
+) -> APIResult<APIResponse<DepartmentModel>> {
     let name = match param.name {
         Some(name) => {
             let name = check::trim(name);
-            if name.len() == 0 || name.len() > 128 {
-                return Err(APIError::new_param_err(ParamErrType::Len(1, 128), "name"));
+            if name.len() == 0 || name.len() > 64 {
+                return Err(APIError::param_err(ParamErrType::Len(1, 64), "name"));
             }
             name
         }
-        None => return Err(APIError::new_param_err(ParamErrType::Required, "name")),
+        None => return Err(APIError::param_err(ParamErrType::Required, "name")),
     };
 
-    // 仅超级管理员可操作
-    if !accredit::acc_admin(&auth, None) {
-        return Err(APIError::new_permission_forbidden());
+    if !accredit::acc_admin(&auth, None).await? {
+        return Err(APIError::forbidden_resource(
+            crate::web::extract::error::ForbiddenType::Operate,
+            &vec!["create", "department"],
+        ));
     }
 
-    // 查看部门名是否存在
-    if department::is_exist(name.clone()).await? {
-        return Err(APIError::new_param_err(ParamErrType::Exist, "name"));
+    if dao.department.is_exist(name.clone()).await? {
+        return Err(APIError::param_err(ParamErrType::Exist, "name"));
     }
-    let id = department::add(name.clone()).await?;
+    let data = dao.department.addition(name.clone()).await?;
 
-    Ok(Json(ApiResponse::ok_data(Id32Name { id, name })))
+    Ok(APIResponse::ok_data(data))
 }
 
 #[derive(Deserialize)]
@@ -63,56 +64,56 @@ pub struct EditDepartmentParam {
 }
 // 更新部门信息
 pub async fn edit(
+    Extension(auth): Extension<UserAuth>,
+    State(ref dao): State<Dao>,
     ReqJson(param): ReqJson<EditDepartmentParam>,
-    Extension(auth): Extension<UserAuth>
-) -> APIResult<Json<ApiResponse<DepartmentModel>>> {
+) -> APIResult<APIResponse<DepartmentModel>> {
     let id = check::id_decode::<u32>(param.id, "id")?;
     match auth.level {
         UserLevel::Admin => (),
         UserLevel::DeptAdmin => {
             // 不能修改其他部门的信息
             if auth.dept_id != id {
-                return Err(APIError::new_permission_forbidden());
+                return Err(APIError::forbidden_resource(
+                    crate::web::extract::error::ForbiddenType::Operate,
+                    &vec!["edit", "department"],
+                ));
             }
         }
-        _ => return Err(APIError::new_permission_forbidden()),
+        _ => {
+            return Err(APIError::forbidden_resource(
+                crate::web::extract::error::ForbiddenType::Operate,
+                &vec!["edit", "department"],
+            ));
+        }
     }
-    let dept = department::get_info(id).await?;
-    if dept.is_none() {
-        return Err(APIError::new_param_err(ParamErrType::NotExist, "id"));
-    }
-    let dept = dept.unwrap();
+    let dept = dao
+        .department
+        .get_info(id)
+        .await?
+        .ok_or(APIError::param_err(ParamErrType::NotExist, "id"))?;
+
     let mut active = dept.clone().into_active_model();
     if let Some(name) = param.name {
         let name = check::trim(name);
-        if name.len() == 0 || name.len() > 128 {
-            return Err(APIError::new_param_err(ParamErrType::Len(1, 128), "name"));
+        if name.len() == 0 || name.len() > 64 {
+            return Err(APIError::param_err(ParamErrType::Len(1, 64), "name"));
         }
         if name != dept.name {
             active.name = Set(name);
         }
     }
-    if let Some(status) = param.status {
-        match Status::from(status) {
-            Status::Other => (),
-            Status::Normal => {
-                // 状态为delete 更改为正常
-                if dept.deleted_at != 0 {
-                    active.deleted_at = Set(0);
-                }
-            }
-            Status::Delete => {
-                if dept.deleted_at == 0 {
-                    active.deleted_at = Set(Local::now().timestamp() as u64);
-                }
-            }
+
+    if let Some(status) = param.status.and_then(|s| s.try_into().ok()) {
+        if status != dept.status {
+            active.status = Set(status);
         }
     }
     if !active.is_changed() {
-        return Ok(Json(ApiResponse::ok_data(dept)));
+        return Ok(APIResponse::ok_data(dept));
     }
-    let model = department::update(active).await?;
-    Ok(Json(ApiResponse::ok_data(model)))
+    let model = dao.department.update(active).await?;
+    Ok(APIResponse::ok_data(model))
 }
 
 #[derive(Deserialize)]
@@ -125,13 +126,14 @@ pub struct QueryParam {
 
 pub async fn list(
     ReqQuery(param): ReqQuery<QueryParam>,
-    Extension(auth): Extension<UserAuth>
-) -> APIResult<Json<ApiResponse<Vec<Id32Name>>>> {
+    State(ref dao): State<Dao>,
+    Extension(auth): Extension<UserAuth>,
+) -> APIResult<APIResponse<Vec<Id32Name>>> {
     let name = match param.name {
         Some(name) => {
             let name = check::trim(name);
-            if name.len() > 128 {
-                return Err(APIError::new_param_err(ParamErrType::Len(1, 128), "name"));
+            if name.len() > 64 {
+                return Err(APIError::param_err(ParamErrType::Len(1, 64), "name"));
             }
             if name.len() == 0 {
                 None
@@ -141,10 +143,12 @@ pub async fn list(
         }
         None => None,
     };
-    let (page, page_size) = check::page(param.page, param.page_size);
+    let (page, page_size) = helper::page(param.page, param.page_size);
+    let status: Option<Status> = param.status.and_then(|s| s.try_into().ok());
 
-    let status: Status = param.status.unwrap_or_default().into();
-    let list =
-        department::search_department(name, status, (page - 1) * page_size, page_size).await?;
-    Ok(Json(ApiResponse::ok_data(list)))
+    let list = dao
+        .department
+        .search_department(name, status, helper::page_to_limit(page, page_size))
+        .await?;
+    Ok(APIResponse::ok_data(list))
 }

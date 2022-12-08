@@ -1,32 +1,22 @@
-use once_cell::sync::OnceCell;
+use super::{
+    cache::CacheItem,
+    dao::{Conn, Dao},
+};
 
-use super::DB;
-use crate::config::StoreConfig;
+use axum::extract::FromRef;
 
-#[derive(Debug, Clone)]
+#[derive(Clone, FromRef)]
 pub struct Store {
-    db: DB,
-}
-
-static STORE: OnceCell<Store> = OnceCell::new();
-
-pub async fn init_store(store: &StoreConfig) {
-    STORE
-        .set(Store::new(store).await)
-        .expect("failed to init store");
-}
-
-pub fn get_store() -> &'static Store {
-    STORE.get().expect("failed to init store")
+    dao: Dao,
+    memch: CacheItem,
 }
 
 impl Store {
-    pub async fn new(store: &StoreConfig) -> Self {
+    pub async fn new() -> Self {
+        Conn::connection().await;
         Self {
-            db: DB::new(&store.database).await,
+            dao: Dao::new(),
+            memch: CacheItem::new(),
         }
-    }
-    pub fn db(&self) -> &DB {
-        &self.db
     }
 }

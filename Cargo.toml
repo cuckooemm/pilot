@@ -9,22 +9,22 @@ version = "0.1.0"
 members = [".", "entity"]
 
 [dependencies]
-dotenv = "0.15.0"
-axum = { version = "0.5", features = ["headers"]}
+dotenv = "0.15"
+axum = { version = "0.6", features = ["headers","macros"]}
 headers = "0.3"
 jsonwebtoken = "8"
 async-session = "3"
 chrono = "0.4"
 md5 = "0.7"
 bcrypt = "0.13"
-regex = "1.5"
+regex = "1"
 ahash = "0.8"
 entity = {path = "entity"}
 lazy_static = "1.4"
 metrics = "0.20"
 metrics-exporter-prometheus = "0.11"
-once_cell = "1.10"
 rand = "0.8"
+once_cell = "1.16"
 serde = {version = "1", features = ["derive"]}
 serde_derive = "1"
 serde_json = "1"

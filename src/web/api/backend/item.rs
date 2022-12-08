@@ -1,15 +1,15 @@
-use super::dao::{item, namespace};
-use super::{check, ReqJson, ReqQuery};
-use super::{
-    response::{APIError, ApiResponse, ParamErrType},
-    APIResult,
-};
 use crate::web::api::permission::accredit;
+use crate::web::api::{check, helper};
+use crate::web::extract::error::{APIError, ParamErrType};
+use crate::web::extract::request::{ReqJson, ReqQuery};
+use crate::web::extract::response::APIResponse;
+use crate::web::store::dao::Dao;
+use crate::web::APIResult;
 
+use axum::extract::State;
 use axum::Extension;
-use axum::extract::Json;
 use entity::orm::Set;
-use entity::{ItemActive, ItemCategory, ItemModel, ID, UserAuth};
+use entity::{ItemActive, ItemCategory, ItemModel, UserAuth};
 use serde::Deserialize;
 
 #[derive(Deserialize)]
@@ -23,36 +23,39 @@ pub struct ItemParam {
 }
 
 pub async fn create(
+    Extension(auth): Extension<UserAuth>,
+    State(ref dao): State<Dao>,
     ReqJson(param): ReqJson<ItemParam>,
-    Extension(auth): Extension<UserAuth>
-) -> APIResult<Json<ApiResponse<ID>>> {
+) -> APIResult<APIResponse<u64>> {
     let ns_id = check::id_decode(param.id, "id")?;
-    let key = check::id_str_len(param.key, "key", None, Some(255))?;
+    let key = check::key(param.key, "key", None, Some(255))?;
     let category: ItemCategory = param.category.unwrap_or_default().into();
     let remark = param.remark.unwrap_or_default();
     if remark.len() > 255 {
-        return Err(APIError::new_param_err(ParamErrType::Len(0, 255), "remark"));
+        return Err(APIError::param_err(ParamErrType::Len(0, 255), "remark"));
     }
     // 检查 namespace_id 是否存在
-    let info = namespace::get_app_info(ns_id).await?;
+    let info = dao.namespace.get_app_info(ns_id).await?;
     if info.is_none() {
-        return Err(APIError::new_param_err(ParamErrType::NotExist, "id"));
+        return Err(APIError::param_err(ParamErrType::NotExist, "id"));
     }
     let info = info.unwrap();
     // 权限验证 TODO
-    if !accredit::accredit(
-        &auth,
-        entity::rule::Verb::Create,
-        vec![&info.app_id, &info.cluster, &info.namespace],
-    )
-    .await?
-    {
-        return Err(APIError::new_permission_forbidden());
+    let resource = vec![
+        info.app_id.as_str(),
+        info.cluster.as_str(),
+        info.namespace.as_str(),
+    ];
+    if !accredit::accredit(&auth, entity::rule::Verb::Create, &resource).await? {
+        return Err(APIError::forbidden_resource(
+            crate::web::extract::error::ForbiddenType::Operate,
+            &resource,
+        ));
     }
 
     // 检查是否已存在此key
-    if item::is_key_exist(ns_id, key.clone()).await? {
-        return Err(APIError::new_param_err(ParamErrType::Exist, "key"));
+    if dao.item.is_key_exist(ns_id, key.clone()).await? {
+        return Err(APIError::param_err(ParamErrType::Exist, "key"));
     }
 
     let data = ItemActive {
@@ -62,30 +65,30 @@ pub async fn create(
         category: Set(category),
         remark: Set(remark),
         version: Set(1u64),
-        modify_user_id: Set(auth.id),
         ..Default::default()
     };
 
-    let id = item::add(data).await?;
-    Ok(Json(ApiResponse::ok_data(ID::new(id))))
+    let id = dao.item.addition(data).await?;
+    Ok(APIResponse::ok_data(id))
 }
 
 pub async fn edit(
-    Json(param): Json<ItemParam>,
-    Extension(auth): Extension<UserAuth>
-) -> APIResult<Json<ApiResponse<ItemModel>>> {
+    Extension(auth): Extension<UserAuth>,
+    State(ref dao): State<Dao>,
+    ReqJson(param): ReqJson<ItemParam>,
+) -> APIResult<APIResponse<ItemModel>> {
     let item_id = check::id_decode(param.id, "id")?;
     let version = match param.version {
         Some(version) => {
             if version == 0 {
-                return Err(APIError::new_param_err(ParamErrType::Invalid, "version"));
+                return Err(APIError::param_err(ParamErrType::Invalid, "version"));
             }
             version
         }
-        None => return Err(APIError::new_param_err(ParamErrType::Required, "version")),
+        None => return Err(APIError::param_err(ParamErrType::Required, "version")),
     };
     if let Some(key) = &param.key {
-        check::id_str_len_rule(key, "key", None, Some(255))?;
+        check::key_rule(key, "key", None, Some(255))?;
     }
 
     let category: ItemCategory = param.category.clone().unwrap_or_default().into();
@@ -98,87 +101,96 @@ pub async fn edit(
     }
     if let Some(remark) = &param.remark {
         if remark.len() > 255 {
-            return Err(APIError::new_param_err(ParamErrType::Len(0, 255), "remark"));
+            return Err(APIError::param_err(ParamErrType::Len(0, 255), "remark"));
         }
     }
 
     // 找到需要修改的 item
-    let entity = item::find_by_id(item_id).await?;
+    let entity = dao.item.find_by_id(item_id).await?;
     if entity.is_none() {
-        return Err(APIError::new_param_err(ParamErrType::NotExist, "id"));
+        return Err(APIError::param_err(ParamErrType::NotExist, "id"));
     }
     let entity = entity.unwrap();
     // 已删除
-    if entity.deleted_at != 0 {
-        return Err(APIError::new_param_err(ParamErrType::NotExist, "id"));
-    }
+    // if entity.deleted_at != 0 {
+    //     return Err(APIError::param_err(ParamErrType::NotExist, "id"));
+    // }
     // 校验权限
-    let info = namespace::get_app_info(entity.namespace_id).await?;
+    let info = dao.namespace.get_app_info(entity.namespace_id).await?;
     if info.is_none() {
-        return Err(APIError::new_param_err(ParamErrType::NotExist, "id"));
+        return Err(APIError::param_err(ParamErrType::NotExist, "id"));
     }
     let info = info.unwrap();
-    if !accredit::accredit(
-        &auth,
-        entity::rule::Verb::Modify,
-        vec![&info.app_id, &info.cluster, &info.namespace],
-    )
-    .await?
-    {
-        return Err(APIError::new_permission_forbidden());
+    let resource = vec![
+        info.app_id.as_str(),
+        info.cluster.as_str(),
+        info.namespace.as_str(),
+    ];
+    if !accredit::accredit(&auth, entity::rule::Verb::Modify, &resource).await? {
+        return Err(APIError::forbidden_resource(
+            crate::web::extract::error::ForbiddenType::Operate,
+            &resource,
+        ));
     }
 
     // let entity = entity.unwrap();
-    let success = item::update(
-        entity,
-        param.key,
-        param.value,
-        param.category,
-        param.remark,
-        version,
-        auth.id,
-    )
-    .await?;
+    let success = dao
+        .item
+        .update(
+            entity,
+            param.key,
+            param.value,
+            param.category,
+            param.remark,
+            version,
+            auth.id,
+        )
+        .await?;
     if success {
-        Ok(Json(ApiResponse::ok()))
+        Ok(APIResponse::ok())
     } else {
-        Err(APIError::new_param_err(ParamErrType::Changed, "item"))
+        Err(APIError::param_err(ParamErrType::Changed, "item"))
     }
 }
 
 #[derive(Deserialize)]
 pub struct DetailsParam {
-    pub namespace: Option<String>,
+    pub namespace_id: Option<String>,
     pub page: Option<String>,
     pub page_size: Option<String>,
 }
 
 pub async fn list(
     ReqQuery(param): ReqQuery<DetailsParam>,
-    Extension(auth): Extension<UserAuth>
-) -> APIResult<Json<ApiResponse<Vec<ItemModel>>>> {
-    let ns_id = check::id_decode(param.namespace, "id")?;
+    State(ref dao): State<Dao>,
+    Extension(auth): Extension<UserAuth>,
+) -> APIResult<APIResponse<Vec<ItemModel>>> {
+    let ns_id = check::id_decode(param.namespace_id, "namespace_id")?;
     // 校验权限
-    let info = namespace::get_app_info(ns_id).await?;
+    let info = dao.namespace.get_app_info(ns_id).await?;
     if info.is_none() {
-        return Err(APIError::new_param_err(ParamErrType::NotExist, "id"));
+        return Err(APIError::param_err(ParamErrType::NotExist, "id"));
     }
     let info = info.unwrap();
-    if !accredit::accredit(
-        &auth,
-        entity::rule::Verb::VIEW,
-        vec![&info.app_id, &info.cluster, &info.namespace],
-    )
-    .await?
-    {
-        return Err(APIError::new_permission_forbidden());
+    let resource = vec![
+        info.app_id.as_str(),
+        info.cluster.as_str(),
+        info.namespace.as_str(),
+    ];
+    if !accredit::accredit(&auth, entity::rule::Verb::VIEW, &resource).await? {
+        return Err(APIError::forbidden_resource(
+            crate::web::extract::error::ForbiddenType::Operate,
+            &resource,
+        ));
     }
 
-    let (page, page_size) = check::page(param.page, param.page_size);
-    let data: Vec<ItemModel> =
-        item::find_by_nsid_all(ns_id, (page - 1) * page_size, page_size).await?;
-    let mut rsp = ApiResponse::ok_data(data);
+    let (page, page_size) = helper::page(param.page, param.page_size);
+    let data: Vec<ItemModel> = dao
+        .item
+        .find_by_nsid_all(ns_id, (page - 1) * page_size, page_size)
+        .await?;
+    let mut rsp = APIResponse::ok_data(data);
     // TODO 更新返回结构 待是否发布标记
     rsp.set_page(page, page_size);
-    Ok(Json(rsp))
+    Ok(rsp)
 }

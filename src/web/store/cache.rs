@@ -1,8 +1,9 @@
 use std::{collections::HashMap, sync::Arc, time::Duration};
 
-use super::dao::release;
+use super::dao::{release, Dao};
 
 use ahash::RandomState;
+use axum::extract::FromRef;
 use entity::{item::ConfigItem, orm::DbErr};
 use serde::Serialize;
 use tokio::{
@@ -336,7 +337,7 @@ impl CacheItem {
 // 从数据库中加载数据
 pub async fn load_database_publication(namespace_id: u64) -> Option<NamespaceItem> {
     for _ in 0..3 {
-        let config = release::get_namespace_config(namespace_id).await;
+        let config = Dao::new().release.get_namespace_config(namespace_id).await;
         match config {
             Ok(config) => match config {
                 Some(config) => {

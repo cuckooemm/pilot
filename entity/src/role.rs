@@ -1,16 +1,16 @@
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 
+use crate::enums::Status;
+
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Deserialize, Serialize)]
 #[sea_orm(table_name = "role")]
 pub struct Model {
     #[sea_orm(primary_key)]
     #[serde(skip)]
     pub id: u32,
-    pub name: String, // app name
-    pub deleted_at: u64, // 删除时间 为0则未删除
-    pub created_at: DateTimeWithTimeZone, // 创建时间
-    pub updated_at: DateTimeWithTimeZone, // 更新时间
+    pub name: String, // Role name maxLen=32
+    pub status: Status,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter)]
@@ -22,9 +22,9 @@ impl RelationTrait for Relation {
     fn def(&self) -> RelationDef {
         match self {
             Self::RoleRule => Entity::belongs_to(super::RoleRuleEntity)
-            .from(Column::Id)
-            .to(super::RoleRuleColumn::RoleId)
-            .into(),
+                .from(Column::Id)
+                .to(super::RoleRuleColumn::RoleId)
+                .into(),
         }
     }
 }
