@@ -1,8 +1,10 @@
 use super::Conn;
 
-use entity::namespace::{NamespaceInfo, NamespaceItem};
+use entity::model::{
+    namespace::{NamespaceInfo, NamespaceItem},
+    NamespaceActive, NamespaceColumn, NamespaceEntity, NamespaceModel, Scope, ID,
+};
 use entity::orm::{ActiveModelTrait, ColumnTrait, DbErr, EntityTrait, QueryFilter, QuerySelect};
-use entity::{NamespaceActive, NamespaceColumn, NamespaceEntity, NamespaceModel, Scope, ID};
 
 #[derive(Debug, Clone, Default)]
 pub struct Namespace;
@@ -41,7 +43,9 @@ impl Namespace {
             .one(Conn::conn().slaver())
             .await
     }
-
+    pub async fn get_namespace_by_id(&self,id: u64) -> Result<Option<NamespaceModel>,DbErr> {
+        NamespaceEntity::find_by_id(id).one(Conn::conn().slaver()).await
+    }
     pub async fn get_namespace_name(&self, id: u64) -> Result<Option<String>, DbErr> {
         let ns = NamespaceEntity::find_by_id(id)
             .select_only()

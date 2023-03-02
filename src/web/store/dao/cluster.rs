@@ -1,8 +1,9 @@
 use super::Conn;
 
-use entity::cluster::ClusterItem;
+use entity::model::{
+    cluster::ClusterItem, ClusterActive, ClusterColumn, ClusterEntity, ClusterModel, SecretData, ID,
+};
 use entity::orm::{ActiveModelTrait, ColumnTrait, DbErr, EntityTrait, QueryFilter, QuerySelect};
-use entity::{ClusterActive, ClusterColumn, ClusterEntity, ClusterModel, SecretData, ID};
 
 #[derive(Debug, Clone, Default)]
 pub struct Cluster;

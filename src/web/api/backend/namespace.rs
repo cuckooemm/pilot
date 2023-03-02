@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use crate::web::api::check;
 use crate::web::api::permission::accredit;
-use crate::web::extract::error::{APIError, ParamErrType};
+use crate::web::extract::error::{APIError, ParamErrType, ForbiddenType};
 use crate::web::extract::request::{ReqJson, ReqQuery};
 use crate::web::extract::response::APIResponse;
 use crate::web::store::dao::{rule, Dao};
@@ -10,10 +10,12 @@ use crate::web::APIResult;
 
 use axum::extract::State;
 use axum::Extension;
-use entity::namespace::{NamespaceInfo, NamespaceItem};
+use entity::model::{
+    namespace::{NamespaceInfo, NamespaceItem},
+    rule::Verb,
+    NamespaceActive, NamespaceModel, Scope, UserAuth,
+};
 use entity::orm::Set;
-use entity::rule::Verb;
-use entity::{NamespaceActive, NamespaceModel, Scope, UserAuth};
 use serde::Deserialize;
 
 #[derive(Deserialize)]
@@ -45,9 +47,9 @@ pub async fn create(
         }
     }?;
     let resource = vec![app.as_str(), cluster.as_str()];
-    if !accredit::accredit(&auth, entity::rule::Verb::Create, &vec![&app, &cluster]).await? {
+    if !accredit::accredit(&auth, Verb::Create, &vec![&app, &cluster]).await? {
         return Err(APIError::forbidden_resource(
-            crate::web::extract::error::ForbiddenType::Operate,
+            ForbiddenType::Operate,
             &resource,
         ));
     }

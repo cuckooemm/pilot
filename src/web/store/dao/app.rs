@@ -1,15 +1,13 @@
 use super::Conn;
 
-use entity::app::DepartmentID;
-use entity::enums::Status;
-use entity::orm::{
-    ActiveModelTrait, ColumnTrait, DbErr, EntityTrait, FromQueryResult, Iterable, QueryFilter,
-    QuerySelect, Set, TransactionError, TransactionTrait,
+use entity::model::{
+    app::DepartmentID, enums::Status, rule::Verb, AppActive, AppColumn, AppEntity, AppModel, IDu32,
+    RoleActive, RoleEntity, RoleRuleActive, RoleRuleEntity, RuleActive, RuleEntity, UserRoleActive,
+    UserRoleEntity, ID,
 };
-use entity::rule::Verb;
-use entity::{
-    AppActive, AppColumn, AppEntity, AppModel, IDu32, RoleActive, RoleEntity, RoleRuleActive,
-    RoleRuleEntity, RuleActive, RuleEntity, UserRoleActive, UserRoleEntity, ID,
+use entity::orm::{
+    ActiveModelTrait, ColumnTrait, DbErr, EntityTrait, Iterable, QueryFilter, QuerySelect, Set,
+    TransactionError, TransactionTrait,
 };
 
 #[derive(Debug, Clone, Default)]

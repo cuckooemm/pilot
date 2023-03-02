@@ -1,10 +1,10 @@
 use super::Conn;
 
-use entity::orm::{ColumnTrait, DbErr, EntityTrait, QueryFilter, QuerySelect};
-use entity::{
+use entity::model::{
     AppExtraActive, AppExtraColumn, AppExtraEntity, NamespaceColumn, NamespaceEntity,
     NamespaceModel, ID,
 };
+use entity::orm::{ColumnTrait, DbErr, EntityTrait, QueryFilter, QuerySelect};
 
 #[derive(Debug, Clone, Default)]
 pub struct AppExtra;

@@ -1,13 +1,13 @@
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 
-use crate::enums::Status;
+use super::enums::Status;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Deserialize, Serialize)]
 #[sea_orm(table_name = "departments")]
 pub struct Model {
     #[sea_orm(primary_key)]
-    #[serde(serialize_with = "super::confuse")]
+    #[serde(serialize_with = "crate::confuse")]
     pub id: u32,
     pub name: String,
     pub status: Status,

@@ -1,12 +1,12 @@
 use super::Conn;
 
-use entity::enums::Status;
+use entity::model::{
+    enums::Status,
+    users::{UserAuth, UserItem},
+    DepartmentColumn, DepartmentEntity, UsersActive, UsersColumn, UsersEntity, UsersModel, ID,
+};
 use entity::orm::{
     ActiveModelTrait, ColumnTrait, DbErr, EntityTrait, QueryFilter, QueryOrder, QuerySelect,
-};
-use entity::users::{UserAuth, UserItem};
-use entity::{
-    DepartmentColumn, DepartmentEntity, UsersActive, UsersColumn, UsersEntity, UsersModel, ID,
 };
 
 #[derive(Debug, Clone, Default)]

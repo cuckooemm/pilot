@@ -8,9 +8,8 @@ use crate::web::store::dao::Dao;
 
 use axum::extract::State;
 use axum::Extension;
+use entity::model::{rule::Verb, AppExtraActive, NamespaceModel, Scope, UserAuth};
 use entity::orm::Set;
-use entity::rule::Verb;
-use entity::{AppExtraActive, NamespaceModel, Scope, UserAuth};
 use serde::Deserialize;
 use tracing::instrument;
 
@@ -87,7 +86,7 @@ pub async fn list(
     let app = check::id_str(param.app, "app")?;
     let (page, page_size) = helper::page(param.page, param.page_size);
     let resource = vec![app.as_str()];
-    if !accredit::accredit(&auth, entity::rule::Verb::VIEW, &resource).await? {
+    if !accredit::accredit(&auth, Verb::VIEW, &resource).await? {
         return Err(APIError::forbidden_resource(
             ForbiddenType::Access,
             &resource,

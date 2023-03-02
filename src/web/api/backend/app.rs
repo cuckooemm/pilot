@@ -8,13 +8,12 @@ use crate::web::APIResult;
 
 use axum::extract::State;
 use axum::Extension;
-use chrono::Local;
-use entity::enums::Status;
+use entity::model::{rule::Verb, AppActive, AppModel, UserAuth};
 use entity::orm::{ActiveModelTrait, IntoActiveModel, Set};
-use entity::{AppActive, AppModel, UserAuth};
 use serde::Deserialize;
+use tracing::instrument;
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct AppParam {
     pub app: Option<String>,
     pub name: Option<String>,
@@ -22,7 +21,7 @@ pub struct AppParam {
     pub dept_id: Option<String>,
 }
 
-// 创建APP
+#[instrument(skip(dao, auth))]
 pub async fn create(
     Extension(auth): Extension<UserAuth>,
     State(ref dao): State<Dao>,
@@ -74,7 +73,7 @@ pub async fn create(
     Ok(APIResponse::ok_data(data))
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct EditParam {
     pub app: Option<String>,
     pub name: Option<String>,
@@ -83,6 +82,7 @@ pub struct EditParam {
     pub status: Option<String>,
 }
 
+#[instrument(skip(dao, auth))]
 pub async fn edit(
     Extension(auth): Extension<UserAuth>,
     State(ref dao): State<Dao>,
@@ -95,7 +95,7 @@ pub async fn edit(
         .await?
         .ok_or(APIError::param_err(ParamErrType::NotExist, "app"))?;
     let resource = vec![app.as_str()];
-    if !accredit::accredit(&auth, entity::rule::Verb::Modify, &resource).await? {
+    if !accredit::accredit(&auth, Verb::Modify, &resource).await? {
         return Err(APIError::forbidden_resource(
             crate::web::extract::error::ForbiddenType::Operate,
             &resource,
@@ -143,13 +143,14 @@ pub async fn edit(
     Ok(APIResponse::ok_data(data))
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct QueryParam {
+    pub status: Option<String>,
     pub page: Option<String>,
     pub page_size: Option<String>,
 }
 
-// 获取用户APP
+#[instrument(skip(dao, auth))]
 pub async fn list(
     Extension(auth): Extension<UserAuth>,
     State(ref dao): State<Dao>,

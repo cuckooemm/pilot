@@ -1,9 +1,11 @@
 use super::Conn;
 
+use entity::model::{
+    rule::Verb,
+    user_role::{RoleResource, UserRoleID},
+    RoleRuleColumn, RoleRuleEntity, RuleColumn, RuleEntity,
+};
 use entity::orm::{ColumnTrait, DbErr, EntityTrait, QueryFilter, QuerySelect};
-use entity::rule::Verb;
-use entity::user_role::{RoleResource, UserRoleID};
-use entity::{RoleRuleColumn, RoleRuleEntity, RuleColumn, RuleEntity};
 
 const RESOURCE_PAT: &str = ".";
 

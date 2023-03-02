@@ -125,9 +125,9 @@ CREATE TABLE `release` (
 DROP TABLE IF EXISTS `release_history`;
 
 CREATE TABLE `release_history` (
-    `id` bigint unsigned NOT NULL AUTO_INCREMENT COMMENT '自增主键',
-    `namespace_id` bigint unsigned NOT NULL COMMENT '命名空间ID',
-    `release_id` bigint unsigned NOT NULL COMMENT '对应release_id',
+    `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+    `namespace_id` bigint unsigned NOT NULL COMMENT 'namespace',
+    `release_version` bigint unsigned NOT NULL COMMENT 'release_version',
     `change` text NOT NULL COMMENT '变更集',
     `status` tinyint unsigned NOT NULL DEFAULT 0 COMMENT '状态',
     `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',

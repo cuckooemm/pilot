@@ -10,7 +10,7 @@ use crate::web::{
 };
 
 use axum::{extract::State, Extension};
-use entity::{app::AppItem, UserAuth};
+use entity::model::{app::AppItem, UserAuth};
 use serde::Deserialize;
 
 #[derive(Deserialize)]

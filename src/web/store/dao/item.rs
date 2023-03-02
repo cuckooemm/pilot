@@ -1,10 +1,12 @@
 use super::Conn;
 
-use entity::item::{ItemData, ItemDesc};
+use entity::model::{
+    item::{ItemData, ItemDesc},
+    ItemActive, ItemCategory, ItemColumn, ItemEntity, ItemModel, ID,
+};
 use entity::orm::{
     ActiveModelTrait, ColumnTrait, DbErr, EntityTrait, QueryFilter, QuerySelect, Set,
 };
-use entity::{ItemActive, ItemCategory, ItemColumn, ItemEntity, ItemModel, ID};
 
 #[derive(Debug, Clone, Default)]
 pub struct Item;

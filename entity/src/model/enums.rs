@@ -1,5 +1,3 @@
-use std::{error::Error, string::ParseError};
-
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 
@@ -82,7 +80,7 @@ impl From<String> for Scope {
         match str.to_lowercase().as_str() {
             "private" => Self::Private,
             "public" => Self::Public,
-            _ => Self::Private, // 默认 private
+            _ => Self::default(),
         }
     }
 }

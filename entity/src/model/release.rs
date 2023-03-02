@@ -1,15 +1,15 @@
 use sea_orm::{entity::prelude::*, FromQueryResult};
 use serde::{Deserialize, Serialize};
 
-use crate::enums::Status;
+use super::enums::Status;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Deserialize, Serialize)]
 #[sea_orm(table_name = "release")]
 pub struct Model {
     #[sea_orm(primary_key)]
-    #[serde(serialize_with = "super::confuse")]
+    #[serde(serialize_with = "crate::confuse")]
     pub id: u64,
-    #[serde(serialize_with = "super::confuse")]
+    #[serde(serialize_with = "crate::confuse")]
     pub namespace_id: u64,
     pub name: String,
     pub remark: String, // 备注

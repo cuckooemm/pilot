@@ -4,7 +4,8 @@ use super::dao::{release, Dao};
 
 use ahash::RandomState;
 use axum::extract::FromRef;
-use entity::{item::ConfigItem, orm::DbErr};
+use entity::model::item::ConfigItem;
+use entity::orm::DbErr;
 use serde::Serialize;
 use tokio::{
     sync::{

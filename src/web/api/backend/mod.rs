@@ -1,5 +1,5 @@
 pub mod app;
-pub mod app_extend;
+pub mod app_extra;
 pub mod cluster;
 pub mod collection;
 pub mod department;

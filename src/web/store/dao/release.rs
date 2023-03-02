@@ -1,15 +1,15 @@
 use super::Conn;
 
-use entity::item::ItemDesc;
+use entity::model::{
+    item::ItemDesc,
+    release::{Effective, ReleaseConfig},
+    release_history::{HistoryItem, HistoryNamespaceID},
+    ReleaseActive, ReleaseColumn, ReleaseEntity, ReleaseHistoryActive, ReleaseHistoryColumn,
+    ReleaseHistoryEntity, ID,
+};
 use entity::orm::{
     ColumnTrait, DbErr, EntityTrait, NotSet, QueryFilter, QueryOrder, QuerySelect, Set,
     TransactionError, TransactionTrait,
-};
-use entity::release::{Effective, ReleaseConfig};
-use entity::release_history::{HistoryItem, HistoryNamespaceID};
-use entity::{
-    ReleaseActive, ReleaseColumn, ReleaseEntity, ReleaseHistoryActive, ReleaseHistoryColumn,
-    ReleaseHistoryEntity, ID,
 };
 
 #[derive(Debug, Clone, Default)]

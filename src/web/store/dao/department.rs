@@ -1,13 +1,14 @@
 use super::Conn;
 
-use chrono::Local;
-use entity::common::{Id32Name, Name};
-use entity::enums::Status;
+use entity::model::{
+    common::{Id32Name, Name},
+    enums::Status,
+    DepartmentActive, DepartmentColumn, DepartmentEntity, DepartmentModel, ID,
+};
 use entity::orm::sea_query::Expr;
 use entity::orm::{
     ActiveModelTrait, ColumnTrait, DbErr, EntityTrait, QueryFilter, QueryOrder, QuerySelect, Set,
 };
-use entity::{DepartmentActive, DepartmentColumn, DepartmentEntity, DepartmentModel, ID};
 
 #[derive(Debug, Clone, Default)]
 pub struct Department;

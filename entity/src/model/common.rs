@@ -8,27 +8,27 @@ pub struct Name {
 
 #[derive(FromQueryResult, Default, Debug, Clone, Serialize)]
 pub struct Id32Name {
-    #[serde(serialize_with = "super::confuse")]
+    #[serde(serialize_with = "crate::confuse")]
     pub id: u32,
     pub name: String,
 }
 
 #[derive(FromQueryResult, Default, Debug, Clone, Serialize)]
 pub struct Id64Name {
-    #[serde(serialize_with = "super::confuse")]
+    #[serde(serialize_with = "crate::confuse")]
     pub id: u64,
     pub name: String,
 }
 
 #[derive(FromQueryResult, Default, Debug, Clone, Serialize)]
 pub struct ID {
-    #[serde(serialize_with = "super::confuse")]
+    #[serde(serialize_with = "crate::confuse")]
     pub id: u64,
 }
 
 #[derive(FromQueryResult, Default, Debug, Clone, Serialize)]
 pub struct IDu32 {
-    #[serde(serialize_with = "super::confuse")]
+    #[serde(serialize_with = "crate::confuse")]
     pub id: u32,
 }
 

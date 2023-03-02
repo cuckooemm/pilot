@@ -1,9 +1,9 @@
 use super::Conn;
 
-use entity::enums::Status;
+use entity::model::{
+    enums::Status, user_role::UserRoleID, UserRoleActive, UserRoleColumn, UserRoleEntity,
+};
 use entity::orm::{ColumnTrait, DbErr, EntityTrait, QueryFilter, QuerySelect};
-use entity::user_role::UserRoleID;
-use entity::{UserRoleActive, UserRoleColumn, UserRoleEntity};
 
 #[derive(Debug, Clone, Default)]
 pub struct UserRule;

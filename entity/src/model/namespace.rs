@@ -1,18 +1,18 @@
+use super::enums::{Scope, Status};
+
 use sea_orm::{entity::prelude::*, FromQueryResult};
 use serde::{Deserialize, Serialize};
 
-use crate::enums::Status;
-
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Deserialize, Serialize)]
-#[sea_orm(table_name = "release_history")]
+#[sea_orm(table_name = "namespace")]
 pub struct Model {
     #[sea_orm(primary_key)]
-    #[serde(serialize_with = "super::confuse")]
+    #[serde(serialize_with = "crate::confuse")]
     pub id: u64,
-    #[serde(serialize_with = "super::confuse")]
-    pub namespace_id: u64,
-    pub release_id: u64,
-    pub change: String,
+    pub app: String, // app ID
+    pub cluster: String,
+    pub namespace: String,
+    pub scope: Scope,
     pub status: Status,
     pub created_at: DateTimeWithTimeZone, // 创建时间
     pub updated_at: DateTimeWithTimeZone, // 更新时间
@@ -28,16 +28,18 @@ impl RelationTrait for Relation {
 
 impl ActiveModelBehavior for ActiveModel {}
 
-#[derive(FromQueryResult, Default, Serialize, Deserialize, Debug, Clone)]
-pub struct HistoryItem {
-    #[serde(serialize_with = "super::confuse")]
+#[derive(FromQueryResult, Serialize, Debug)]
+pub struct NamespaceItem {
+    #[serde(serialize_with = "crate::confuse")]
     pub id: u64,
-    #[serde(serialize_with = "super::confuse")]
-    pub release_id: u64,
-    pub change: String,
+    pub namespace: String,
 }
 
-#[derive(FromQueryResult)]
-pub struct HistoryNamespaceID {
-    pub namespace_id: u64,
+#[derive(FromQueryResult, Serialize, Debug)]
+pub struct NamespaceInfo {
+    #[serde(serialize_with = "crate::confuse")]
+    pub id: u64,
+    pub app_id: String, // app ID
+    pub cluster: String,
+    pub namespace: String,
 }

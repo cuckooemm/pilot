@@ -9,7 +9,7 @@ use axum::{
     response::IntoResponse,
 };
 use chrono::Local;
-use entity::{
+use entity::model::{
     enums::Status,
     users::{Claims, UserLevel},
 };

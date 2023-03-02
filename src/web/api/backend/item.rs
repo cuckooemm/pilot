@@ -1,6 +1,6 @@
 use crate::web::api::permission::accredit;
 use crate::web::api::{check, helper};
-use crate::web::extract::error::{APIError, ParamErrType};
+use crate::web::extract::error::{APIError, ForbiddenType, ParamErrType};
 use crate::web::extract::request::{ReqJson, ReqQuery};
 use crate::web::extract::response::APIResponse;
 use crate::web::store::dao::Dao;
@@ -8,8 +8,9 @@ use crate::web::APIResult;
 
 use axum::extract::State;
 use axum::Extension;
+use entity::model::rule::Verb;
+use entity::model::{ItemActive, ItemCategory, ItemModel, UserAuth};
 use entity::orm::Set;
-use entity::{ItemActive, ItemCategory, ItemModel, UserAuth};
 use serde::Deserialize;
 
 #[derive(Deserialize)]
@@ -46,9 +47,9 @@ pub async fn create(
         info.cluster.as_str(),
         info.namespace.as_str(),
     ];
-    if !accredit::accredit(&auth, entity::rule::Verb::Create, &resource).await? {
+    if !accredit::accredit(&auth, Verb::Create, &resource).await? {
         return Err(APIError::forbidden_resource(
-            crate::web::extract::error::ForbiddenType::Operate,
+            ForbiddenType::Operate,
             &resource,
         ));
     }
@@ -126,9 +127,9 @@ pub async fn edit(
         info.cluster.as_str(),
         info.namespace.as_str(),
     ];
-    if !accredit::accredit(&auth, entity::rule::Verb::Modify, &resource).await? {
+    if !accredit::accredit(&auth, Verb::Modify, &resource).await? {
         return Err(APIError::forbidden_resource(
-            crate::web::extract::error::ForbiddenType::Operate,
+            ForbiddenType::Operate,
             &resource,
         ));
     }
@@ -177,9 +178,9 @@ pub async fn list(
         info.cluster.as_str(),
         info.namespace.as_str(),
     ];
-    if !accredit::accredit(&auth, entity::rule::Verb::VIEW, &resource).await? {
+    if !accredit::accredit(&auth, Verb::VIEW, &resource).await? {
         return Err(APIError::forbidden_resource(
-            crate::web::extract::error::ForbiddenType::Operate,
+            ForbiddenType::Operate,
             &resource,
         ));
     }

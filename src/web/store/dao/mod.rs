@@ -1,5 +1,5 @@
 pub mod app;
-pub mod app_extend;
+pub mod app_extra;
 pub mod cluster;
 pub mod collection;
 pub mod department;
@@ -66,7 +66,7 @@ impl Conn {
 #[derive(Clone, Default, Debug)]
 pub struct Dao {
     pub users: users::Users,
-    pub app_extend: app_extend::AppExtend,
+    pub app_extra: app_extra::AppExtra,
     pub app: app::App,
     pub cluster: cluster::Cluster,
     pub collection: collection::Collection,

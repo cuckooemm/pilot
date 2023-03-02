@@ -11,11 +11,8 @@ use crate::web::store::dao::{rule, Dao};
 use axum::extract::State;
 use axum::Extension;
 use chrono::Local;
-use entity::cluster::ClusterItem;
-use entity::enums::Status;
 use entity::orm::{ActiveModelTrait, IntoActiveModel, Set};
-use entity::rule::Verb;
-use entity::{ClusterActive, ClusterModel, UserAuth};
+use entity::model::{ClusterActive, ClusterModel, UserAuth,rule::Verb,enums::Status,cluster::ClusterItem};
 use rand::{distributions::Alphanumeric, Rng};
 use serde::Deserialize;
 
@@ -48,7 +45,7 @@ pub async fn create(
         return Err(APIError::param_err(ParamErrType::NotExist, "app_id"));
     }
     let resouce = vec![app.as_str()];
-    if !accredit::accredit(&auth, entity::rule::Verb::Create, &resouce).await? {
+    if !accredit::accredit(&auth, Verb::Create, &resouce).await? {
         return Err(APIError::forbidden_resource(
             crate::web::extract::error::ForbiddenType::Operate,
             &resouce,
@@ -89,7 +86,7 @@ pub async fn edit(
         .await?
         .ok_or(APIError::param_err(ParamErrType::NotExist, "id"))?;
     let resource = vec![cluster.app.as_str(), cluster.cluster.as_str()];
-    if !accredit::accredit(&auth, entity::rule::Verb::Modify, &resource).await? {
+    if !accredit::accredit(&auth, Verb::Modify, &resource).await? {
         return Err(APIError::forbidden_resource(
             ForbiddenType::Operate,
             &resource,

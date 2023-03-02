@@ -1,18 +1,19 @@
 use sea_orm::{entity::prelude::*, FromQueryResult};
 use serde::{Deserialize, Serialize};
 
-use crate::enums::Status;
+use super::enums::Status;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Deserialize, Serialize)]
-#[sea_orm(table_name = "cluster")]
+#[sea_orm(table_name = "apps")]
 pub struct Model {
     #[sea_orm(primary_key)]
-    #[serde(serialize_with = "super::confuse")]
-    pub id: u64,
+    #[serde(skip)]
+    pub id: u32,
     pub app: String,
-    pub cluster: String,
+    pub name: String,
     pub describe: String,
-    pub secret: String,
+    #[serde(serialize_with = "crate::confuse")]
+    pub dept_id: u32,
     pub status: Status,
     pub created_at: DateTimeWithTimeZone,
     pub updated_at: DateTimeWithTimeZone,
@@ -28,15 +29,14 @@ impl RelationTrait for Relation {
 
 impl ActiveModelBehavior for ActiveModel {}
 
-#[derive(FromQueryResult)]
-pub struct SecretData {
-    pub secret: String,
-}
-
 #[derive(FromQueryResult, Serialize, Debug)]
-pub struct ClusterItem {
-    #[serde(serialize_with = "super::confuse")]
-    pub id: u64,
+pub struct AppItem {
+    pub app_id: String,
     pub name: String,
     pub describe: String,
+}
+
+#[derive(FromQueryResult, Default, Debug, Clone)]
+pub struct DepartmentID {
+    pub dept_id: u32,
 }

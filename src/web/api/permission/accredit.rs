@@ -5,7 +5,7 @@ use crate::web::{
     store::dao::{app, rule, user_role},
 };
 
-use entity::{rule::Verb, users::UserLevel, UserAuth};
+use entity::model::{rule::Verb, users::UserLevel, UserAuth};
 
 #[inline]
 pub async fn acc_admin(auth: &UserAuth, app_id: Option<String>) -> Result<bool, APIError> {

@@ -1,6 +1,5 @@
-use crate::enums::Status;
-
 use super::enums::ItemCategory;
+use super::enums::Status;
 
 use sea_orm::{entity::prelude::*, FromQueryResult};
 use serde::{Deserialize, Serialize};
@@ -9,9 +8,9 @@ use serde::{Deserialize, Serialize};
 #[sea_orm(table_name = "item")]
 pub struct Model {
     #[sea_orm(primary_key)]
-    #[serde(serialize_with = "super::confuse")]
+    #[serde(serialize_with = "crate::confuse")]
     pub id: u64,
-    #[serde(serialize_with = "super::confuse")]
+    #[serde(serialize_with = "crate::confuse")]
     pub namespace_id: u64,
     pub key: String,
     pub value: String,

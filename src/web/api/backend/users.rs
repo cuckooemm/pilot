@@ -13,12 +13,12 @@ use crate::web::{
 
 use axum::{extract::State, Extension};
 use chrono::Local;
-use entity::{
+use entity::model::{
     enums::Status,
-    orm::{ActiveModelTrait, IntoActiveModel, Set},
     users::{UserItem, UserLevel},
     UsersActive, UsersModel,
 };
+use entity::orm::{ActiveModelTrait, IntoActiveModel, Set};
 use headers::HeaderMap;
 use serde::{Deserialize, Serialize};
 use tracing::instrument;

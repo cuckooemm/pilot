@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use super::APIResult;
 use crate::web::api::permission::accredit;
 use crate::web::api::{check, helper};
-use crate::web::extract::error::{APIError, ParamErrType};
+use crate::web::extract::error::{APIError, ForbiddenType, ParamErrType};
 use crate::web::extract::request::{ReqJson, ReqQuery};
 use crate::web::extract::response::APIResponse;
 use crate::web::store::dao::Dao;
@@ -11,10 +11,10 @@ use crate::web::store::dao::Dao;
 use ahash::RandomState;
 use axum::extract::{Json, State};
 use axum::Extension;
-use entity::item::ItemDesc;
-use entity::release::ReleaseItemVersion;
-use entity::release_history::HistoryItem;
-use entity::{UserAuth, ID};
+use entity::model::rule::Verb;
+use entity::model::{
+    item::ItemDesc, release::ReleaseItemVersion, release_history::HistoryItem, UserAuth, ID,
+};
 use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize, Serialize)]
@@ -115,9 +115,9 @@ pub async fn publish(
         info.cluster.as_str(),
         info.namespace.as_str(),
     ];
-    if !accredit::accredit(&auth, entity::rule::Verb::Publish, &resource).await? {
+    if !accredit::accredit(&auth, Verb::Publish, &resource).await? {
         return Err(APIError::forbidden_resource(
-            crate::web::extract::error::ForbiddenType::Operate,
+            ForbiddenType::Operate,
             &resource,
         ));
     }
@@ -203,15 +203,12 @@ pub async fn rollback(
     // 权限验证 TODO
     if !accredit::accredit(
         &auth,
-        entity::rule::Verb::Publish,
+        Verb::Publish,
         &vec![&info.app_id, &info.cluster, &info.namespace],
     )
     .await?
     {
-        return Err(APIError::forbidden_err(
-            crate::web::extract::error::ForbiddenType::Operate,
-            "",
-        ));
+        return Err(APIError::forbidden_err(ForbiddenType::Operate, ""));
     }
 
     let remark = param.remark.unwrap_or("rollback".to_owned());
@@ -245,9 +242,9 @@ pub async fn release_list(
         info.cluster.as_str(),
         info.namespace.as_str(),
     ];
-    if !accredit::accredit(&auth, entity::rule::Verb::VIEW, &resource).await? {
+    if !accredit::accredit(&auth, Verb::VIEW, &resource).await? {
         return Err(APIError::forbidden_resource(
-            crate::web::extract::error::ForbiddenType::Operate,
+            ForbiddenType::Operate,
             &resource,
         ));
     }

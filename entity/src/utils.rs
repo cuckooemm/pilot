@@ -11,7 +11,6 @@ pub fn init_harsh(min_len: usize, salt: &str) -> () {
         .expect("failed to init harsh");
 }
 
-// 混淆ID
 pub fn confuse<T, S>(id: &T, serializer: S) -> Result<S::Ok, S::Error>
 where
     T: Into<u64> + Copy,
