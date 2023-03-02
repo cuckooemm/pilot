@@ -8,16 +8,15 @@ use crate::web::{
 use entity::model::{rule::Verb, users::UserLevel, UserAuth};
 
 #[inline]
-pub async fn acc_admin(auth: &UserAuth, app_id: Option<String>) -> Result<bool, APIError> {
+pub async fn acc_admin(auth: &UserAuth, app: Option<String>) -> Result<bool, APIError> {
     match auth.level {
-        // 是否超级管理员
         UserLevel::Admin => Ok(true),
         UserLevel::DeptAdmin => {
-            return match app_id {
-                Some(id) => {
+            return match app {
+                Some(app) => {
                     // same department
                     Ok(app::App
-                        .get_app_department_by_id(id)
+                        .get_department_id_by_app(app)
                         .await?
                         .unwrap_or_default()
                         == auth.dept_id)

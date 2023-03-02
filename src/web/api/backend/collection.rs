@@ -49,13 +49,13 @@ pub async fn list(
     State(ref dao): State<Dao>,
     Extension(auth): Extension<UserAuth>,
 ) -> APIResult<APIResponse<Vec<AppItem>>> {
-    let (page, page_size) = helper::page(param.page, param.page_size);
+    let page = helper::page(param.page, param.page_size);
 
     let list = dao
         .collection
-        .get_app(auth.id, helper::page_to_limit(page, page_size))
+        .get_app(auth.id, helper::page_to_limit(page))
         .await?;
     let mut rsp = APIResponse::ok_data(list);
-    rsp.set_page(page, page_size);
+    rsp.set_page(page);
     Ok(rsp)
 }

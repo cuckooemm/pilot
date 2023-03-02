@@ -1,5 +1,5 @@
-use super::enums::ItemCategory;
-use super::enums::Status;
+use crate::common::enums::ItemCategory;
+use crate::common::enums::Status;
 
 use sea_orm::{entity::prelude::*, FromQueryResult};
 use serde::{Deserialize, Serialize};

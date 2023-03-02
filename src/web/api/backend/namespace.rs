@@ -10,10 +10,11 @@ use crate::web::APIResult;
 
 use axum::extract::State;
 use axum::Extension;
+use entity::Scope;
 use entity::model::{
     namespace::{NamespaceInfo, NamespaceItem},
     rule::Verb,
-    NamespaceActive, NamespaceModel, Scope, UserAuth,
+    NamespaceActive, NamespaceModel, UserAuth,
 };
 use entity::orm::Set;
 use serde::Deserialize;

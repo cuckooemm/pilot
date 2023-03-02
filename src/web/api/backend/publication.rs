@@ -13,7 +13,7 @@ use axum::extract::{Json, State};
 use axum::Extension;
 use entity::model::rule::Verb;
 use entity::model::{
-    item::ItemDesc, release::ReleaseItemVersion, release_history::HistoryItem, UserAuth, ID,
+    item::ItemDesc, release::ReleaseItemVersion, release_history::HistoryItem, UserAuth,
 };
 use serde::{Deserialize, Serialize};
 
@@ -26,7 +26,7 @@ pub struct PublicationItemParam {
 #[derive(Deserialize, Serialize)]
 pub struct PublicationParam {
     pub items: Vec<PublicationItemParam>,
-    pub name: Option<String>, // 发布说明
+    pub name: Option<String>,
     pub remark: Option<String>,
 }
 
@@ -187,7 +187,7 @@ pub async fn rollback(
     Extension(auth): Extension<UserAuth>,
     State(ref dao): State<Dao>,
     ReqJson(param): ReqJson<RollbackParam>,
-) -> APIResult<APIResponse<ID>> {
+) -> APIResult<APIResponse<()>> {
     let history_id = check::id_decode(param.id, "id")?;
     let namespace_id = dao.release.get_history_namespace_id(history_id).await?;
     if namespace_id.is_none() {
@@ -249,12 +249,12 @@ pub async fn release_list(
         ));
     }
 
-    let (page, page_size) = helper::page(param.page, param.page_size);
+    let page = helper::page(param.page, param.page_size);
     let history = dao
         .release
-        .get_namespace_history(namespace_id, (page - 1) * page_size, page_size)
+        .get_namespace_history(namespace_id, helper::page_to_limit(page))
         .await?;
     let mut rsp = APIResponse::ok_data(history);
-    rsp.set_page(page, page_size);
+    rsp.set_page(page);
     Ok(rsp)
 }

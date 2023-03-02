@@ -13,12 +13,14 @@ use crate::web::{
 
 use axum::{extract::State, Extension};
 use chrono::Local;
-use entity::model::{
-    enums::Status,
-    users::{UserItem, UserLevel},
-    UsersActive, UsersModel,
-};
 use entity::orm::{ActiveModelTrait, IntoActiveModel, Set};
+use entity::{
+    common::enums::Status,
+    model::{
+        users::{UserItem, UserLevel},
+        UsersActive, UsersModel,
+    },
+};
 use headers::HeaderMap;
 use serde::{Deserialize, Serialize};
 use tracing::instrument;
@@ -33,7 +35,6 @@ pub struct RegisterParam {
     pub level: Option<String>,
 }
 
-// 添加用户 管理员权限
 pub async fn addition(
     Extension(auth): Extension<UsersModel>,
     State(ref dao): State<Dao>,
@@ -224,7 +225,7 @@ pub async fn list(
 ) -> APIResult<APIResponse<Vec<UserItem>>> {
     let status: Option<Status> = param.status.and_then(|s| s.try_into().ok());
 
-    let (page, page_size) = helper::page(param.page, param.page_size);
+    let page = helper::page(param.page, param.page_size);
     let mut dept = None;
     match auth.level {
         // 获取所有帐号
@@ -237,10 +238,10 @@ pub async fn list(
 
     let list = dao
         .users
-        .get_user_list(dept, status, helper::page_to_limit(page, page_size))
+        .get_user_list(dept, status, helper::page_to_limit(page))
         .await?;
     let mut response = APIResponse::ok_data(list);
-    response.set_page(page, page_size);
+    response.set_page(page);
     Ok(response)
 }
 
@@ -293,26 +294,23 @@ pub struct AuthResponse {
     pub exp: i64,
 }
 
-#[instrument]
+#[instrument(skip(dao))]
 pub async fn login(
     State(ref dao): State<Dao>,
     ReqJson(param): ReqJson<LoginParam>,
 ) -> APIResult<(HeaderMap, APIResponse<AuthResponse>)> {
     let account = check::account(param.account)?;
     let password = check::password(param.password)?;
-    // 根据帐号获取信息
     let user_info = dao
         .users
         .get_info_by_account(account)
         .await?
         .ok_or(APIError::param_err(ParamErrType::Invalid, "account"))?;
-    // 校验密码失败
     if !bcrypt::verify(password, &user_info.password).unwrap_or_default() {
         return Err(APIError::param_err(ParamErrType::Invalid, "password"));
     }
 
-    // 判断帐号状态
-    if user_info.status == Status::Band || user_info.status == Status::Delete {
+    if user_info.status != Status::Normal {
         return Err(APIError::param_err(ParamErrType::Invalid, "account"));
     }
     let mut renewal = 3600;
@@ -324,7 +322,6 @@ pub async fn login(
         APIError::service_error()
     })?;
     let header = jwt::set_cookie(&token, param.remember.unwrap_or_default());
-    // 返回session
     Ok((
         header,
         APIResponse::ok_data(AuthResponse {

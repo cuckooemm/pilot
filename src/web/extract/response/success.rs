@@ -49,7 +49,7 @@ where
     pub fn err(code: u32, message: String) -> Self {
         Self::new(code, message, None)
     }
-    pub fn set_page(&mut self, page: u64, page_size: u64) {
+    pub fn set_page(&mut self, (page, page_size): (u64, u64)) {
         self.page = Some(page);
         self.page_size = Some(page_size);
     }

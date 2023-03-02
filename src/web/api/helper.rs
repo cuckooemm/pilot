@@ -22,6 +22,6 @@ pub fn page(page: Option<String>, page_size: Option<String>) -> (u64, u64) {
     (page, page_size)
 }
 
-pub fn page_to_limit(page: u64, page_size: u64) -> (u64, u64) {
+pub fn page_to_limit((page, page_size):(u64,u64)) -> (u64, u64) {
     return ((page - 1) * page_size, page_size);
 }

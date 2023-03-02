@@ -1,4 +1,4 @@
-use super::enums::Status;
+use crate::common::enums::Status;
 
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};

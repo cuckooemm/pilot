@@ -8,8 +8,9 @@ use crate::web::APIResult;
 
 use axum::extract::State;
 use axum::Extension;
+use entity::ItemCategory;
 use entity::model::rule::Verb;
-use entity::model::{ItemActive, ItemCategory, ItemModel, UserAuth};
+use entity::model::{ItemActive, ItemModel, UserAuth};
 use entity::orm::Set;
 use serde::Deserialize;
 
@@ -185,13 +186,12 @@ pub async fn list(
         ));
     }
 
-    let (page, page_size) = helper::page(param.page, param.page_size);
+    let page = helper::page(param.page, param.page_size);
     let data: Vec<ItemModel> = dao
         .item
-        .find_by_nsid_all(ns_id, (page - 1) * page_size, page_size)
+        .find_by_nsid_all(ns_id, helper::page_to_limit(page))
         .await?;
     let mut rsp = APIResponse::ok_data(data);
-    // TODO 更新返回结构 待是否发布标记
-    rsp.set_page(page, page_size);
+    rsp.set_page(page);
     Ok(rsp)
 }

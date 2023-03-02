@@ -1,15 +1,18 @@
 use super::Conn;
 
-use entity::model::{
-    item::ItemDesc,
-    release::{Effective, ReleaseConfig},
-    release_history::{HistoryItem, HistoryNamespaceID},
-    ReleaseActive, ReleaseColumn, ReleaseEntity, ReleaseHistoryActive, ReleaseHistoryColumn,
-    ReleaseHistoryEntity, ID,
-};
 use entity::orm::{
     ColumnTrait, DbErr, EntityTrait, NotSet, QueryFilter, QueryOrder, QuerySelect, Set,
     TransactionError, TransactionTrait,
+};
+use entity::{
+    model::{
+        item::ItemDesc,
+        release::{Effective, ReleaseConfig},
+        release_history::{HistoryItem, HistoryNamespaceID},
+        ReleaseActive, ReleaseColumn, ReleaseEntity, ReleaseHistoryActive, ReleaseHistoryColumn,
+        ReleaseHistoryEntity,
+    },
+    ID,
 };
 
 #[derive(Debug, Clone, Default)]
@@ -154,8 +157,7 @@ impl Release {
     pub async fn get_namespace_history(
         &self,
         namespace_id: u64,
-        offset: u64,
-        limit: u64,
+        (offset, limit): (u64, u64),
     ) -> Result<Vec<HistoryItem>, DbErr> {
         ReleaseHistoryEntity::find()
             .offset(offset)

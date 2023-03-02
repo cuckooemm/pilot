@@ -1,4 +1,4 @@
-use super::enums::{Scope, Status};
+use crate::common::enums::{Scope, Status};
 
 use sea_orm::{entity::prelude::*, FromQueryResult};
 use serde::{Deserialize, Serialize};

@@ -1,9 +1,9 @@
 use super::Conn;
 
-use entity::model::{
+use entity::{model::{
     namespace::{NamespaceInfo, NamespaceItem},
-    NamespaceActive, NamespaceColumn, NamespaceEntity, NamespaceModel, Scope, ID,
-};
+    NamespaceActive, NamespaceColumn, NamespaceEntity, NamespaceModel,
+}, ID, Scope};
 use entity::orm::{ActiveModelTrait, ColumnTrait, DbErr, EntityTrait, QueryFilter, QuerySelect};
 
 #[derive(Debug, Clone, Default)]

@@ -1,14 +1,13 @@
 use super::Conn;
 
-use entity::model::{
-    common::{Id32Name, Name},
-    enums::Status,
-    DepartmentActive, DepartmentColumn, DepartmentEntity, DepartmentModel, ID,
-};
+use entity::common::common::{Name};
+use entity::common::enums::Status;
+use entity::model::{DepartmentActive, DepartmentColumn, DepartmentEntity, DepartmentModel};
 use entity::orm::sea_query::Expr;
 use entity::orm::{
     ActiveModelTrait, ColumnTrait, DbErr, EntityTrait, QueryFilter, QueryOrder, QuerySelect, Set,
 };
+use entity::ID;
 
 #[derive(Debug, Clone, Default)]
 pub struct Department;
@@ -26,36 +25,23 @@ impl Department {
         active.update(Conn::conn().main()).await
     }
 
-    // pub async fn delete(&self, name: String) -> Result<u64, DbErr> {
-    //     let r = DepartmentEntity::update_many()
-    //         .col_expr(
-    //             DepartmentColumn::DeletedAt,
-    //             Expr::value(Local::now().timestamp() as u64),
-    //         )
-    //         .filter(DepartmentColumn::Name.eq(name))
-    //         .filter(DepartmentColumn::DeletedAt.eq(0_u64))
-    //         .exec(Conn::conn().main())
-    //         .await?;
-    //     Ok(r.rows_affected)
-    // }
-
     pub async fn is_exist_id(&self, id: u32) -> Result<bool, DbErr> {
-        let model = DepartmentEntity::find()
+        let model: Option<u32> = DepartmentEntity::find()
             .select_only()
             .column(DepartmentColumn::Id)
             .filter(DepartmentColumn::Id.eq(id))
-            .into_model::<ID>()
+            .into_tuple()
             .one(Conn::conn().main())
             .await?;
         Ok(model.is_some())
     }
 
     pub async fn is_exist(&self, name: String) -> Result<bool, DbErr> {
-        let model = DepartmentEntity::find()
+        let model: Option<u32> = DepartmentEntity::find()
             .select_only()
             .column(DepartmentColumn::Id)
             .filter(DepartmentColumn::Name.eq(name))
-            .into_model::<ID>()
+            .into_tuple()
             .one(Conn::conn().main())
             .await?;
         Ok(model.is_some())
@@ -82,13 +68,8 @@ impl Department {
         name: Option<String>,
         status: Option<Status>,
         (offset, limit): (u64, u64),
-    ) -> Result<Vec<Id32Name>, DbErr> {
-        let mut stmt = DepartmentEntity::find()
-            .select_only()
-            .column(DepartmentColumn::Id)
-            .column(DepartmentColumn::Name)
-            .offset(offset)
-            .limit(limit);
+    ) -> Result<Vec<DepartmentModel>, DbErr> {
+        let mut stmt = DepartmentEntity::find().offset(offset).limit(limit);
         if let Some(name) = name {
             stmt = stmt.filter(DepartmentColumn::Name.contains(&name));
         }
@@ -97,7 +78,6 @@ impl Department {
         }
         Ok(stmt
             .order_by_desc(DepartmentColumn::Id)
-            .into_model::<Id32Name>()
             .all(Conn::conn().slaver())
             .await?)
     }

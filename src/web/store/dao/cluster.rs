@@ -1,7 +1,8 @@
 use super::Conn;
 
+use entity::{SecretData, ID};
 use entity::model::{
-    cluster::ClusterItem, ClusterActive, ClusterColumn, ClusterEntity, ClusterModel, SecretData, ID,
+    cluster::ClusterItem, ClusterActive, ClusterColumn, ClusterEntity, ClusterModel,
 };
 use entity::orm::{ActiveModelTrait, ColumnTrait, DbErr, EntityTrait, QueryFilter, QuerySelect};
 

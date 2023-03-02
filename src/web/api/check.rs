@@ -15,9 +15,9 @@ struct Re {
 }
 
 static RE: Lazy<Re> = Lazy::new(|| Re {
-    id_str: Regex::new(r"^[a-z0-9_-]$")
+    id_str: Regex::new(r"^[a-z0-9_-]*$")
         .expect("Failed to initialize the [id_str] regular expression"),
-    account: Regex::new(r"^[a-zA-Z][a-zA-Z0-9_-]$")
+    account: Regex::new(r"^[a-zA-Z][a-zA-Z0-9_-]*$")
         .expect("Failed to initialize the [account] regular expression"),
     password: Regex::new(r"[a-zA-Z0-9-*/+.~!@#$%^&*()]$")
         .expect("Failed to initialize the [password] regular expression"),

@@ -1,8 +1,7 @@
 use super::Conn;
 
-use entity::model::{
-    enums::Status, user_role::UserRoleID, UserRoleActive, UserRoleColumn, UserRoleEntity,
-};
+use entity::common::enums::Status;
+use entity::model::{user_role::UserRoleID, UserRoleActive, UserRoleColumn, UserRoleEntity};
 use entity::orm::{ColumnTrait, DbErr, EntityTrait, QueryFilter, QuerySelect};
 
 #[derive(Debug, Clone, Default)]

@@ -1,11 +1,14 @@
 use super::Conn;
 
-use entity::model::{
-    item::{ItemData, ItemDesc},
-    ItemActive, ItemCategory, ItemColumn, ItemEntity, ItemModel, ID,
-};
 use entity::orm::{
     ActiveModelTrait, ColumnTrait, DbErr, EntityTrait, QueryFilter, QuerySelect, Set,
+};
+use entity::{
+    model::{
+        item::{ItemData, ItemDesc},
+        ItemActive, ItemColumn, ItemEntity, ItemModel,
+    },
+    ItemCategory, ID,
 };
 
 #[derive(Debug, Clone, Default)]
@@ -47,8 +50,7 @@ impl Item {
     pub async fn find_by_nsid_all(
         &self,
         ns_id: u64,
-        offset: u64,
-        limit: u64,
+        (offset, limit): (u64, u64),
     ) -> Result<Vec<ItemModel>, DbErr> {
         ItemEntity::find()
             .offset(offset)

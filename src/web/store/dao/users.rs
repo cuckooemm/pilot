@@ -1,10 +1,9 @@
 use super::Conn;
 
-use entity::model::{
-    enums::Status,
+use entity::{model::{
     users::{UserAuth, UserItem},
-    DepartmentColumn, DepartmentEntity, UsersActive, UsersColumn, UsersEntity, UsersModel, ID,
-};
+    DepartmentColumn, DepartmentEntity, UsersActive, UsersColumn, UsersEntity, UsersModel,
+}, common::enums::Status, ID};
 use entity::orm::{
     ActiveModelTrait, ColumnTrait, DbErr, EntityTrait, QueryFilter, QueryOrder, QuerySelect,
 };

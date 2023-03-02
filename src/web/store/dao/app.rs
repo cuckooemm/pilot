@@ -1,14 +1,16 @@
 use super::Conn;
 
+use entity::common::enums::Status;
 use entity::model::{
-    app::DepartmentID, enums::Status, rule::Verb, AppActive, AppColumn, AppEntity, AppModel, IDu32,
-    RoleActive, RoleEntity, RoleRuleActive, RoleRuleEntity, RuleActive, RuleEntity, UserRoleActive,
-    UserRoleEntity, ID,
+    app::DepartmentID, rule::Verb, AppActive, AppColumn, AppEntity, AppModel, RoleActive,
+    RoleEntity, RoleRuleActive, RoleRuleEntity, RuleActive, RuleEntity, UserRoleActive,
+    UserRoleEntity,
 };
 use entity::orm::{
-    ActiveModelTrait, ColumnTrait, DbErr, EntityTrait, Iterable, QueryFilter, QuerySelect, Set,
-    TransactionError, TransactionTrait,
+    ActiveModelTrait, ColumnTrait, DbErr, EntityTrait, Iterable, QueryFilter, QuerySelect,
+    QueryTrait, Set, TransactionError, TransactionTrait,
 };
+use entity::{IDu32, ID};
 
 #[derive(Debug, Clone, Default)]
 pub struct App;
@@ -97,15 +99,14 @@ impl App {
             .one(Conn::conn().main())
             .await
     }
-    pub async fn get_app_department_by_id(&self, app: String) -> Result<Option<u32>, DbErr> {
+    pub async fn get_department_id_by_app(&self, app: String) -> Result<Option<u32>, DbErr> {
         AppEntity::find()
             .select_only()
             .column(AppColumn::DeptId)
             .filter(AppColumn::App.eq(app))
-            .into_model::<DepartmentID>()
-            .one(Conn::conn().main())
+            .into_tuple()
+            .one(Conn::conn().slaver())
             .await
-            .map(|id| id.and_then(|id| Some(id.dept_id)))
     }
     pub async fn get_app_id(&self, app: String) -> Result<Option<u32>, DbErr> {
         AppEntity::find()

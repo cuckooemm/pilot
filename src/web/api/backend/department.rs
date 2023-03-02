@@ -1,7 +1,7 @@
 use crate::web::{
     api::{check, helper, permission::accredit},
     extract::{
-        error::{APIError, ParamErrType},
+        error::{APIError, ForbiddenType, ParamErrType},
         request::{ReqJson, ReqQuery},
         response::APIResponse,
     },
@@ -10,20 +10,22 @@ use crate::web::{
 };
 
 use axum::{extract::State, Extension};
-use entity::model::{common::Id32Name, enums::Status, users::UserLevel, DepartmentModel, UserAuth};
+use entity::common::{common::Id32Name, enums::Status};
+use entity::model::{users::UserLevel, DepartmentModel, UserAuth};
 use entity::orm::{ActiveModelTrait, IntoActiveModel, Set};
 use serde::Deserialize;
+use tracing::instrument;
 
-#[derive(Deserialize)]
-pub struct DepartmentParam {
-    pub id: Option<String>,
+#[derive(Deserialize, Debug)]
+pub struct CreateParam {
     pub name: Option<String>,
 }
 
+#[instrument(skip(dao, auth))]
 pub async fn create(
     Extension(auth): Extension<UserAuth>,
     State(ref dao): State<Dao>,
-    ReqJson(param): ReqJson<DepartmentParam>,
+    ReqJson(param): ReqJson<CreateParam>,
 ) -> APIResult<APIResponse<DepartmentModel>> {
     let name = match param.name {
         Some(name) => {
@@ -38,8 +40,8 @@ pub async fn create(
 
     if !accredit::acc_admin(&auth, None).await? {
         return Err(APIError::forbidden_resource(
-            crate::web::extract::error::ForbiddenType::Operate,
-            &vec!["create", "department"],
+            ForbiddenType::Create,
+            &vec!["department"],
         ));
     }
 
@@ -51,34 +53,34 @@ pub async fn create(
     Ok(APIResponse::ok_data(data))
 }
 
-#[derive(Deserialize)]
-pub struct EditDepartmentParam {
+#[derive(Deserialize, Debug)]
+pub struct EditParam {
     pub id: Option<String>,
     pub name: Option<String>,
     pub status: Option<String>,
 }
-// 更新部门信息
+
+#[instrument(skip(dao, auth))]
 pub async fn edit(
     Extension(auth): Extension<UserAuth>,
     State(ref dao): State<Dao>,
-    ReqJson(param): ReqJson<EditDepartmentParam>,
+    ReqJson(param): ReqJson<EditParam>,
 ) -> APIResult<APIResponse<DepartmentModel>> {
     let id = check::id_decode::<u32>(param.id, "id")?;
     match auth.level {
         UserLevel::Admin => (),
         UserLevel::DeptAdmin => {
-            // 不能修改其他部门的信息
             if auth.dept_id != id {
                 return Err(APIError::forbidden_resource(
-                    crate::web::extract::error::ForbiddenType::Operate,
-                    &vec!["edit", "department"],
+                    ForbiddenType::Edit,
+                    &vec!["department"],
                 ));
             }
         }
         _ => {
             return Err(APIError::forbidden_resource(
-                crate::web::extract::error::ForbiddenType::Operate,
-                &vec!["edit", "department"],
+                ForbiddenType::Edit,
+                &vec!["department"],
             ));
         }
     }
@@ -111,7 +113,7 @@ pub async fn edit(
     Ok(APIResponse::ok_data(model))
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct QueryParam {
     pub name: Option<String>,
     pub status: Option<String>,
@@ -119,11 +121,11 @@ pub struct QueryParam {
     pub page_size: Option<String>,
 }
 
+#[instrument(skip(dao))]
 pub async fn list(
     ReqQuery(param): ReqQuery<QueryParam>,
     State(ref dao): State<Dao>,
-    Extension(auth): Extension<UserAuth>,
-) -> APIResult<APIResponse<Vec<Id32Name>>> {
+) -> APIResult<APIResponse<Vec<DepartmentModel>>> {
     let name = match param.name {
         Some(name) => {
             let name = check::trim(name);
@@ -138,12 +140,14 @@ pub async fn list(
         }
         None => None,
     };
-    let (page, page_size) = helper::page(param.page, param.page_size);
+    let page = helper::page(param.page, param.page_size);
     let status: Option<Status> = param.status.and_then(|s| s.try_into().ok());
 
     let list = dao
         .department
-        .search_department(name, status, helper::page_to_limit(page, page_size))
+        .search_department(name, status, helper::page_to_limit(page))
         .await?;
-    Ok(APIResponse::ok_data(list))
+    let mut rsp = APIResponse::ok_data(list);
+    rsp.set_page(page);
+    Ok(rsp)
 }

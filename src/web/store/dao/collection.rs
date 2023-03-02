@@ -1,7 +1,8 @@
 use super::Conn;
 
+use entity::ID;
 use entity::model::{
-    app::AppItem, AppColumn, AppEntity, CollectionActive, CollectionColumn, CollectionEntity, ID,
+    app::AppItem, AppColumn, AppEntity, CollectionActive, CollectionColumn, CollectionEntity,
 };
 use entity::orm::{ColumnTrait, DbErr, EntityTrait, QueryFilter, QueryOrder, QuerySelect, Set};
 

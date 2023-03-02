@@ -9,10 +9,9 @@ use axum::{
     response::IntoResponse,
 };
 use chrono::Local;
-use entity::model::{
-    enums::Status,
+use entity::{model::{
     users::{Claims, UserLevel},
-};
+}, common::enums::Status};
 use headers::HeaderMap;
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
 use once_cell::sync::Lazy;

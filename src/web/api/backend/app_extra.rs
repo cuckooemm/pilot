@@ -8,7 +8,8 @@ use crate::web::store::dao::Dao;
 
 use axum::extract::State;
 use axum::Extension;
-use entity::model::{rule::Verb, AppExtraActive, NamespaceModel, Scope, UserAuth};
+use entity::Scope;
+use entity::model::{rule::Verb, AppExtraActive, NamespaceModel, UserAuth};
 use entity::orm::Set;
 use serde::Deserialize;
 use tracing::instrument;
@@ -84,7 +85,7 @@ pub async fn list(
     ReqQuery(param): ReqQuery<QueryParam>,
 ) -> APIResult<APIResponse<Vec<NamespaceModel>>> {
     let app = check::id_str(param.app, "app")?;
-    let (page, page_size) = helper::page(param.page, param.page_size);
+    let page = helper::page(param.page, param.page_size);
     let resource = vec![app.as_str()];
     if !accredit::accredit(&auth, Verb::VIEW, &resource).await? {
         return Err(APIError::forbidden_resource(
@@ -94,9 +95,9 @@ pub async fn list(
     }
     let list: Vec<NamespaceModel> = dao
         .app_extra
-        .get_app_namespace(app, helper::page_to_limit(page, page_size))
+        .get_app_namespace(app, helper::page_to_limit(page))
         .await?;
     let mut rsp = APIResponse::ok_data(list);
-    rsp.set_page(page, page_size);
+    rsp.set_page(page);
     Ok(rsp)
 }

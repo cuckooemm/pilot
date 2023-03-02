@@ -1,8 +1,9 @@
 use super::Conn;
 
+use entity::ID;
 use entity::model::{
     AppExtraActive, AppExtraColumn, AppExtraEntity, NamespaceColumn, NamespaceEntity,
-    NamespaceModel, ID,
+    NamespaceModel,
 };
 use entity::orm::{ColumnTrait, DbErr, EntityTrait, QueryFilter, QuerySelect};
 
