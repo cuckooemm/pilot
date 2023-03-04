@@ -5,55 +5,87 @@ use crate::web::{
         request::{ReqJson, ReqQuery},
         response::APIResponse,
     },
-    store::dao::Dao,
+    store::dao::{app, collection::Collection, Dao},
     APIResult,
 };
 
 use axum::{extract::State, Extension};
-use entity::model::{app::AppItem, UserAuth};
+use entity::{
+    common::enums::Status,
+    model::{app::AppItem, AppModel, CollectionActive, UserAuth},
+    orm::Set,
+};
 use serde::Deserialize;
+use tracing::instrument;
 
-#[derive(Deserialize)]
-pub struct CollectionParam {
-    pub app_id: Option<String>,
+#[derive(Deserialize, Debug)]
+pub struct Param {
+    pub app: Option<String>,
+    pub cancel: Option<bool>,
 }
 
+#[instrument(skip(dao, auth))]
 pub async fn add(
     Extension(auth): Extension<UserAuth>,
     State(ref dao): State<Dao>,
-    ReqJson(param): ReqJson<CollectionParam>,
+    ReqJson(param): ReqJson<Param>,
 ) -> APIResult<APIResponse<()>> {
-    let app_id = check::id_str(param.app_id, "app_id")?;
-    let app_id = dao
+    let app = check::id_str(param.app, "app")?;
+    let app = dao
         .app
-        .get_app_id(app_id)
+        .get_info(app)
         .await?
-        .ok_or(APIError::param_err(ParamErrType::NotExist, "app_id"))?;
-    if dao.collection.is_exist(app_id, auth.id).await? {
-        return Err(APIError::param_err(ParamErrType::Exist, "collection"));
+        .ok_or(APIError::param_err(ParamErrType::NotExist, "app"))?;
+    match app.status {
+        Status::Band => return Err(APIError::param_err(ParamErrType::Invalid, "app")),
+        Status::Delete => return Err(APIError::param_err(ParamErrType::NotExist, "app")),
+        _ => (),
     }
-    dao.collection.addition(app_id, auth.id).await?;
-
+    let cancel = param.cancel.unwrap_or_default();
+    match dao.collection.get_collection(app.id, auth.id).await? {
+        Some(model) => {
+            let mut active: CollectionActive = model.clone().into();
+            if cancel {
+                if model.status == Status::Delete {
+                    return Err(APIError::param_err(ParamErrType::NotExist, "collection"));
+                }
+                active.status = Set(Status::Delete);
+            } else {
+                if model.status == Status::Normal {
+                    return Err(APIError::param_err(ParamErrType::Exist, "collection"));
+                }
+                active.status = Set(Status::Normal);
+            }
+            dao.collection.save(active).await?;
+        }
+        None => {
+            if cancel {
+                return Err(APIError::param_err(ParamErrType::NotExist, "collection"));
+            }
+            dao.collection.addition(app.id, auth.id).await?;
+        }
+    }
     Ok(APIResponse::ok())
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct QueryParam {
+    pub status: Option<String>,
     pub page: Option<String>,
     pub page_size: Option<String>,
 }
 
-// 获取用户收藏App
+#[instrument(skip(dao, auth))]
 pub async fn list(
     ReqQuery(param): ReqQuery<QueryParam>,
     State(ref dao): State<Dao>,
     Extension(auth): Extension<UserAuth>,
-) -> APIResult<APIResponse<Vec<AppItem>>> {
+) -> APIResult<APIResponse<Vec<AppModel>>> {
     let page = helper::page(param.page, param.page_size);
-
+    let status: Option<Status> = param.status.and_then(|x| x.try_into().ok());
     let list = dao
         .collection
-        .get_app(auth.id, helper::page_to_limit(page))
+        .get_apps(auth.id, status, helper::page_to_limit(page))
         .await?;
     let mut rsp = APIResponse::ok_data(list);
     rsp.set_page(page);

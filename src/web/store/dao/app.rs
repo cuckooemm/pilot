@@ -10,7 +10,6 @@ use entity::orm::{
     ActiveModelTrait, ColumnTrait, DbErr, EntityTrait, Iterable, QueryFilter, QuerySelect,
     QueryTrait, Set, TransactionError, TransactionTrait,
 };
-use entity::{IDu32, ID};
 
 #[derive(Debug, Clone, Default)]
 pub struct App;
@@ -108,24 +107,13 @@ impl App {
             .one(Conn::conn().slaver())
             .await
     }
-    pub async fn get_app_id(&self, app: String) -> Result<Option<u32>, DbErr> {
-        AppEntity::find()
-            .select_only()
-            .column(AppColumn::Id)
-            .filter(AppColumn::App.eq(app))
-            .into_model::<IDu32>()
-            .one(Conn::conn().main())
-            .await
-            .map(|id| id.and_then(|id| Some(id.id)))
-    }
 
-    // 查找 app_id 是否存在
     pub async fn is_exist(&self, app: String) -> Result<bool, DbErr> {
         AppEntity::find()
             .select_only()
             .column(AppColumn::Id)
             .filter(AppColumn::App.eq(app))
-            .into_model::<ID>()
+            .into_tuple::<u32>()
             .one(Conn::conn().main())
             .await
             .and_then(|id| Ok(id.is_some()))

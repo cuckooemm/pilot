@@ -10,7 +10,7 @@ use crate::web::{
 };
 
 use axum::{extract::State, Extension};
-use entity::common::{common::Id32Name, enums::Status};
+use entity::common::enums::Status;
 use entity::model::{users::UserLevel, DepartmentModel, UserAuth};
 use entity::orm::{ActiveModelTrait, IntoActiveModel, Set};
 use serde::Deserialize;
