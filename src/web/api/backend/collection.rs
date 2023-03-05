@@ -12,8 +12,8 @@ use crate::web::{
 use axum::{extract::State, Extension};
 use entity::{
     common::enums::Status,
-    model::{AppModel, CollectionActive, UserAuth},
-    orm::{Set, IntoActiveModel},
+    model::{AppModel, UserAuth},
+    orm::{IntoActiveModel, Set},
 };
 use serde::Deserialize;
 use tracing::instrument;

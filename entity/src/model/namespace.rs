@@ -9,13 +9,13 @@ pub struct Model {
     #[sea_orm(primary_key)]
     #[serde(serialize_with = "crate::confuse")]
     pub id: u64,
-    pub app: String, // app ID
+    pub app: String,
     pub cluster: String,
     pub namespace: String,
     pub scope: Scope,
     pub status: Status,
-    pub created_at: DateTimeWithTimeZone, // 创建时间
-    pub updated_at: DateTimeWithTimeZone, // 更新时间
+    pub created_at: DateTimeWithTimeZone,
+    pub updated_at: DateTimeWithTimeZone,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter)]

@@ -1,10 +1,14 @@
 use super::Conn;
 
-use entity::{model::{
-    namespace::{NamespaceInfo, NamespaceItem},
-    NamespaceActive, NamespaceColumn, NamespaceEntity, NamespaceModel,
-}, ID, Scope};
+use entity::common::enums::Status;
 use entity::orm::{ActiveModelTrait, ColumnTrait, DbErr, EntityTrait, QueryFilter, QuerySelect};
+use entity::{
+    model::{
+        namespace::{NamespaceInfo, NamespaceItem},
+        NamespaceActive, NamespaceColumn, NamespaceEntity, NamespaceModel,
+    },
+    Scope,
+};
 
 #[derive(Debug, Clone, Default)]
 pub struct Namespace;
@@ -14,21 +18,30 @@ impl Namespace {
         active.insert(Conn::conn().main()).await
     }
 
+    pub async fn update(&self, active: NamespaceActive) -> Result<NamespaceModel, DbErr> {
+        active.update(Conn::conn().main()).await
+    }
+
     pub async fn get_namespace_by_appcluster(
         &self,
         app: String,
         cluster: String,
-    ) -> Result<Vec<NamespaceItem>, DbErr> {
-        NamespaceEntity::find()
-            .select_only()
-            .column(NamespaceColumn::Id)
-            .column(NamespaceColumn::Namespace)
+        status: Option<Status>,
+        scope: Option<Scope>,
+        (offset, limit): (u64, u64),
+    ) -> Result<Vec<NamespaceModel>, DbErr> {
+        let mut stmt = NamespaceEntity::find()
             .filter(NamespaceColumn::App.eq(app))
             .filter(NamespaceColumn::Cluster.eq(cluster))
-            .filter(NamespaceColumn::Scope.eq(Scope::Private))
-            .into_model::<NamespaceItem>()
-            .all(Conn::conn().slaver())
-            .await
+            .offset(offset)
+            .limit(limit);
+        if let Some(status) = status {
+            stmt = stmt.filter(NamespaceColumn::Status.eq(status));
+        }
+        if let Some(scope) = scope {
+            stmt = stmt.filter(NamespaceColumn::Scope.eq(scope))
+        }
+        stmt.all(Conn::conn().slaver()).await
     }
 
     pub async fn get_app_info(&self, id: u64) -> Result<Option<NamespaceInfo>, DbErr> {
@@ -43,8 +56,10 @@ impl Namespace {
             .one(Conn::conn().slaver())
             .await
     }
-    pub async fn get_namespace_by_id(&self,id: u64) -> Result<Option<NamespaceModel>,DbErr> {
-        NamespaceEntity::find_by_id(id).one(Conn::conn().slaver()).await
+    pub async fn get_namespace_by_id(&self, id: u64) -> Result<Option<NamespaceModel>, DbErr> {
+        NamespaceEntity::find_by_id(id)
+            .one(Conn::conn().slaver())
+            .await
     }
     pub async fn get_namespace_name(&self, id: u64) -> Result<Option<String>, DbErr> {
         let ns = NamespaceEntity::find_by_id(id)
@@ -68,7 +83,7 @@ impl Namespace {
             .filter(NamespaceColumn::App.eq(app))
             .filter(NamespaceColumn::Cluster.eq(cluster))
             .filter(NamespaceColumn::Namespace.eq(namespace))
-            .into_model::<ID>()
+            .into_tuple::<u64>()
             .one(Conn::conn().main())
             .await?;
         Ok(entity.is_some())
@@ -76,19 +91,14 @@ impl Namespace {
 
     pub async fn get_public_namespace_info(
         &self,
-        namespace_prefix: String,
-    ) -> Result<Vec<NamespaceInfo>, DbErr> {
-        NamespaceEntity::find()
-            .select_only()
-            .column(NamespaceColumn::Id)
-            .column(NamespaceColumn::App)
-            .column(NamespaceColumn::Cluster)
-            .column(NamespaceColumn::Namespace)
-            .filter(NamespaceColumn::Namespace.starts_with(&namespace_prefix))
-            .filter(NamespaceColumn::Scope.eq(Scope::Public))
-            .into_model::<NamespaceInfo>()
-            .all(Conn::conn().slaver())
-            .await
+        namespace_prefix: Option<String>,
+        (offset, limit): (u64, u64),
+    ) -> Result<Vec<NamespaceModel>, DbErr> {
+        let mut stmt = NamespaceEntity::find().offset(offset).limit(limit);
+        if let Some(prefix) = namespace_prefix {
+            stmt = stmt.filter(NamespaceColumn::Namespace.starts_with(&prefix))
+        }
+        stmt.all(Conn::conn().slaver()).await
     }
 
     pub async fn get_namespace_id(
@@ -97,15 +107,14 @@ impl Namespace {
         cluster: String,
         namespace: String,
     ) -> Result<Option<u64>, DbErr> {
-        let entity = NamespaceEntity::find()
+        NamespaceEntity::find()
             .select_only()
             .column(NamespaceColumn::Id)
             .filter(NamespaceColumn::App.eq(app_id))
             .filter(NamespaceColumn::Cluster.eq(cluster))
             .filter(NamespaceColumn::Namespace.eq(namespace))
-            .into_model::<ID>()
+            .into_tuple::<u64>()
             .one(Conn::conn().slaver())
-            .await?;
-        Ok(entity.and_then(|x| Some(x.id)))
+            .await
     }
 }
