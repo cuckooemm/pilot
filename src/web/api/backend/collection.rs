@@ -5,15 +5,15 @@ use crate::web::{
         request::{ReqJson, ReqQuery},
         response::APIResponse,
     },
-    store::dao::{app, collection::Collection, Dao},
+    store::dao::Dao,
     APIResult,
 };
 
 use axum::{extract::State, Extension};
 use entity::{
     common::enums::Status,
-    model::{app::AppItem, AppModel, CollectionActive, UserAuth},
-    orm::Set,
+    model::{AppModel, CollectionActive, UserAuth},
+    orm::{Set, IntoActiveModel},
 };
 use serde::Deserialize;
 use tracing::instrument;
@@ -44,7 +44,7 @@ pub async fn add(
     let cancel = param.cancel.unwrap_or_default();
     match dao.collection.get_collection(app.id, auth.id).await? {
         Some(model) => {
-            let mut active: CollectionActive = model.clone().into();
+            let mut active = model.clone().into_active_model();
             if cancel {
                 if model.status == Status::Delete {
                     return Err(APIError::param_err(ParamErrType::NotExist, "collection"));

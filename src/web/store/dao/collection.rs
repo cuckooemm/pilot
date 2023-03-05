@@ -65,7 +65,7 @@ impl Collection {
                 AppColumn::App,
                 AppColumn::Name,
                 AppColumn::Describe,
-                AppColumn::DeptId,
+                AppColumn::DepartmentId,
                 AppColumn::Status,
                 AppColumn::CreatedAt,
                 AppColumn::UpdatedAt,

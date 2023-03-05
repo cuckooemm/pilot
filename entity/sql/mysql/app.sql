@@ -19,7 +19,7 @@ CREATE TABLE `apps` (
     `app` varchar(64) NOT NULL COMMENT 'appID',
     `name` varchar(64) NOT NULL DEFAULT '' COMMENT '应用名',
     `describe` varchar(200) NOT NULL DEFAULT '' COMMENT '详情',
-    `dept_id` int unsigned NOT NULL DEFAULT 0 COMMENT '所属部门ID',
+    `department_id` int unsigned NOT NULL DEFAULT 0 COMMENT '所属部门ID',
     `status` tinyint unsigned NOT NULL DEFAULT 0 COMMENT '状态',
     `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',

@@ -13,7 +13,7 @@ pub struct Model {
     pub name: String,
     pub describe: String,
     #[serde(serialize_with = "crate::confuse")]
-    pub dept_id: u32,
+    pub department_id: u32,
     pub status: Status,
     pub created_at: DateTimeWithTimeZone,
     pub updated_at: DateTimeWithTimeZone,

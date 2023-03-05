@@ -1,10 +1,11 @@
 use super::Conn;
 
-use entity::{SecretData, ID};
+use entity::common::enums::Status;
 use entity::model::{
     cluster::ClusterItem, ClusterActive, ClusterColumn, ClusterEntity, ClusterModel,
 };
 use entity::orm::{ActiveModelTrait, ColumnTrait, DbErr, EntityTrait, QueryFilter, QuerySelect};
+use entity::{SecretData, ID};
 
 #[derive(Debug, Clone, Default)]
 pub struct Cluster;
@@ -43,15 +44,20 @@ impl Cluster {
         Ok(())
     }
 
-    pub async fn find_cluster_by_app(&self, app: String) -> Result<Vec<ClusterItem>, DbErr> {
-        ClusterEntity::find()
-            .select_only()
-            .column(ClusterColumn::Id)
-            .column(ClusterColumn::Cluster)
+    pub async fn find_cluster_by_app(
+        &self,
+        app: String,
+        status: Option<Status>,
+        (offset, limit): (u64, u64),
+    ) -> Result<Vec<ClusterModel>, DbErr> {
+        let mut stmt = ClusterEntity::find()
             .filter(ClusterColumn::App.eq(app))
-            .into_model::<ClusterItem>()
-            .all(Conn::conn().slaver())
-            .await
+            .offset(offset)
+            .limit(limit);
+        if let Some(status) = status {
+            stmt = stmt.filter(ClusterColumn::Status.eq(status));
+        }
+        stmt.all(Conn::conn().slaver()).await
     }
 
     pub async fn get_secret_by_cluster(
@@ -75,7 +81,7 @@ impl Cluster {
             .column(ClusterColumn::Id)
             .filter(ClusterColumn::App.eq(app))
             .filter(ClusterColumn::Cluster.eq(cluster))
-            .into_model::<ID>()
+            .into_tuple::<u64>()
             .one(Conn::conn().main())
             .await
             .and_then(|id| Ok(id.is_some()))

@@ -1,6 +1,6 @@
-use crate::web::api::permission::accredit;
+use crate::web::api::permission::accredit::{self, acc_admin};
 use crate::web::api::{check, helper};
-use crate::web::extract::error::{APIError, ParamErrType};
+use crate::web::extract::error::{APIError, ForbiddenType, ParamErrType};
 use crate::web::extract::request::{ReqJson, ReqQuery};
 use crate::web::extract::response::APIResponse;
 use crate::web::store::dao::Dao;
@@ -8,6 +8,8 @@ use crate::web::APIResult;
 
 use axum::extract::State;
 use axum::Extension;
+use entity::common::enums::Status;
+use entity::model::users::UserLevel;
 use entity::model::{rule::Verb, AppActive, AppModel, UserAuth};
 use entity::orm::{ActiveModelTrait, IntoActiveModel, Set};
 use serde::Deserialize;
@@ -18,7 +20,7 @@ pub struct AppParam {
     pub app: Option<String>,
     pub name: Option<String>,
     pub describe: Option<String>,
-    pub dept_id: Option<String>,
+    pub department_id: Option<String>,
 }
 
 #[instrument(skip(dao, auth))]
@@ -47,25 +49,34 @@ pub async fn create(
         }
         None => String::default(),
     };
-    let dept_id = if let Some(id) = param.dept_id {
-        let id = check::id_decode_rule::<u32>(&id, "dept_id")?;
+
+    let dept_id = if let Some(id) = param.department_id {
+        let id = check::id_decode_rule::<u32>(&id, "department_id")?;
         if !dao.department.is_exist_id(id).await? {
-            return Err(APIError::param_err(ParamErrType::NotExist, "dept_id"));
+            return Err(APIError::param_err(ParamErrType::NotExist, "department_id"));
+        }
+        match auth.level {
+            UserLevel::Admin => (),
+            _ => {
+                if id != auth.id {
+                    return Err(APIError::forbidden_resource(
+                        ForbiddenType::Create,
+                        &vec!["department", "app"],
+                    ));
+                }
+            }
         }
         id
     } else {
         auth.dept_id
     };
-    if dept_id != auth.dept_id {
-        todo!("check create app premission")
-    }
     if dao.app.is_exist(app.clone()).await? {
         return Err(APIError::param_err(ParamErrType::Exist, "app"));
     }
     let active = AppActive {
-        app: Set(app.clone()),
+        app: Set(app),
         name: Set(name),
-        dept_id: Set(dept_id),
+        department_id: Set(dept_id),
         describe: Set(describe),
         ..Default::default()
     };
@@ -77,7 +88,7 @@ pub async fn create(
 pub struct EditParam {
     pub app: Option<String>,
     pub name: Option<String>,
-    pub dept_id: Option<String>,
+    pub department_id: Option<String>,
     pub describe: Option<String>,
     pub status: Option<String>,
 }
@@ -96,10 +107,7 @@ pub async fn edit(
         .ok_or(APIError::param_err(ParamErrType::NotExist, "app"))?;
     let resource = vec![app.as_str()];
     if !accredit::accredit(&auth, Verb::Modify, &resource).await? {
-        return Err(APIError::forbidden_resource(
-            crate::web::extract::error::ForbiddenType::Operate,
-            &resource,
-        ));
+        return Err(APIError::forbidden_resource(ForbiddenType::Edit, &resource));
     }
 
     let mut active = info.clone().into_active_model();
@@ -120,13 +128,16 @@ pub async fn edit(
             active.describe = Set(desc);
         }
     }
-    if let Some(dept_id) = param.dept_id {
+    if let Some(dept_id) = param.department_id {
         let dept_id = check::id_decode_rule::<u32>(&dept_id, "dept_id")?;
-        if dept_id != info.dept_id {
+        if dept_id != info.department_id {
+            if !acc_admin(&auth, None).await? {
+                return Err(APIError::forbidden_resource(ForbiddenType::Edit, &resource));
+            }
             if !dao.department.is_exist_id(dept_id).await? {
                 return Err(APIError::param_err(ParamErrType::NotExist, "dept_id"));
             }
-            active.dept_id = Set(dept_id);
+            active.department_id = Set(dept_id);
         }
     }
 
@@ -156,12 +167,11 @@ pub async fn list(
     State(ref dao): State<Dao>,
     ReqQuery(param): ReqQuery<QueryParam>,
 ) -> APIResult<APIResponse<Vec<AppModel>>> {
-    // accredit::accredit(&auth, Verb::VIEW, vec!["some_app"]).await?;
-    // TODO user app
     let page = helper::page(param.page, param.page_size);
+    let status: Option<Status> = param.status.and_then(|s| s.try_into().ok());
     let list = dao
         .app
-        .find_all(helper::page_to_limit(page))
+        .get_apps(Some(auth.dept_id), status, helper::page_to_limit(page))
         .await?;
     let mut rsp = APIResponse::ok_data(list);
     rsp.set_page(page);

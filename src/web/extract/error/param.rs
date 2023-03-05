@@ -14,11 +14,6 @@ pub enum ParamErrType {
 
 impl APIError {
     pub fn param_err(param_type: ParamErrType, field: &str) -> Self {
-        tracing::warn!(
-            "params error. field: [{}], Errtype: [{:?}]",
-            field,
-            param_type
-        );
         let (code, message) = match param_type {
             ParamErrType::Required => (400_001, format!("The {} is required", field)),
             ParamErrType::Exist => (400_002, format!("The {} is exist", field)),

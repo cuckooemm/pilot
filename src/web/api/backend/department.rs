@@ -44,12 +44,17 @@ pub async fn create(
             &vec!["department"],
         ));
     }
-
-    if dao.department.is_exist(name.clone()).await? {
-        return Err(APIError::param_err(ParamErrType::Exist, "name"));
-    }
-    let data = dao.department.addition(name.clone()).await?;
-
+    let data = match dao.department.get_by_name(name.clone()).await? {
+        Some(m) => {
+            if m.status == Status::Normal {
+                return Err(APIError::param_err(ParamErrType::Exist, "department"));
+            }
+            let mut active = m.into_active_model();
+            active.status = Set(Status::Normal);
+            dao.department.update(active).await?
+        }
+        None => dao.department.addition(name).await?,
+    };
     Ok(APIResponse::ok_data(data))
 }
 

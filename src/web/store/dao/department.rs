@@ -1,6 +1,6 @@
 use super::Conn;
 
-use entity::common::common::{Name};
+use entity::common::common::Name;
 use entity::common::enums::Status;
 use entity::model::{DepartmentActive, DepartmentColumn, DepartmentEntity, DepartmentModel};
 use entity::orm::sea_query::Expr;
@@ -30,21 +30,18 @@ impl Department {
             .select_only()
             .column(DepartmentColumn::Id)
             .filter(DepartmentColumn::Id.eq(id))
+            .filter(DepartmentColumn::Status.eq(Status::Normal))
             .into_tuple()
             .one(Conn::conn().main())
             .await?;
         Ok(model.is_some())
     }
 
-    pub async fn is_exist(&self, name: String) -> Result<bool, DbErr> {
-        let model: Option<u32> = DepartmentEntity::find()
-            .select_only()
-            .column(DepartmentColumn::Id)
+    pub async fn get_by_name(&self, name: String) -> Result<Option<DepartmentModel>, DbErr> {
+        DepartmentEntity::find()
             .filter(DepartmentColumn::Name.eq(name))
-            .into_tuple()
             .one(Conn::conn().main())
-            .await?;
-        Ok(model.is_some())
+            .await
     }
 
     pub async fn get_info(&self, id: u32) -> Result<Option<DepartmentModel>, DbErr> {
@@ -52,17 +49,6 @@ impl Department {
             .one(Conn::conn().main())
             .await
     }
-    pub async fn get_department_name(&self, id: u32) -> Result<Option<String>, DbErr> {
-        let r = DepartmentEntity::find()
-            .select_only()
-            .column(DepartmentColumn::Name)
-            .filter(DepartmentColumn::Id.eq(id))
-            .into_model::<Name>()
-            .one(Conn::conn().slaver())
-            .await?;
-        Ok(r.and_then(|s| Some(s.name)))
-    }
-
     pub async fn search_department(
         &self,
         name: Option<String>,
