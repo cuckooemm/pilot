@@ -91,7 +91,7 @@ CREATE TABLE `app_extend` (
 DROP TABLE IF EXISTS `item`;
 
 CREATE TABLE `item` (
-    `id` bigint unsigned AUTO_INCREMENT COMMENT '主键',
+    `id` bigint unsigned AUTO_INCREMENT,
     `namespace_id` bigint unsigned NOT NULL COMMENT '关联的 namespace_id',
     `key` varchar(64) NOT NULL COMMENT '配置key',
     `value` text NOT NULL COMMENT '配置value',
@@ -102,7 +102,7 @@ CREATE TABLE `item` (
     `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     PRIMARY KEY (`id`),
-    KEY `ix_namespace` (`namespace_id`)
+    UNIQUE KEY `uk_namespace_key` (`app`, `namespace_id`,`key`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT = '配置表';
 
 DROP TABLE IF EXISTS `release`;

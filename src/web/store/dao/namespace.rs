@@ -4,7 +4,7 @@ use entity::common::enums::Status;
 use entity::orm::{ActiveModelTrait, ColumnTrait, DbErr, EntityTrait, QueryFilter, QuerySelect};
 use entity::{
     model::{
-        namespace::{NamespaceInfo, NamespaceItem},
+        namespace::{NamespaceInfo},
         NamespaceActive, NamespaceColumn, NamespaceEntity, NamespaceModel,
     },
     Scope,
@@ -22,7 +22,7 @@ impl Namespace {
         active.update(Conn::conn().main()).await
     }
 
-    pub async fn get_namespace_by_appcluster(
+    pub async fn list_by_appcluster(
         &self,
         app: String,
         cluster: String,
@@ -62,13 +62,12 @@ impl Namespace {
             .await
     }
     pub async fn get_namespace_name(&self, id: u64) -> Result<Option<String>, DbErr> {
-        let ns = NamespaceEntity::find_by_id(id)
+        NamespaceEntity::find_by_id(id)
             .select_only()
             .column(NamespaceColumn::Namespace)
-            .into_model::<NamespaceItem>()
+            .into_tuple::<String>()
             .one(Conn::conn().slaver())
-            .await?;
-        Ok(ns.and_then(|n| Some(n.namespace)))
+            .await
     }
 
     pub async fn is_exist(

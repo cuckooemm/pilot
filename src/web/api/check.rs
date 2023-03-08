@@ -3,9 +3,6 @@ use crate::web::extract::error::{APIError, ParamErrType};
 use once_cell::sync::Lazy;
 use regex::Regex;
 
-const ID_MIN_LEN: usize = 2;
-const ID_MAX_LEN: usize = 64;
-
 struct Re {
     id_str: Regex,
     account: Regex,
@@ -23,7 +20,7 @@ static RE: Lazy<Re> = Lazy::new(|| Re {
         .expect("Failed to initialize the [password] regular expression"),
     email: Regex::new(r"\w+([-+.]\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*")
         .expect("Failed to initialize the [email] regular expression"),
-    key: Regex::new(r"^[a-zA-Z\d_-]$").expect("Failed to initialize the [key] regular expression"),
+    key: Regex::new(r"^[a-zA-Z\d_-]*$").expect("Failed to initialize the [key] regular expression"),
 });
 
 pub fn account(account: Option<String>) -> Result<String, APIError> {
@@ -105,32 +102,19 @@ pub fn trim(f: String) -> String {
     f.trim_start().trim_end().to_owned()
 }
 
-pub fn key(
-    id: Option<String>,
-    field: &str,
-    min: Option<usize>,
-    max: Option<usize>,
-) -> Result<String, APIError> {
+pub fn key(id: Option<String>, field: &str) -> Result<String, APIError> {
     match id {
         Some(id) => {
-            key_rule(&id, field, min, max)?;
+            key_rule(&id, field)?;
             Ok(id)
         }
         None => return Err(APIError::param_err(ParamErrType::Required, field)),
     }
 }
 
-pub fn key_rule(
-    id: &String,
-    field: &str,
-    min: Option<usize>,
-    max: Option<usize>,
-) -> Result<(), APIError> {
-    if id.len() < min.unwrap_or(ID_MIN_LEN) || id.len() > max.unwrap_or(ID_MAX_LEN) {
-        return Err(APIError::param_err(
-            ParamErrType::Len(ID_MIN_LEN, ID_MAX_LEN),
-            field,
-        ));
+pub fn key_rule(id: &String, field: &str) -> Result<(), APIError> {
+    if id.len() < 2 || id.len() > 64 {
+        return Err(APIError::param_err(ParamErrType::Len(2, 64), field));
     }
     if !RE.key.is_match(id) {
         return Err(APIError::param_err(ParamErrType::Invalid, field));
@@ -146,9 +130,9 @@ pub fn id_str(id: Option<String>, field: &str) -> Result<String, APIError> {
 }
 
 pub fn id_str_rule(id: String, field: &str) -> Result<String, APIError> {
-    if id.len() < ID_MIN_LEN || id.len() > ID_MAX_LEN {
+    if id.len() < 2 || id.len() > 64 {
         return Err(APIError::param_err(
-            ParamErrType::Len(ID_MIN_LEN, ID_MAX_LEN),
+            ParamErrType::Len(2, 64),
             field,
         ));
     }

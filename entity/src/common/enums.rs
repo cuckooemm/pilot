@@ -20,13 +20,15 @@ impl Default for ItemCategory {
     }
 }
 
-impl From<String> for ItemCategory {
-    fn from(str: String) -> Self {
-        match str.to_lowercase().as_str() {
-            "json" => Self::Json,
-            "yaml" => Self::Yaml,
-            "toml" => Self::Toml,
-            _ => Self::Text,
+impl TryFrom<String> for ItemCategory {
+    type Error = ();
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        match value.to_lowercase().as_str() {
+            "json" => Ok(Self::Json),
+            "yaml" => Ok(Self::Yaml),
+            "toml" => Ok(Self::Toml),
+            "text" => Ok(Self::Text),
+            _ => Err(())
         }
     }
 }

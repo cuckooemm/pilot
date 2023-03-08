@@ -29,17 +29,10 @@ impl RelationTrait for Relation {
 impl ActiveModelBehavior for ActiveModel {}
 
 #[derive(FromQueryResult, Serialize, Debug)]
-pub struct NamespaceItem {
-    #[serde(serialize_with = "crate::confuse")]
-    pub id: u64,
-    pub namespace: String,
-}
-
-#[derive(FromQueryResult, Serialize, Debug)]
 pub struct NamespaceInfo {
     #[serde(serialize_with = "crate::confuse")]
     pub id: u64,
-    pub app_id: String, // app ID
+    pub app: String,
     pub cluster: String,
     pub namespace: String,
 }

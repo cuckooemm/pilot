@@ -111,7 +111,7 @@ pub async fn publish(
     let info = info.unwrap();
     // 权限验证 TODO
     let resource = vec![
-        info.app_id.as_str(),
+        info.app.as_str(),
         info.cluster.as_str(),
         info.namespace.as_str(),
     ];
@@ -204,7 +204,7 @@ pub async fn rollback(
     if !accredit::accredit(
         &auth,
         Verb::Publish,
-        &vec![&info.app_id, &info.cluster, &info.namespace],
+        &vec![&info.app, &info.cluster, &info.namespace],
     )
     .await?
     {
@@ -238,7 +238,7 @@ pub async fn release_list(
     let info = info.unwrap();
     // 权限验证 TODO
     let resource = vec![
-        info.app_id.as_str(),
+        info.app.as_str(),
         info.cluster.as_str(),
         info.namespace.as_str(),
     ];

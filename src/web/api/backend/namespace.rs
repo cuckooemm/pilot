@@ -141,7 +141,7 @@ pub async fn list(
     }
     let list = dao
         .namespace
-        .get_namespace_by_appcluster(
+        .list_by_appcluster(
             app.clone(),
             cluster.clone(),
             status,
