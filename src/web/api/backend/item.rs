@@ -10,7 +10,7 @@ use axum::extract::State;
 use axum::Extension;
 use entity::common::enums::Status;
 use entity::model::rule::Verb;
-use entity::model::{ItemActive, ItemModel, UserAuth};
+use entity::model::{ItemActive, ItemModel, ReleaseHistoryModel, UserAuth};
 use entity::orm::{ActiveModelTrait, IntoActiveModel, Set};
 use entity::ItemCategory;
 use serde::Deserialize;
@@ -212,6 +212,51 @@ pub async fn list(
     let data: Vec<ItemModel> = dao
         .item
         .list_namespace_id(namespace_id, status, helper::page_to_limit(page))
+        .await?;
+    let mut rsp = APIResponse::ok_data(data);
+    rsp.set_page(page);
+    Ok(rsp)
+}
+
+#[derive(Deserialize, Debug)]
+pub struct HistoryListParam {
+    pub item_id: Option<String>,
+    pub page: Option<String>,
+    pub page_size: Option<String>,
+}
+
+#[instrument(skip(dao, auth))]
+pub async fn history_list(
+    State(ref dao): State<Dao>,
+    Extension(auth): Extension<UserAuth>,
+    ReqQuery(param): ReqQuery<HistoryListParam>,
+) -> APIResult<APIResponse<Vec<ReleaseHistoryModel>>> {
+    let item_id = check::id_decode(param.item_id, "item_id")?;
+    let namespace_id = dao
+        .item
+        .get_namespace_id(item_id)
+        .await?
+        .ok_or(APIError::param_err(ParamErrType::NotExist, "item_id"))?;
+    let info = dao
+        .namespace
+        .get_app_info(namespace_id)
+        .await?
+        .ok_or(APIError::param_err(ParamErrType::NotExist, "namespace_id"))?;
+    let resource = vec![
+        info.app.as_str(),
+        info.cluster.as_str(),
+        info.namespace.as_str(),
+    ];
+    if !accredit::accredit(&auth, Verb::VIEW, &resource).await? {
+        return Err(APIError::forbidden_resource(
+            ForbiddenType::Access,
+            &resource,
+        ));
+    }
+    let page = helper::page(param.page, param.page_size);
+    let data = dao
+        .release
+        .list_item(item_id, helper::page_to_limit(page))
         .await?;
     let mut rsp = APIResponse::ok_data(data);
     rsp.set_page(page);

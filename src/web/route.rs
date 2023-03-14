@@ -83,7 +83,8 @@ fn auth_router() -> Router<Store> {
         .route("/create", post(item::create))
         .route("/list", get(item::list))
         .route("/edit", put(item::edit))
-        .route("/publish/history", get(publication::release_list))
+        .route("/history/list", get(item::history_list))
+        .route("/publish/history", get(publication::list))
         .route("/publish", post(publication::publish))
         .route("/rollback", post(publication::rollback));
 

@@ -28,12 +28,12 @@ impl TryFrom<String> for ItemCategory {
             "yaml" => Ok(Self::Yaml),
             "toml" => Ok(Self::Toml),
             "text" => Ok(Self::Text),
-            _ => Err(())
+            _ => Err(()),
         }
     }
 }
 
-#[derive(Debug, Clone, PartialEq, EnumIter, DeriveActiveEnum, Deserialize, Serialize)]
+#[derive(Debug, Copy, Clone, PartialEq, EnumIter, DeriveActiveEnum, Deserialize, Serialize)]
 #[sea_orm(rs_type = "u8", db_type = "TinyUnsigned")]
 pub enum Status {
     #[sea_orm(num_value = 0)]

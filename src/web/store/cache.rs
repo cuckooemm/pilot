@@ -3,7 +3,6 @@ use std::{collections::HashMap, sync::Arc, time::Duration};
 use super::dao::{release, Dao};
 
 use ahash::RandomState;
-use axum::extract::FromRef;
 use entity::model::item::ConfigItem;
 use entity::orm::DbErr;
 use serde::Serialize;
@@ -335,22 +334,24 @@ impl CacheItem {
     }
 }
 
-// 从数据库中加载数据
 pub async fn load_database_publication(namespace_id: u64) -> Option<NamespaceItem> {
     for _ in 0..3 {
-        let config = Dao::new().release.get_namespace_config(namespace_id).await;
+        let config = Dao::new()
+            .release
+            .get_namespace_last_release(namespace_id)
+            .await;
         match config {
             Ok(config) => match config {
-                Some(config) => {
+                Some((version, configure)) => {
                     let items: Result<Vec<ConfigItem>, serde_json::Error> =
-                        serde_json::from_str(&config.configurations);
+                        serde_json::from_str(&configure);
                     if items.is_err() {
                         tracing::error!("failed to parse config item err: {:?}", items);
                         return None;
                     }
                     return Some(NamespaceItem {
                         namespace_id,
-                        version: config.id,
+                        version: version,
                         items: items.unwrap(),
                     });
                 }

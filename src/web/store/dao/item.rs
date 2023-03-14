@@ -1,16 +1,9 @@
 use super::Conn;
 
 use entity::common::enums::Status;
-use entity::orm::{
-    ActiveModelTrait, ColumnTrait, DbErr, EntityTrait, QueryFilter, QuerySelect, Set,
-};
-use entity::{
-    model::{
-        item::{ItemData, ItemDesc},
-        ItemActive, ItemColumn, ItemEntity, ItemModel,
-    },
-    ItemCategory, ID,
-};
+use entity::model::release::ItemDesc;
+use entity::model::{item::ItemData, ItemActive, ItemColumn, ItemEntity, ItemModel};
+use entity::orm::{ActiveModelTrait, ColumnTrait, DbErr, EntityTrait, QueryFilter, QuerySelect};
 
 #[derive(Debug, Clone, Default)]
 pub struct Item;
@@ -22,12 +15,15 @@ impl Item {
     pub async fn get_item_by_ids(&self, ids: Vec<u64>) -> Result<Vec<ItemData>, DbErr> {
         ItemEntity::find()
             .select_only()
-            .column(ItemColumn::Id)
-            .column(ItemColumn::NamespaceId)
-            .column(ItemColumn::Key)
-            .column(ItemColumn::Value)
-            .column(ItemColumn::Category)
-            .column(ItemColumn::Version)
+            .columns([
+                ItemColumn::Id,
+                ItemColumn::NamespaceId,
+                ItemColumn::Key,
+                ItemColumn::Value,
+                ItemColumn::Category,
+                ItemColumn::Version,
+                ItemColumn::Status,
+            ])
             .filter(ItemColumn::Id.is_in(ids))
             .into_model::<ItemData>()
             .all(Conn::conn().main())
@@ -46,7 +42,6 @@ impl Item {
             .all(Conn::conn().main())
             .await
     }
-
     pub async fn list_namespace_id(
         &self,
         namespace_id: u64,
@@ -78,7 +73,14 @@ impl Item {
     pub async fn find_by_id(&self, id: u64) -> Result<Option<ItemModel>, DbErr> {
         ItemEntity::find_by_id(id).one(Conn::conn().main()).await
     }
-
+    pub async fn get_namespace_id(&self, id: u64) -> Result<Option<u64>, DbErr> {
+        ItemEntity::find_by_id(id)
+            .select_only()
+            .column(ItemColumn::NamespaceId)
+            .into_tuple::<u64>()
+            .one(Conn::conn().main())
+            .await
+    }
     pub async fn update(&self, active: ItemActive, version: u64) -> Result<bool, DbErr> {
         let id = active.id.as_ref().clone();
         let result = ItemEntity::update_many()

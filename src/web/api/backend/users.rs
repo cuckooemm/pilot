@@ -59,11 +59,18 @@ pub async fn addition(
         UserLevel::DeptAdmin => {
             // 添加不是同一部门用户 或者 添加的帐号权限大于当前权限
             if dept_id != auth.dept_id || level > UserLevel::DeptAdmin {
-                return Err(APIError::forbidden_err(ForbiddenType::Operate, "add user"));
+                return Err(APIError::forbidden_resource(
+                    ForbiddenType::Operate,
+                    &vec!["user", "add"],
+                ));
             }
         }
-        // 无权限
-        _ => return Err(APIError::forbidden_err(ForbiddenType::Operate, "add user")),
+        _ => {
+            return Err(APIError::forbidden_resource(
+                ForbiddenType::Operate,
+                &vec!["user", "add"],
+            ))
+        }
     }
 
     if dao.users.is_exist_account_email(account.clone()).await? {
@@ -233,7 +240,12 @@ pub async fn list(
         // 获取本部门帐号
         UserLevel::DeptAdmin => dept = Some(auth.dept_id),
         // 无权限
-        _ => return Err(APIError::forbidden_err(ForbiddenType::Access, "users")),
+        _ => {
+            return Err(APIError::forbidden_resource(
+                ForbiddenType::Access,
+                &vec!["users", "list"],
+            ))
+        }
     }
 
     let list = dao

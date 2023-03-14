@@ -33,16 +33,6 @@ impl RelationTrait for Relation {
 impl ActiveModelBehavior for ActiveModel {}
 
 #[derive(FromQueryResult, Default, Serialize, Deserialize, Debug, Clone)]
-pub struct ItemDesc {
-    #[serde(skip)]
-    pub id: u64,
-    pub key: String,
-    pub value: String,
-    pub category: ItemCategory,
-    pub version: u64,
-}
-
-#[derive(FromQueryResult, Default, Serialize, Deserialize, Debug, Clone)]
 pub struct ConfigItem {
     pub key: String,
     pub value: String,
@@ -57,4 +47,5 @@ pub struct ItemData {
     pub value: String,
     pub category: ItemCategory,
     pub version: u64,
+    pub status: Status,
 }
