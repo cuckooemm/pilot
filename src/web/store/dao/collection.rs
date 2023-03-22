@@ -1,15 +1,13 @@
 use super::Conn;
 
-use axum::extract::State;
 use entity::common::enums::Status;
 use entity::model::{
-    app::AppItem, AppColumn, AppEntity, CollectionActive, CollectionColumn, CollectionEntity,
+    AppColumn, AppEntity, AppModel, CollectionActive, CollectionColumn, CollectionEntity,
+    CollectionModel,
 };
-use entity::model::{AppModel, CollectionModel};
 use entity::orm::{
     ActiveModelTrait, ColumnTrait, DbErr, EntityTrait, QueryFilter, QueryOrder, QuerySelect, Set,
 };
-use entity::ID;
 
 #[derive(Debug, Clone, Default)]
 pub struct Collection;

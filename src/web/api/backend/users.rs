@@ -325,7 +325,7 @@ pub async fn login(
     if user_info.status != Status::Normal {
         return Err(APIError::param_err(ParamErrType::Invalid, "account"));
     }
-    let mut renewal = 3600;
+    let mut renewal = 86400;
     if param.remember.unwrap_or_default() {
         renewal = 86400 * 7;
     }
@@ -333,7 +333,8 @@ pub async fn login(
         tracing::error!("Token generation failure. err: {:?}", e);
         APIError::service_error()
     })?;
-    let header = jwt::set_cookie(&token, param.remember.unwrap_or_default());
+    let mut header = HeaderMap::new();
+    jwt::set_cookie(&mut header, &token, renewal);
     Ok((
         header,
         APIResponse::ok_data(AuthResponse {

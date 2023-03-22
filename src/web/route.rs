@@ -3,7 +3,7 @@ use std::future::ready;
 use super::{
     api::{backend::*, forent::*},
     middleware::{cros, jwt::auth, metrics, trace},
-    store::{cache::CacheItem, Store},
+    store::Store,
 };
 
 use axum::{
@@ -13,7 +13,6 @@ use axum::{
     Router,
 };
 use tower::ServiceBuilder;
-use tower_http::trace::TraceLayer;
 
 pub async fn init_router() -> Router {
     let account_group = Router::new()

@@ -1,11 +1,15 @@
 use super::Conn;
 
-use entity::{model::{
-    users::{UserAuth, UserItem},
-    DepartmentColumn, DepartmentEntity, UsersActive, UsersColumn, UsersEntity, UsersModel,
-}, common::enums::Status, ID};
 use entity::orm::{
     ActiveModelTrait, ColumnTrait, DbErr, EntityTrait, QueryFilter, QueryOrder, QuerySelect,
+};
+use entity::{
+    common::enums::Status,
+    model::{
+        users::{UserAuth, UserItem},
+        DepartmentColumn, DepartmentEntity, UsersActive, UsersColumn, UsersEntity, UsersModel,
+    },
+    ID,
 };
 
 #[derive(Debug, Clone, Default)]
@@ -45,13 +49,15 @@ impl Users {
     pub async fn get_user_info(&self, id: u32) -> Result<Option<UserAuth>, DbErr> {
         return UsersEntity::find_by_id(id)
             .select_only()
-            .column(UsersColumn::Id)
-            .column(UsersColumn::Account)
-            .column(UsersColumn::Email)
-            .column(UsersColumn::Nickname)
-            .column(UsersColumn::DeptId)
-            .column(UsersColumn::Level)
-            .column(UsersColumn::Status)
+            .columns([
+                UsersColumn::Id,
+                UsersColumn::Account,
+                UsersColumn::Email,
+                UsersColumn::Nickname,
+                UsersColumn::DeptId,
+                UsersColumn::Level,
+                UsersColumn::Status,
+            ])
             .into_model::<UserAuth>()
             .one(Conn::conn().slaver())
             .await;

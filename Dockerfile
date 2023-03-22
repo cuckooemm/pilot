@@ -4,7 +4,7 @@ LABEL image.authors="cuckooemm@gmail.com"
 
 WORKDIR /workspace
 
-# 缓存更新依赖
+# cache
 COPY ./Cargo.lock ./Cargo.toml ./
 COPY ./config $CARGO_HOME/
 RUN mkdir -p src/ && mkdir -p entity/src/

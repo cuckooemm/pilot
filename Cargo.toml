@@ -9,6 +9,7 @@ version = "0.1.0"
 members = [".", "entity"]
 
 [dependencies]
+entity = {path = "entity"}
 dotenv = "0.15"
 axum = { version = "0.6", features = ["headers","macros"]}
 headers = "0.3"
@@ -19,7 +20,6 @@ md5 = "0.7"
 bcrypt = "0.14"
 regex = "1"
 ahash = "0.8"
-entity = {path = "entity"}
 lazy_static = "1.4"
 metrics = "0.20"
 metrics-exporter-prometheus = "0.11"
