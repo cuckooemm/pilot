@@ -15,7 +15,7 @@ pub struct Model {
     #[serde(skip)]
     pub password: String,
     #[serde(serialize_with = "crate::confuse")]
-    pub dept_id: u32,
+    pub department_id: u32,
     pub level: UserLevel,
     pub status: Status,
     pub created_at: DateTimeWithTimeZone,
@@ -31,7 +31,7 @@ impl RelationTrait for Relation {
     fn def(&self) -> RelationDef {
         match self {
             Self::Department => Entity::belongs_to(super::DepartmentEntity)
-                .from(Column::DeptId)
+                .from(Column::DepartmentId)
                 .to(super::DepartmentColumn::Id)
                 .into(),
         }
@@ -79,8 +79,8 @@ pub struct UserItem {
     pub email: String,
     pub nickname: String,
     #[serde(serialize_with = "crate::confuse")]
-    pub dept_id: u32,
-    pub dept_name: String,
+    pub department_id: u32,
+    pub department_name: String,
     pub level: UserLevel,
     pub created_at: DateTimeWithTimeZone,
     pub updated_at: DateTimeWithTimeZone,
@@ -99,7 +99,7 @@ pub struct UserAuth {
     pub account: String,
     pub email: String,
     pub nickname: String,
-    pub dept_id: u32,
+    pub department_id: u32,
     pub level: UserLevel,
     pub status: Status,
 }

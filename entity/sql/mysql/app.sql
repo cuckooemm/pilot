@@ -25,7 +25,7 @@ CREATE TABLE `apps` (
     `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     primary key (`id`),
     unique key `uk_app_id` (`app`),
-    KEY `ix_dept_id` (`dept_id`)
+    KEY `ix_department_id` (`department_id`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT = '应用';
 
 -- 用户应用收藏
@@ -102,7 +102,7 @@ CREATE TABLE `item` (
     `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     PRIMARY KEY (`id`),
-    UNIQUE KEY `uk_namespace_key` (`app`, `namespace_id`,`key`)
+    UNIQUE KEY `uk_namespace_key` (`namespace_id`,`key`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT = '配置表';
 
 DROP TABLE IF EXISTS `release`;
@@ -115,7 +115,7 @@ CREATE TABLE `release` (
     `configurations` mediumtext NOT NULL COMMENT '发布配置',
     `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    PRIMARY KEY (`id`),
+    PRIMARY KEY (`version`),
     KEY `ix_namespace` (`namespace_id`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT = '发布';
 
@@ -134,5 +134,5 @@ CREATE TABLE `release_history` (
     `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     PRIMARY KEY (`id`),
-    KEY `ix_namespace` (`namespace_id`, `status`)
+    KEY `ix_namespace` (`namespace_id`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT = '发布';

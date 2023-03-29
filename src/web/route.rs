@@ -25,7 +25,7 @@ pub async fn init_router() -> Router {
 
     let api_group = Router::new()
         .nest("/config", config_router)
-        .nest("/account", account_group)
+        .nest("/auth", account_group)
         .merge(auth_router());
 
     let layer = ServiceBuilder::new()

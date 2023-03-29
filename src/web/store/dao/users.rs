@@ -54,7 +54,7 @@ impl Users {
                 UsersColumn::Account,
                 UsersColumn::Email,
                 UsersColumn::Nickname,
-                UsersColumn::DeptId,
+                UsersColumn::DepartmentId,
                 UsersColumn::Level,
                 UsersColumn::Status,
             ])
@@ -79,8 +79,8 @@ impl Users {
             .column(UsersColumn::Account)
             .column(UsersColumn::Email)
             .column(UsersColumn::Nickname)
-            .column(UsersColumn::DeptId)
-            .column_as(DepartmentColumn::Name, "dept_name")
+            .column(UsersColumn::DepartmentId)
+            .column_as(DepartmentColumn::Name, "department_name")
             .column(UsersColumn::Level)
             .column(UsersColumn::Status)
             .column(UsersColumn::CreatedAt)
@@ -88,7 +88,7 @@ impl Users {
             .offset(offset)
             .limit(limit);
         if let Some(dept) = dept {
-            stmt = stmt.filter(UsersColumn::DeptId.eq(dept));
+            stmt = stmt.filter(UsersColumn::DepartmentId.eq(dept));
         }
         if let Some(status) = status {
             stmt = stmt.filter(UsersColumn::Status.eq(status));

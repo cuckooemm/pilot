@@ -68,7 +68,7 @@ pub async fn create(
         }
         id
     } else {
-        auth.dept_id
+        auth.department_id
     };
     if dao.app.is_exist(app.clone()).await? {
         return Err(APIError::param_err(ParamErrType::Exist, "app"));
@@ -171,7 +171,11 @@ pub async fn list(
     let status: Option<Status> = param.status.and_then(|s| s.try_into().ok());
     let list = dao
         .app
-        .get_apps(Some(auth.dept_id), status, helper::page_to_limit(page))
+        .get_apps(
+            Some(auth.department_id),
+            status,
+            helper::page_to_limit(page),
+        )
         .await?;
     let mut rsp = APIResponse::ok_data(list);
     rsp.set_page(page);

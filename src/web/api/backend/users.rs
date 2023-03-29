@@ -13,13 +13,16 @@ use crate::web::{
 
 use axum::{extract::State, Extension};
 use chrono::Local;
-use entity::orm::{ActiveModelTrait, IntoActiveModel, Set};
 use entity::{
     common::enums::Status,
     model::{
         users::{UserItem, UserLevel},
         UsersActive, UsersModel,
     },
+};
+use entity::{
+    model::UserAuth,
+    orm::{ActiveModelTrait, IntoActiveModel, Set},
 };
 use headers::HeaderMap;
 use serde::{Deserialize, Serialize};
@@ -58,7 +61,7 @@ pub async fn addition(
         // 仅可添加本部门帐号
         UserLevel::DeptAdmin => {
             // 添加不是同一部门用户 或者 添加的帐号权限大于当前权限
-            if dept_id != auth.dept_id || level > UserLevel::DeptAdmin {
+            if dept_id != auth.department_id || level > UserLevel::DeptAdmin {
                 return Err(APIError::forbidden_resource(
                     ForbiddenType::Operate,
                     &vec!["user", "add"],
@@ -88,7 +91,7 @@ pub async fn addition(
         email: Set(email),
         nickname: Set(nickname),
         password: Set(password),
-        dept_id: Set(dept_id),
+        department_id: Set(dept_id),
         level: Set(level),
         ..Default::default()
     };
@@ -110,7 +113,7 @@ pub struct UpdateParam {
 
 pub async fn edit(
     State(ref dao): State<Dao>,
-    Extension(auth): Extension<UsersModel>,
+    Extension(auth): Extension<UserAuth>,
     ReqQuery(param): ReqQuery<UpdateParam>,
 ) -> APIResult<APIResponse<UsersModel>> {
     let id = match param.id {
@@ -128,7 +131,7 @@ pub async fn edit(
     match auth.level {
         UserLevel::Admin => (),
         UserLevel::DeptAdmin => {
-            if user.dept_id != auth.dept_id {
+            if user.department_id != auth.department_id {
                 return Err(APIError::forbidden_resource(
                     ForbiddenType::Operate,
                     &vec!["edit", "users"],
@@ -180,7 +183,7 @@ pub async fn edit(
     }
     if let Some(dept_id) = param.dept_id {
         let dept = check::id_decode_rule::<u32>(&dept_id, "dept_id")?;
-        if user.dept_id != dept {
+        if user.department_id != dept {
             if auth.level != UserLevel::Admin {
                 return Err(APIError::forbidden_resource(
                     ForbiddenType::Operate,
@@ -190,7 +193,7 @@ pub async fn edit(
             if !dao.department.is_exist_id(dept).await? {
                 return Err(APIError::param_err(ParamErrType::NotExist, "dept_id"));
             }
-            active.dept_id = Set(dept);
+            active.department_id = Set(dept);
         }
     }
     if let Some(level) = param.level {
@@ -238,7 +241,7 @@ pub async fn list(
         // 获取所有帐号
         UserLevel::Admin => (),
         // 获取本部门帐号
-        UserLevel::DeptAdmin => dept = Some(auth.dept_id),
+        UserLevel::DeptAdmin => dept = Some(auth.department_id),
         // 无权限
         _ => {
             return Err(APIError::forbidden_resource(
@@ -297,20 +300,20 @@ pub struct LoginParam {
 }
 
 #[derive(Serialize)]
-pub struct AuthResponse {
+pub struct LoginResponse {
     pub nickname: String,
     #[serde(serialize_with = "entity::confuse")]
-    pub dept_id: u32,
+    pub department_id: u32,
     pub level: UserLevel,
     pub token: String,
-    pub exp: i64,
+    pub token_expire: i64,
 }
 
 #[instrument(skip(dao))]
 pub async fn login(
     State(ref dao): State<Dao>,
     ReqJson(param): ReqJson<LoginParam>,
-) -> APIResult<(HeaderMap, APIResponse<AuthResponse>)> {
+) -> APIResult<(HeaderMap, APIResponse<LoginResponse>)> {
     let account = check::account(param.account)?;
     let password = check::password(param.password)?;
     let user_info = dao
@@ -337,12 +340,12 @@ pub async fn login(
     jwt::set_cookie(&mut header, &token, renewal);
     Ok((
         header,
-        APIResponse::ok_data(AuthResponse {
-            token,
+        APIResponse::ok_data(LoginResponse {
             nickname: user_info.nickname,
-            dept_id: user_info.dept_id,
+            department_id: user_info.department_id,
             level: user_info.level,
-            exp: Local::now().timestamp() + renewal,
+            token,
+            token_expire: Local::now().timestamp() + renewal,
         }),
     ))
 }

@@ -19,7 +19,7 @@ pub async fn acc_admin(auth: &UserAuth, app: Option<String>) -> Result<bool, API
                         .get_department_id_by_app(app)
                         .await?
                         .unwrap_or_default()
-                        == auth.dept_id)
+                        == auth.department_id)
                 }
                 None => Ok(false),
             };

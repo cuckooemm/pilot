@@ -75,7 +75,7 @@ pub async fn edit(
     match auth.level {
         UserLevel::Admin => (),
         UserLevel::DeptAdmin => {
-            if auth.dept_id != id {
+            if auth.department_id != id {
                 return Err(APIError::forbidden_resource(
                     ForbiddenType::Edit,
                     &vec!["department"],
