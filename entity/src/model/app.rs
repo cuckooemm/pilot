@@ -31,12 +31,7 @@ impl ActiveModelBehavior for ActiveModel {}
 
 #[derive(FromQueryResult, Serialize, Debug)]
 pub struct AppItem {
-    pub app_id: String,
+    pub app: String,
     pub name: String,
     pub describe: String,
-}
-
-#[derive(FromQueryResult, Default, Debug, Clone)]
-pub struct DepartmentID {
-    pub dept_id: u32,
 }

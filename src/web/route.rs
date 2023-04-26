@@ -66,7 +66,8 @@ fn auth_router() -> Router<Store> {
     let cluster = Router::new()
         .route("/create", post(cluster::create))
         .route("/edit", put(cluster::edit))
-        .route("/list", get(cluster::list));
+        .route("/list", get(cluster::list))
+        .route("/details", get(cluster::details));
 
     let app_extend = Router::new()
         .route("/create", post(app_extra::create))

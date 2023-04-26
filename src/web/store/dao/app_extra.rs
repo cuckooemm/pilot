@@ -1,6 +1,5 @@
 use super::Conn;
 
-use entity::ID;
 use entity::model::{
     AppExtraActive, AppExtraColumn, AppExtraEntity, NamespaceColumn, NamespaceEntity,
     NamespaceModel,
@@ -31,7 +30,7 @@ impl AppExtra {
             .column(AppExtraColumn::Id)
             .filter(AppExtraColumn::App.eq(app))
             .filter(AppExtraColumn::NamespaceId.eq(namespace_id))
-            .into_model::<ID>()
+            .into_tuple::<u64>()
             .one(Conn::conn().main())
             .await?;
         Ok(entity.is_some())
@@ -41,17 +40,15 @@ impl AppExtra {
         app: String,
         (offset, limit): (u64, u64),
     ) -> Result<Vec<NamespaceModel>, DbErr> {
-        let id = AppExtraEntity::find()
+        let ids = AppExtraEntity::find()
             .select_only()
             .column_as(AppExtraColumn::NamespaceId, "id")
             .filter(AppExtraColumn::App.eq(app))
             .offset(offset)
             .limit(limit)
-            .into_model::<ID>()
+            .into_tuple::<u64>()
             .all(Conn::conn().slaver())
             .await?;
-
-        let ids: Vec<u64> = id.into_iter().map(|id| id.id).collect();
         NamespaceEntity::find()
             .filter(NamespaceColumn::Id.is_in(ids))
             .all(Conn::conn().slaver())

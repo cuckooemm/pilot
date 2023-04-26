@@ -21,6 +21,9 @@ pub struct APIResponse<T: Serialize> {
     #[serde(rename(serialize = "page_size"))]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub page_size: Option<u64>,
+    #[serde(rename(serialize = "count"))]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub count: Option<u64>,
 }
 
 impl<T> APIResponse<T>
@@ -35,6 +38,7 @@ where
             data,
             page: None,
             page_size: None,
+            count: None,
         }
     }
     #[inline]
@@ -46,12 +50,17 @@ where
         Self::new(0, "OK".to_string(), None)
     }
     #[inline]
-    pub fn err(code: u32, message: String) -> Self {
-        Self::new(code, message, None)
+    pub fn set_data(&mut self, data: T) {
+        self.data = Some(data);
     }
+    #[inline]
     pub fn set_page(&mut self, (page, page_size): (u64, u64)) {
         self.page = Some(page);
         self.page_size = Some(page_size);
+    }
+    #[inline]
+    pub fn set_count(&mut self, count: u64) {
+        self.count = Some(count);
     }
 }
 

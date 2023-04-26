@@ -9,8 +9,9 @@ use crate::web::APIResult;
 use axum::extract::State;
 use axum::Extension;
 use entity::common::enums::Status;
-use entity::model::{ rule::Verb, NamespaceActive, NamespaceModel, UserAuth};
+use entity::model::{rule::Verb, NamespaceActive, NamespaceModel, UserAuth};
 use entity::orm::{ActiveModelTrait, IntoActiveModel, Set};
+use entity::response::model::NamespaceItem;
 use entity::Scope;
 use serde::Deserialize;
 use tracing::instrument;
@@ -20,6 +21,7 @@ pub struct CreateParam {
     pub app: Option<String>,
     pub cluster: Option<String>,
     pub namespace: Option<String>,
+    pub describe: Option<String>,
     pub scope: Option<String>,
 }
 
@@ -31,6 +33,14 @@ pub async fn create(
 ) -> APIResult<APIResponse<NamespaceModel>> {
     let namespace = check::id_str(param.namespace, "namespace")?;
     let app = check::id_str(param.app, "app")?;
+    let describe = if let Some(desc) = param.describe {
+        if desc.len() > 200 {
+            return Err(APIError::param_err(ParamErrType::Max(200), "describe"));
+        }
+        desc
+    } else {
+        String::default()
+    };
     let scope = Scope::from(param.scope.unwrap_or_default());
     let cluster = check::id_str(param.cluster, "cluster")?;
     let resource = vec![app.as_str(), cluster.as_str()];
@@ -55,6 +65,7 @@ pub async fn create(
         app: Set(app),
         cluster: Set(cluster),
         namespace: Set(namespace),
+        describe: Set(describe),
         scope: Set(scope),
         ..Default::default()
     };
@@ -66,6 +77,7 @@ pub async fn create(
 pub struct EditParam {
     pub id: Option<String>,
     pub scope: Option<String>,
+    pub describe: Option<String>,
     pub status: Option<String>,
 }
 
@@ -90,6 +102,14 @@ pub async fn edit(
         return Err(APIError::forbidden_resource(ForbiddenType::Edit, &resource));
     }
     let mut active = namespace.clone().into_active_model();
+    if let Some(desc) = param.describe {
+        if desc != namespace.describe {
+            if desc.len() > 200 {
+                return Err(APIError::param_err(ParamErrType::Max(200), "describe"));
+            }
+            active.describe = Set(desc);
+        }
+    }
     if let Some(status) = param.status.and_then(|s| s.try_into().ok()) {
         if status != namespace.status {
             active.status = Set(status);
@@ -126,7 +146,7 @@ pub async fn list(
     State(ref dao): State<Dao>,
     Extension(auth): Extension<UserAuth>,
     ReqQuery(param): ReqQuery<QueryParam>,
-) -> APIResult<APIResponse<Vec<NamespaceModel>>> {
+) -> APIResult<APIResponse<Vec<NamespaceItem>>> {
     let app = check::id_str(param.app, "app")?;
     let cluster = check::id_str(param.cluster, "cluster")?;
     let status: Option<Status> = param.status.and_then(|s| s.try_into().ok());
@@ -139,18 +159,17 @@ pub async fn list(
             &resource,
         ));
     }
+    let count = dao
+        .namespace
+        .count_by_appcluster(app.clone(), cluster.clone(), status, scope)
+        .await?;
     let list = dao
         .namespace
-        .list_by_appcluster(
-            app.clone(),
-            cluster.clone(),
-            status,
-            scope,
-            helper::page_to_limit(page),
-        )
+        .list_by_appcluster(app, cluster, status, scope, helper::page_to_limit(page))
         .await?;
     let mut rsp = APIResponse::ok_data(list);
     rsp.set_page(page);
+    rsp.set_count(count);
     Ok(rsp)
 }
 

@@ -27,16 +27,3 @@ impl RelationTrait for Relation {
 }
 
 impl ActiveModelBehavior for ActiveModel {}
-
-#[derive(FromQueryResult)]
-pub struct SecretData {
-    pub secret: String,
-}
-
-#[derive(FromQueryResult, Serialize, Debug)]
-pub struct ClusterItem {
-    #[serde(serialize_with = "crate::confuse")]
-    pub id: u64,
-    pub name: String,
-    pub describe: String,
-}

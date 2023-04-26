@@ -2,10 +2,10 @@ use super::Conn;
 
 use entity::common::enums::Status;
 use entity::orm::{ActiveModelTrait, ColumnTrait, DbErr, EntityTrait, QueryFilter, QuerySelect};
+use entity::response::model::NamespaceItem;
 use entity::{
     model::{
-        namespace::{NamespaceInfo},
-        NamespaceActive, NamespaceColumn, NamespaceEntity, NamespaceModel,
+        namespace::NamespaceInfo, NamespaceActive, NamespaceColumn, NamespaceEntity, NamespaceModel,
     },
     Scope,
 };
@@ -22,6 +22,30 @@ impl Namespace {
         active.update(Conn::conn().main()).await
     }
 
+    pub async fn count_by_appcluster(
+        &self,
+        app: String,
+        cluster: String,
+        status: Option<Status>,
+        scope: Option<Scope>,
+    ) -> Result<u64, DbErr> {
+        let mut stmt = NamespaceEntity::find()
+            .select_only()
+            .column_as(NamespaceColumn::Id.count(), "count")
+            .filter(NamespaceColumn::App.eq(app))
+            .filter(NamespaceColumn::Cluster.eq(cluster));
+        if let Some(status) = status {
+            stmt = stmt.filter(NamespaceColumn::Status.eq(status));
+        }
+        if let Some(scope) = scope {
+            stmt = stmt.filter(NamespaceColumn::Scope.eq(scope))
+        }
+        stmt.into_tuple::<u64>()
+            .one(Conn::conn().slaver())
+            .await
+            .and_then(|c| Ok(c.unwrap_or_default()))
+    }
+
     pub async fn list_by_appcluster(
         &self,
         app: String,
@@ -29,8 +53,16 @@ impl Namespace {
         status: Option<Status>,
         scope: Option<Scope>,
         (offset, limit): (u64, u64),
-    ) -> Result<Vec<NamespaceModel>, DbErr> {
+    ) -> Result<Vec<NamespaceItem>, DbErr> {
         let mut stmt = NamespaceEntity::find()
+            .select_only()
+            .columns([
+                NamespaceColumn::Id,
+                NamespaceColumn::Namespace,
+                NamespaceColumn::Describe,
+                NamespaceColumn::Status,
+                NamespaceColumn::Scope,
+            ])
             .filter(NamespaceColumn::App.eq(app))
             .filter(NamespaceColumn::Cluster.eq(cluster))
             .offset(offset)
@@ -41,7 +73,9 @@ impl Namespace {
         if let Some(scope) = scope {
             stmt = stmt.filter(NamespaceColumn::Scope.eq(scope))
         }
-        stmt.all(Conn::conn().slaver()).await
+        stmt.into_model::<NamespaceItem>()
+            .all(Conn::conn().slaver())
+            .await
     }
 
     pub async fn get_app_info(&self, id: u64) -> Result<Option<NamespaceInfo>, DbErr> {

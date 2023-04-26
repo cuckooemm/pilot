@@ -12,13 +12,14 @@ pub struct Model {
     pub app: String,
     pub cluster: String,
     pub namespace: String,
+    pub describe: String,
     pub scope: Scope,
     pub status: Status,
     pub created_at: DateTimeWithTimeZone,
     pub updated_at: DateTimeWithTimeZone,
 }
 
-#[derive(Copy, Clone, Debug, EnumIter)]
+#[derive(Copy, Clone, Debug, EnumIter)]     
 pub enum Relation {}
 impl RelationTrait for Relation {
     fn def(&self) -> RelationDef {

@@ -238,11 +238,8 @@ pub async fn list(
     let page = helper::page(param.page, param.page_size);
     let mut dept = None;
     match auth.level {
-        // 获取所有帐号
         UserLevel::Admin => (),
-        // 获取本部门帐号
         UserLevel::DeptAdmin => dept = Some(auth.department_id),
-        // 无权限
         _ => {
             return Err(APIError::forbidden_resource(
                 ForbiddenType::Access,

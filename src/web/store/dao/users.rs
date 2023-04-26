@@ -9,7 +9,6 @@ use entity::{
         users::{UserAuth, UserItem},
         DepartmentColumn, DepartmentEntity, UsersActive, UsersColumn, UsersEntity, UsersModel,
     },
-    ID,
 };
 
 #[derive(Debug, Clone, Default)]
@@ -30,7 +29,7 @@ impl Users {
         } else {
             stmt = stmt.filter(UsersColumn::Account.eq(account));
         }
-        stmt.into_model::<ID>()
+        stmt.into_tuple::<u64>()
             .one(Conn::conn().main())
             .await
             .and_then(|id| Ok(id.is_some()))

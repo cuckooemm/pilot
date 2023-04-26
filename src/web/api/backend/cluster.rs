@@ -11,6 +11,7 @@ use axum::Extension;
 use entity::common::enums::Status;
 use entity::model::{rule::Verb, ClusterActive, ClusterModel, UserAuth};
 use entity::orm::{ActiveModelTrait, IntoActiveModel, Set};
+use entity::response::model::ClusterItem;
 use rand::{distributions::Alphanumeric, Rng};
 use serde::Deserialize;
 use tracing::instrument;
@@ -69,7 +70,7 @@ pub async fn create(
 pub struct EditParam {
     pub id: Option<String>,
     pub reset_secret: Option<bool>,
-    pub descibe: Option<String>,
+    pub describe: Option<String>,
     pub status: Option<String>,
 }
 
@@ -90,7 +91,7 @@ pub async fn edit(
         return Err(APIError::forbidden_resource(ForbiddenType::Edit, &resource));
     }
     let mut active = cluster.clone().into_active_model();
-    if let Some(desc) = param.descibe {
+    if let Some(desc) = param.describe {
         if desc != cluster.describe {
             if desc.len() > 200 {
                 return Err(APIError::param_err(ParamErrType::Max(200), "describe"));
@@ -114,7 +115,7 @@ pub async fn edit(
 }
 
 #[derive(Deserialize, Debug)]
-pub struct ClusterQueryParam {
+pub struct QueryParam {
     pub app: Option<String>,
     pub status: Option<String>,
     pub page: Option<String>,
@@ -125,25 +126,57 @@ pub struct ClusterQueryParam {
 pub async fn list(
     Extension(auth): Extension<UserAuth>,
     State(ref dao): State<Dao>,
-    ReqQuery(param): ReqQuery<ClusterQueryParam>,
-) -> APIResult<APIResponse<Vec<ClusterModel>>> {
-    let app = check::id_str(param.app, "app")?;
+    ReqQuery(param): ReqQuery<QueryParam>,
+) -> APIResult<APIResponse<Vec<ClusterItem>>> {
+    let app: String = check::id_str(param.app, "app")?;
     let status: Option<Status> = param.status.and_then(|s| s.try_into().ok());
     let page = helper::page(param.page, param.page_size);
     let resource = vec![app.as_str()];
-    if accredit::accredit(&auth, Verb::VIEW, &resource).await? {
+    if !accredit::accredit(&auth, Verb::VIEW, &resource).await? {
         return Err(APIError::forbidden_resource(
             ForbiddenType::Access,
             &resource,
         ));
     }
-    let list = dao
+    let count = dao
         .cluster
-        .find_cluster_by_app(app.clone(), status, page)
+        .count_cluster_by_app(app.clone(), status)
         .await?;
-    let mut rsp = APIResponse::ok_data(list);
+    let mut rsp = APIResponse::ok();
+    if count > 0 {
+        let list = dao.cluster.list_cluster_by_app(app, status, page).await?;
+        rsp.set_data(list);
+    }
+    rsp.set_count(count);
     rsp.set_page(page);
     Ok(rsp)
+}
+
+#[derive(Deserialize, Debug)]
+pub struct DetailsParam {
+    pub id: Option<String>,
+}
+
+#[instrument(skip(dao, auth))]
+pub async fn details(
+    State(ref dao): State<Dao>,
+    Extension(auth): Extension<UserAuth>,
+    ReqQuery(param): ReqQuery<DetailsParam>,
+) -> APIResult<APIResponse<ClusterModel>> {
+    let id = check::id_decode::<u64>(param.id, "id")?;
+    let cluster = dao
+        .cluster
+        .get_cluster_by_id(id)
+        .await?
+        .ok_or(APIError::param_err(ParamErrType::NotExist, "id"))?;
+    let resource = vec![cluster.app.as_str()];
+    if !accredit::accredit(&auth, Verb::VIEW, &resource).await? {
+        return Err(APIError::forbidden_resource(
+            ForbiddenType::Access,
+            &resource,
+        ));
+    }
+    Ok(APIResponse::ok_data(cluster))
 }
 
 fn general_rand_secret() -> String {

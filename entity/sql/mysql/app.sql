@@ -65,6 +65,7 @@ CREATE TABLE `namespace` (
     `app` varchar(64) NOT NULL COMMENT 'app',
     `cluster` varchar(64) NOT NULL DEFAULT 'global' COMMENT '集群环境',
     `namespace` varchar(64) NOT NULL COMMENT '命名空间',
+    `describe` varchar(200) NOT NULL DEFAULT '' COMMENT '详情',
     `scope` tinyint unsigned NOT NULL DEFAULT 0 COMMENT '范围',
     `status` tinyint unsigned NOT NULL DEFAULT 0 COMMENT '状态',
     `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',

@@ -6,8 +6,8 @@ use entity::model::{
     RoleRuleEntity, RuleActive, RuleEntity, UserRoleActive, UserRoleEntity,
 };
 use entity::orm::{
-    ActiveModelTrait, ColumnTrait, DbErr, EntityTrait, Iterable, QueryFilter, QuerySelect,
-    QueryTrait, Set, TransactionError, TransactionTrait,
+    ActiveModelTrait, ColumnTrait, DbErr, EntityTrait, Iterable, Order, QueryFilter, QueryOrder,
+    QuerySelect, Set, TransactionError, TransactionTrait,
 };
 
 #[derive(Debug, Clone, Default)]
@@ -77,7 +77,10 @@ impl App {
         status: Option<Status>,
         (offset, limit): (u64, u64),
     ) -> Result<Vec<AppModel>, DbErr> {
-        let mut stmt = AppEntity::find().offset(offset).limit(limit);
+        let mut stmt = AppEntity::find()
+            .order_by(AppColumn::Id, Order::Desc)
+            .offset(offset)
+            .limit(limit);
         if let Some(department_id) = department_id {
             stmt = stmt.filter(AppColumn::DepartmentId.eq(department_id));
         }

@@ -75,9 +75,7 @@ pub async fn description(
     {
         Some(secret) => {
             // 校验secret
-            if encode_secret
-                != utils::hex_md5(format!("{}-{}-{}", &app_id, &cluster, &secret.secret))
-            {
+            if encode_secret != utils::hex_md5(format!("{}-{}-{}", &app_id, &cluster, &secret)) {
                 return Err(APIError::param_err(ParamErrType::Invalid, "secret"));
             }
         }
@@ -181,9 +179,7 @@ pub async fn notifaction(
     {
         Some(secret) => {
             // 校验secret
-            if encode_secret
-                != utils::hex_md5(format!("{}-{}-{}", &app_id, &cluster, &secret.secret))
-            {
+            if encode_secret != utils::hex_md5(format!("{}-{}-{}", &app_id, &cluster, &secret)) {
                 return Err(APIError::param_err(ParamErrType::Invalid, "secret"));
             }
         }

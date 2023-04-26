@@ -1,13 +1,10 @@
 use super::Conn;
 
-use entity::common::common::Name;
 use entity::common::enums::Status;
 use entity::model::{DepartmentActive, DepartmentColumn, DepartmentEntity, DepartmentModel};
-use entity::orm::sea_query::Expr;
 use entity::orm::{
     ActiveModelTrait, ColumnTrait, DbErr, EntityTrait, QueryFilter, QueryOrder, QuerySelect, Set,
 };
-use entity::ID;
 
 #[derive(Debug, Clone, Default)]
 pub struct Department;
